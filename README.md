@@ -43,6 +43,16 @@ El taller muestra cómo cambian la potencia, el 0–100, la velocidad máxima, e
 | Camioneta 4x4 | 4x4 diésel | 204 CV |
 | Cóndor GT | Trasera | 408 CV |
 
+## Sonido y música
+
+Todo se genera en el momento con Web Audio, sin archivos de audio: el juego sigue siendo un solo `index.html`.
+
+- **Motores con carácter propio:** el taxi suena a cuatro cilindros sedán; el Rally Estrella tiene silbido de turbo, descarga ("pssh") al soltar el acelerador y petardeos; la camioneta es un diésel con traqueteo grave; el Cóndor GT es un V8 con su bamboleo y petardeos al subir de marcha. El escape deportivo y la preparación por etapas se escuchan.
+- **Arranque, cambios y limitador:** marcha y tos antes de la largada, golpe de la caja en cada cambio, golpe de acelerador al reducir y corte de combustión al llegar al limitador.
+- **Los demás también suenan:** rivales y tránsito (autos, micros y camiones) con efecto Doppler y paneo estéreo según por dónde pasan. Con el motor dañado falla, y destruido se apaga.
+- **Música por mapa:** huayno con quena y charango en la Cordillera, cumbia chilena en La Alameda, tema tenso con arpegios en Los Caracoles y cueca con guitarra en la Carretera Austral. Hay otro tema tranquilo para el menú. Suma instrumentos a medida que vas más rápido y se apaga suave al pausar.
+- **Controles:** `N` activa o desactiva solo la música (también hay botón en el menú y en la pausa); `M` silencia todo.
+
 ## Controles
 
 | Tecla | Acción |
@@ -55,7 +65,8 @@ El taller muestra cómo cambian la potencia, el 0–100, la velocidad máxima, e
 | C | Cambiar cámara |
 | R | Volver a la ruta (si estás volcado o con el motor destruido, llama a la grúa: +10 s) |
 | 1 / 2 | ABS / control de tracción |
-| M | Sonido |
+| M | Sonido (todo) |
+| N | Música |
 | Esc | Pausa |
 
 También funciona con joystick y con controles táctiles en el celular.
