@@ -152,6 +152,23 @@ body.touch #dmg{top:calc(150px + env(safe-area-inset-top,0px));width:48px;height
 #t-brake{right:112px;border-radius:18px!important;}
 #t-hb{right:26px;bottom:calc(140px + env(safe-area-inset-bottom,0px))!important;width:64px!important;height:52px!important;border-radius:12px!important;font-size:12px!important;}
 #t-pause{top:calc(150px + env(safe-area-inset-top,0px));bottom:auto!important;right:16px;width:auto!important;height:auto!important;padding:6px 14px;border-radius:6px!important;font-size:14px!important;}
+#touch .t4{display:none;bottom:auto!important;width:auto!important;height:auto!important;padding:8px 12px;border-radius:8px!important;font-size:13px!important;right:16px;}
+body.trial #touch .t4{display:block;}
+.keys4, body.trial .keys:not(.keys4), body.trial #assists{display:none;}
+body.trial .keys4{display:block;}
+#t-4x4{top:calc(196px + env(safe-area-inset-top,0px));} #t-lock{top:calc(240px + env(safe-area-inset-top,0px));} #t-winch{top:calc(284px + env(safe-area-inset-top,0px));}
+#off4{position:absolute;left:16px;bottom:calc(46px + env(safe-area-inset-bottom,0px));padding:8px 10px;display:flex;flex-direction:column;gap:6px;}
+#incl{display:block;width:180px;height:82px;}
+.o4p{display:flex;flex-wrap:wrap;gap:4px;max-width:200px;}
+body.touch #off4{bottom:auto;top:calc(232px + env(safe-area-inset-top,0px));transform:scale(0.8);transform-origin:top left;}
+.m4-intro{margin:-4px 0 10px;font-size:13.5px;line-height:1.4;color:#d7e6dd;max-width:720px;}
+#maps4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,42vw),1fr));gap:12px;}
+.stars{color:var(--ambar);letter-spacing:.1em;font-size:14px;}
+.medal{font-family:var(--f-display);font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;}
+#t-diff{background:#0a3f2b;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.4;}
+#t-diff b{font-family:var(--f-display);font-size:18px;}
+#t-diff ul{margin:6px 0 0;padding-left:0;list-style:none;display:grid;gap:3px;}
+#t-diff li.ok{color:#bfe8c9;} #t-diff li.bad{color:#ffd0c8;}
 body.touch #gauge{right:auto;left:50%;transform:translateX(-50%);width:150px;height:150px;bottom:calc(100px + env(safe-area-inset-bottom,0px));}
 body.touch #assists,body.touch #hint,body.touch #place{display:none;}
 body.touch #minimap{width:110px;height:110px;}
@@ -210,6 +227,10 @@ body.touch #minimap{width:110px;height:110px;}
     <h2>Elige el mapa</h2>
     <div id="maps"></div>
 
+    <h2>Desafío 4x4 · solo camionetas</h2>
+    <p class="m4-intro">Etapas contra el reloj con obstáculos de verdad. Prepara la camioneta para cada una (neumáticos, presión, bloqueos, suspensión, snorkel, huinche): una mala preparación la hace mucho más difícil.</p>
+    <div id="maps4"></div>
+
     <h2>Elige tu auto</h2>
     <div id="cars"></div>
     <div class="taller-row">
@@ -260,6 +281,12 @@ body.touch #minimap{width:110px;height:110px;}
         <kbd>W</kbd>/<kbd>↑</kbd> acelerar · <kbd>S</kbd>/<kbd>↓</kbd> frenar y reversa · <kbd>A</kbd><kbd>D</kbd> dirección · <kbd>Espacio</kbd> freno de mano ·
         <kbd>E</kbd>/<kbd>Q</kbd> subir/bajar cambio · <kbd>C</kbd> cámara · <kbd>R</kbd> volver a la ruta · <kbd>1</kbd> ABS · <kbd>2</kbd> control de tracción · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa. También funciona con joystick. Con daños realistas, un choque fuerte abolla la carrocería, revienta vidrios, daña el motor y puede volcarte: <kbd>R</kbd> llama a la grúa (+10 s). Ojo con los baches, las pozas, el aceite, el hielo, las obras y el tránsito que viene de frente.
       </div>
+      <div class="keys keys4">
+        <kbd>W</kbd>/<kbd>↑</kbd> acelerar (dosifica: si patinas, cavas) · <kbd>S</kbd>/<kbd>↓</kbd> frenar y reversa · <kbd>A</kbd><kbd>D</kbd> dirección ·
+        <kbd>F</kbd> 2H / 4H / 4L (la reductora entra detenido) · <kbd>L</kbd> bloqueos de diferencial · <kbd>G</kbd> huinche al anclaje más cercano (eslinga amarilla) ·
+        <kbd>T</kbd> control de tracción · <kbd>C</kbd> cámara · <kbd>R</kbd> rescate al último control (+30 s; si te repites en el mismo tramo, remolque +60 s) · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa.
+        Despacio y parejo en roca y agua; con impulso en arena y barro.
+      </div>
       <button id="start">¡A correr!</button>
     </div>
   </div>
@@ -281,7 +308,7 @@ body.touch #minimap{width:110px;height:110px;}
 <div id="hud" class="hidden">
   <div id="timing" class="box">
     <div id="pos"></div>
-    <div class="row">Vuelta <b id="lap">1/3</b></div>
+    <div class="row"><span id="lap-lbl">Vuelta</span> <b id="lap">1/3</b></div>
     <div class="row">Tiempo <b id="time">0:00.000</b></div>
     <div class="row">Mejor <b id="best">—</b></div>
   </div>
@@ -289,6 +316,10 @@ body.touch #minimap{width:110px;height:110px;}
   <div id="mapbox" class="box"><canvas id="minimap" width="340" height="340"></canvas></div>
   <canvas id="gauge" width="500" height="500"></canvas>
   <canvas id="dmg" width="160" height="240" aria-label="Estado del auto"></canvas>
+  <div id="off4" class="box hidden">
+    <canvas id="incl" width="240" height="110" aria-label="Inclinómetro"></canvas>
+    <div class="o4p"><span class="pill" id="o-tr">4H</span><span class="pill" id="o-lr">TRAS</span><span class="pill" id="o-lf">DEL</span><span class="pill" id="o-tc">TC</span><span class="pill" id="o-psi">35 psi</span><span class="pill" id="o-w">HUINCHE</span></div>
+  </div>
   <div id="assists">
     <span class="pill on" id="p-abs">ABS</span>
     <span class="pill on" id="p-tcs">TCS</span>
@@ -306,6 +337,9 @@ body.touch #minimap{width:110px;height:110px;}
   <button id="t-gas">ACEL</button>
   <button id="t-hb">MANO</button>
   <button id="t-pause">PAUSA</button>
+  <button id="t-4x4" class="t4">4x4</button>
+  <button id="t-lock" class="t4">BLOQ</button>
+  <button id="t-winch" class="t4">HUINCHE</button>
 </div>
 
 <div id="pause" class="overlay hidden">
@@ -404,7 +438,13 @@ const CARS = [
     paint: 0x0039a6, mass: 1450, frontW: 0.52, h: 0.47, L: 2.6, tw: 1.6, R: 0.34,
     Tmax: 540, peak: 5000, redline: 7800, idle: 900, gears: [3.1, 2.1, 1.55, 1.22, 1.0, 0.84], final: 3.6,
     drive: 0.0, CdA: 0.62, mu: 1.15, brake: 17500, len: 4.5, wid: 1.9, hgt: 1.3, kw: 300 },
+  { id: 'pickup1', name: 'Camioneta corta', tag: 'Cabina simple · V6 bencina', body: 'pickup', singleCab: true, cab: 1.45,
+    desc: 'Más corta y liviana que la doble cabina: pasa mejor entre las rocas, pero se vuelca antes en las laderas.',
+    paint: 0x2f5a3a, mass: 1720, frontW: 0.55, h: 0.74, L: 2.85, tw: 1.58, R: 0.38,
+    Tmax: 380, peak: 3800, redline: 5800, idle: 700, gears: [3.9, 2.3, 1.5, 1.15, 0.9, 0.75], final: 3.73,
+    drive: 0.5, CdA: 1.0, mu: 0.95, brake: 15000, len: 4.95, wid: 1.82, hgt: 1.78, kw: 180 },
 ];
+const isTruck = c => c.body === 'pickup';
 const RIVAL_NAMES = ['M. Ossandón', 'C. Pradenas', 'J. Huenchullán', 'P. Riquelme', 'F. Valdivia'];
 
 // ---- Taller: modificaciones guardadas por auto ----
@@ -494,6 +534,19 @@ const ALAMEDA_RIVER = [[1300, -40], [900, -90], [760, -140], [540, -170], [300, 
 const AUSTRAL_STREAMS = [{ x: 300, a: 22, f: 80 }, { x: -300, a: 18, f: 65 }];
 const streamX = (s, z) => s.x + s.a * Math.sin(z / s.f);
 function streamDistA(x, z) { let d = 1e9; for (const s of AUSTRAL_STREAMS) d = Math.min(d, Math.abs(x - streamX(s, z))); return d; }
+// ---- Desafío 4x4: terrenos de las etapas ----
+const MACUL_CREEK = [[0, 175], [0, 130], [6, 60], [-10, -10], [8, -80], [-6, -150], [20, -215], [70, -255]];
+const RIO_PTS = [[0, -520], [10, -300], [-8, -150], [8, 0], [-6, 150], [6, 300], [0, 520]];
+const ovalPts = (rx, rz, n, wob) => Array.from({ length: n }, (_, k) => { const t = k / n * Math.PI * 2; return [rx * Math.cos(t) + wob * Math.sin(3 * t), rz * Math.sin(t)]; });
+// duna: ladera suave a barlovento y cara de avalancha empinada a sotavento
+const sawDune = (p, lee) => { p -= Math.floor(p); return p < 1 - lee ? smooth(0, 1 - lee, p) : 1 - smooth(1 - lee, 1, p); };
+function duneH(x, z) {
+  const c = Math.cos(0.35), s = Math.sin(0.35), u = x * c + z * s, v = -x * s + z * c, wu = u + 18 * fbm(x / 150, z / 150, 2);
+  let h = 6 * sawDune(wu / 72 + 0.15 * Math.sin(v / 90), 0.36) * (0.6 + 0.5 * fbm(x / 200 + 3, z / 200, 2));
+  h += 1.7 * sawDune(wu / 23 + 0.3 * Math.sin(v / 40), 0.4) * (0.5 + 0.5 * fbm(x / 60, z / 60, 2));
+  return h + 10 * fbm(x / 420, z / 420, 2);
+}
+const NAHUEL_PITS = [[60, 100, 8, 0.5], [120, 60, 7, 0.45], [20, -170, 6, 0.4], [-50, -140, 9, 0.55], [-130, 0, 8, 0.5]];
 const MAPS = {
   cordillera: {
     name: 'Circuito Cordillera', place: 'Valle del Aconcagua', tags: ['Asfalto', 'Curvas de montaña', '3,9 km'],
@@ -616,6 +669,164 @@ const MAPS = {
     signs: [[350, [['Pto. Río Tranquilo', '12', '↑'], ['Coyhaique', '224', '↑']], 'R-7'], [2150, [['Cochrane', '115', '↑'], ['Pto. Guadal', '38', '↑']], 'R-7']],
     speeds: [60, 40], loading: 'Abriendo camino entre los coigües…',
   },
+  // ===================== Desafío 4x4 =====================
+  x4_rocas: {
+    mode: '4x4', stage: 1, stars: 4, name: 'Quebrada de Macul', place: 'Etapa 1 · Precordillera de Santiago', tags: ['4x4', 'Roca', 'Escalones'],
+    desc: 'Subida por el lecho seco de la quebrada: campos de bolones, escalera de roca, laderas inclinadas y "El Escalón" de 50 cm. Bajada empinada por la loma.',
+    pts: [[0, 130], [6, 60], [-10, -10], [8, -80], [-6, -150], [20, -215], [70, -255], [125, -228], [150, -160], [160, -80], [150, 0], [130, 80], [95, 138], [45, 162]],
+    roadHalf: 2.8, flatExtra: 0.6, blend: 5, startS: 22, smoothY: 3, lanes: 1, road: 'huella', roadTone: [118, 98, 76], roadSurf: 19, berm: 'tierra', rails: 'ninguna', railStyle: 'metal', railGap: 1, kerbs: false,
+    baseH(x, z) {
+      const ramp = 0.24 * clamp(150 - z, 0, 430), dc = polyDist(MACUL_CREEK, x, z);
+      let h = ramp - 7 * smooth(26, 5, dc) + 4 * fbm(x / 60, z / 60, 3) + 1.2 * fbm(x / 9, z / 9, 2) * smooth(4, 20, dc);
+      h += smooth(230, 650, Math.hypot(x - 70, z + 60)) * 320 * (0.5 + 0.5 * ridged(x / 500, z / 500, 4));
+      return h;
+    },
+    pal: { dry: 0x8a7552, dry2: 0x6e5c40, green: 0x5a6430, dirt: 0x6e5840, rock: 0x6c645c, rock2: 0x857a6c, snow: 0xeef2f6, gravel: 0x7a6a54, lake: 0x5a6430, snowLine: 900, greenH: 40, rockH: [60, 260] },
+    veg: [{ type: 'bush', n: 1100 }, { type: 'rock', n: 520 }, { type: 'tree', n: 140 }],
+    hazards: {}, traffic: { n: 0, kinds: [], speed: [0, 0] }, arch: 'DESAFÍO 4x4 · MACUL', aiMu: 1, condors: true, laps: 1, mainSurf: 15,
+    ui: { sub: 'Desafío 4x4 · Etapa 1 · Quebrada de Macul', top: '4x4', shield: 'E1', rows: [['Escalones', '6'], ['Pendiente', '35%'], ['Largo', '1,0 km']] },
+    signs: [], speeds: [20, 20], loading: 'Acomodando las rocas de la quebrada…',
+    medals: [180, 250, 340], cps: [0.16, 0.3, 0.55, 0.8],
+    needs: [
+      { t: s => s.lock !== 'no', ok: 'Bloqueo de diferencial', bad: 'Sin bloqueos: con una rueda en el aire el diferencial manda todo el torque ahí y te quedas', w: 3 },
+      { t: s => s.size >= 35, ok: 'Neumáticos grandes (35" o más)', bad: 'Con neumáticos chicos los escalones son casi paredes y el chasis toca las rocas', w: 2 },
+      { t: s => s.psi <= 18, ok: 'Presión baja: el neumático abraza la roca', bad: 'Con 35 psi el neumático rebota y resbala en la roca', w: 1 },
+      { t: s => s.tire === 'roca' || s.tire === 'mt', ok: 'Neumático de roca o barro', bad: 'Neumático de carretera o AT: agarra menos en la roca', w: 1 },
+      { t: s => s.susp === 'larga' || s.sway === 'des', ok: 'Mucha articulación', bad: 'Suspensión rígida: las ruedas se despegan del suelo', w: 2 },
+      { t: s => s.armor, ok: 'Protecciones bajo el chasis', bad: 'Sin protecciones: el chasis se engancha en las rocas', w: 1 },
+      { t: s => s.size < 35 || s.gear >= 456, ok: 'Relación de corona acorde a los neumáticos', bad: 'Neumáticos grandes con corona larga: le falta fuerza para trepar', w: 1 },
+    ],
+    obstacles(api) {
+      const { rock, ledge, anchor, sign, F, rng } = api;
+      for (let k = 0; k < 13; k++) rock(F(0.055 + rng() * 0.035), (rng() * 2 - 1) * 2.6, 0.5 + rng() * 0.6, 0.45 + rng() * 0.5, 0.28 + rng() * 0.4);
+      ledge(F(0.105), 0, 6.4, 2.6, 0.32);
+      sign(F(0.12), -1, 'ESCALERA DE ROCA');
+      // escalones separados más que la distancia entre ejes: cada eje sube el suyo por separado
+      ledge(F(0.135), 0, 6.4, 2.6, 0.3); ledge(F(0.135) + 4.2, 0, 6.4, 2.6, 0.34); ledge(F(0.135) + 8.4, 0, 6.4, 2.6, 0.38);
+      for (let k = 0; k < 6; k++) rock(F(0.175 + k * 0.005), 1.8 + rng() * 1.3, 0.9 + rng() * 0.6, 0.8 + rng() * 0.5, 0.55 + rng() * 0.35);
+      for (let k = 0; k < 4; k++) rock(F(0.177 + k * 0.006), -2.2 - rng(), 0.4 + rng() * 0.3, 0.4, 0.22 + rng() * 0.15);
+      rock(F(0.225), 2.5, 1.5, 1.2, 1.0); rock(F(0.226), -2.6, 1.6, 1.3, 1.05); rock(F(0.229), 0.3, 0.6, 0.5, 0.35);
+      sign(F(0.245), 1, 'EL ESCALÓN · 50 cm');
+      ledge(F(0.26), 0.9, 4.6, 3.2, 0.5); rock(F(0.258), -2.1, 0.7, 0.6, 0.25); rock(F(0.261), -2.2, 0.7, 0.7, 0.43);
+      for (let k = 0; k < 10; k++) rock(F(0.29 + rng() * 0.05), (rng() * 2 - 1) * 2.5, 0.4 + rng() * 0.5, 0.4 + rng() * 0.4, 0.22 + rng() * 0.3);
+      ledge(F(0.31), -0.8, 4.8, 2.5, 0.3); ledge(F(0.335), 0.6, 5, 2.4, 0.35);
+      for (let k = 0; k < 6; k++) rock(F(0.355 + rng() * 0.012), (rng() * 2 - 1) * 2.4, 0.6 + rng() * 0.5, 0.5 + rng() * 0.4, 0.35 + rng() * 0.35);
+      for (let k = 0; k < 10; k++) rock(F(0.5 + rng() * 0.3), (rng() * 2 - 1) * 2.5, 0.3 + rng() * 0.4, 0.3 + rng() * 0.3, 0.15 + rng() * 0.2);
+      ledge(F(0.62), 0, 6.4, 3, 0.45);
+      for (const f of [0.1, 0.14, 0.24, 0.27, 0.33]) anchor(F(f), (rng() < 0.5 ? -1 : 1) * (api.RH + 4.5 + rng() * 3), 'rock');
+    },
+  },
+  x4_rio: {
+    mode: '4x4', stage: 2, stars: 3, name: 'Cajón del Maipo', place: 'Etapa 2 · Río Colorado', tags: ['4x4', 'Río', 'Barro'],
+    desc: 'Dos vados del río: uno bajo y otro de casi un metro con corriente. Piedras mojadas, barro en las orillas y un escalón para salir del agua.',
+    pts: ovalPts(135, 150, 14, 12),
+    roadHalf: 2.9, flatExtra: 0.6, blend: 6, startS: 22, smoothY: 3, lanes: 1, road: 'huella', roadTone: [110, 96, 80], roadSurf: 19, berm: 'tierra', rails: 'ninguna', railStyle: 'metal', railGap: 1, kerbs: false,
+    water: { type: 'river', pts: RIO_PTS, width: 30, name: 'río Colorado', depthAt: (x, z) => 0.63 + 0.55 * smooth(120, -120, z), flow: z => 1.0 + 0.8 * smooth(120, -120, z) },
+    surfAt(x, z, s) { return polyDist(RIO_PTS, x, z) < 12 ? 16 : s; },
+    baseH(x, z) {
+      const dr = polyDist(RIO_PTS, x, z);
+      let h = -1.9 * smooth(15, 5, dr) - 0.015 * z + 2.5 * fbm(x / 70, z / 70, 3) * smooth(8, 30, dr);
+      h += 12 * smooth(40, 150, dr) * (0.65 + 0.35 * fbm(x / 90, z / 90, 2));
+      h += smooth(210, 700, Math.abs(x)) * 750 * (0.55 + 0.45 * ridged(x / 600, z / 600, 4));
+      return h;
+    },
+    pal: { dry: 0x7d7250, dry2: 0x63593c, green: 0x55682e, dirt: 0x65523c, rock: 0x6a625a, rock2: 0x80776c, snow: 0xeef2f6, gravel: 0x7a7060, lake: 0x55682e, snowLine: 520, greenH: 30, rockH: [60, 300] },
+    veg: [{ type: 'tree', n: 320 }, { type: 'bush', n: 800 }, { type: 'rock', n: 380 }],
+    hazards: {}, traffic: { n: 0, kinds: [], speed: [0, 0] }, arch: 'DESAFÍO 4x4 · CAJÓN DEL MAIPO', aiMu: 1, condors: true, laps: 1, mainSurf: 16,
+    ui: { sub: 'Desafío 4x4 · Etapa 2 · Cajón del Maipo', top: '4x4', shield: 'E2', rows: [['Vados', '2'], ['Agua', '1 m'], ['Largo', '1,1 km']] },
+    signs: [], speeds: [20, 20], loading: 'Midiendo la profundidad del río…',
+    medals: [160, 220, 300], cps: [0.24, 0.48, 0.74, 0.86],
+    needs: [
+      { t: s => s.snorkel, ok: 'Snorkel: el motor respira por arriba', bad: 'Sin snorkel el vado profundo (casi 1 m) hace que el motor trague agua y se ahogue', w: 4 },
+      { t: s => s.tire === 'mt' || s.tire === 'at', ok: 'Neumáticos AT o MT', bad: 'Neumáticos de carretera: no salen del barro de las orillas', w: 2 },
+      { t: s => s.winch, ok: 'Huinche para salir si te quedas', bad: 'Sin huinche: si te quedas en el río, solo te queda el rescate', w: 1 },
+      { t: s => s.susp !== 'orig' || s.size >= 33, ok: 'Más altura para el agua', bad: 'Altura original: el agua llega antes a la cabina', w: 1 },
+      { t: s => s.lock !== 'no', ok: 'Bloqueo para el escalón mojado', bad: 'Sin bloqueos el escalón mojado de la salida es muy difícil', w: 1 },
+    ],
+    obstacles(api) {
+      const { rock, ledge, log, zone, anchor, sign, F, rng } = api;
+      for (let k = 0; k < 8; k++) rock(F(0.07 + rng() * 0.05), (rng() * 2 - 1) * 2.6, 0.4 + rng() * 0.4, 0.4 + rng() * 0.3, 0.2 + rng() * 0.25);
+      sign(F(0.19), -1, 'VADO · 45 cm');
+      zone(F(0.215), 0, 6, 18, 1.2);
+      for (let k = 0; k < 9; k++) rock(F(0.235 + rng() * 0.03), (rng() * 2 - 1) * 2.6, 0.35 + rng() * 0.4, 0.35 + rng() * 0.35, 0.18 + rng() * 0.25, 16);
+      zone(F(0.29), 0, 7, 18, 1.2);
+      log(F(0.38), -3.4, 0.6, 0.22, 0.4);
+      for (let k = 0; k < 11; k++) rock(F(0.44 + rng() * 0.07), (rng() * 2 - 1) * 2.6, 0.45 + rng() * 0.5, 0.45 + rng() * 0.4, 0.25 + rng() * 0.35);
+      zone(F(0.6), 0, 9, 18, 1.4);
+      sign(F(0.7), -1, 'VADO PROFUNDO · 1 m');
+      zone(F(0.725), 0, 6, 18, 1.3);
+      for (let k = 0; k < 9; k++) rock(F(0.738 + rng() * 0.024), (rng() * 2 - 1) * 2.6, 0.35 + rng() * 0.4, 0.35 + rng() * 0.35, 0.2 + rng() * 0.25, 16);
+      ledge(F(0.772), 0, 6.6, 2.5, 0.38, 16);
+      zone(F(0.79), 0, 7, 18, 1.4);
+      anchor(F(0.275), 5.5, 'tree'); anchor(F(0.282), -6, 'tree'); anchor(F(0.75), -6, 'rock'); anchor(F(0.785), 6, 'tree'); anchor(F(0.795), -5.5, 'tree'); anchor(F(0.5), 6.5, 'rock');
+    },
+  },
+  x4_dunas: {
+    mode: '4x4', stage: 3, stars: 3, name: 'Dunas de Atacama', place: 'Etapa 3 · Desierto de Atacama', tags: ['4x4', 'Arena', 'Dunas'],
+    desc: 'Arena blanda entre dunas de 6 a 14 metros, con caras de avalancha empinadas. La presión de los neumáticos lo es todo: con mucha presión te entierras.',
+    pts: ovalPts(185, 170, 16, 30),
+    roadHalf: 3.2, flatExtra: 0.4, blend: 4, startS: 22, smoothY: 4, lanes: 1, road: 'huella', roadTone: [212, 172, 120], roadSurf: 17, terrainSurf: 17, berm: 'arena', rails: 'ninguna', railStyle: 'metal', railGap: 1, kerbs: false,
+    baseH(x, z) {
+      let h = duneH(x, z) + hill(x, z, -55, 165, 95, 14) * (0.85 + 0.15 * fbm(x / 40, z / 40, 2));
+      h += 2600 * Math.pow(Math.max(0, 1 - Math.hypot(x - 2700, z + 3300) / 2300), 1.6) + 1900 * Math.pow(Math.max(0, 1 - Math.hypot(x + 1800, z + 3700) / 1900), 1.6);
+      h += smooth(900, 2200, Math.hypot(x, z)) * 260 * (0.5 + 0.5 * ridged(x / 900, z / 900, 3));
+      return h;
+    },
+    pal: { dry: 0xd9b27a, dry2: 0xc99c64, green: 0xd2a870, dirt: 0xb98a58, rock: 0x7a5646, rock2: 0x8d6a52, snow: 0xf2f4f6, gravel: 0xcfa671, lake: 0xd2a870, snowLine: 1500, greenH: 0, rockH: [140, 600] },
+    veg: [{ type: 'rock', n: 160 }],
+    hazards: {}, traffic: { n: 0, kinds: [], speed: [0, 0] }, arch: 'DESAFÍO 4x4 · ATACAMA', aiMu: 1, laps: 1, mainSurf: 17,
+    ui: { sub: 'Desafío 4x4 · Etapa 3 · Dunas de Atacama', top: '4x4', shield: 'E3', rows: [['Duna grande', '14 m'], ['Arena', '100%'], ['Largo', '1,1 km']] },
+    signs: [], speeds: [20, 20], loading: 'Peinando las dunas…',
+    medals: [105, 140, 190], cps: [0.25, 0.5, 0.75],
+    needs: [
+      { t: s => s.psi <= 18, ok: 'Presión baja: el neumático flota sobre la arena', bad: 'Con mucha presión el neumático se entierra en vez de flotar', w: 3 },
+      { t: s => s.tire !== 'mt', ok: 'Neumático que no cava', bad: 'Los tacos del neumático de barro cavan en la arena', w: 1 },
+      { t: s => s.size >= 33, ok: 'Neumático grande: más huella', bad: 'Neumático chico: poca huella sobre la arena', w: 1 },
+      { t: s => s.gear <= 456, ok: 'Relación para ir con impulso', bad: 'Corona muy corta: en la arena hay que ir rápido y no alcanza', w: 1 },
+    ],
+    obstacles(api) {
+      const { rock, zone, sign, F, rng } = api;
+      zone(F(0) - 4, 0, 16, 19, 0); // arena compactada del campamento de partida
+      for (const f of [0.15, 0.4, 0.62, 0.86]) { zone(F(f), 0, 10, 17, 2.4); sign(F(f) - 18, -1, 'ARENA BLANDA'); }
+      for (let k = 0; k < 14; k++) rock(F(rng()), (rng() < 0.5 ? -1 : 1) * (api.RH + 2 + rng() * 10), 0.6 + rng() * 1.2, 0.5 + rng(), 0.4 + rng() * 0.8);
+    },
+  },
+  x4_barro: {
+    mode: '4x4', stage: 4, stars: 5, name: 'Barro de Nahuelbuta', place: 'Etapa 4 · Cordillera de Nahuelbuta', tags: ['4x4', 'Barro', 'Troncos'],
+    desc: 'Bosque de araucarias bajo la lluvia: pozones de barro profundo, troncos atravesados, raíces mojadas y una cuesta resbaladiza donde el huinche salva.',
+    pts: [[0, 140], [60, 100], [120, 60], [150, -10], [140, -90], [90, -150], [20, -170], [-50, -140], [-110, -80], [-130, 0], [-110, 70], [-60, 130]],
+    roadHalf: 2.7, flatExtra: 0.6, blend: 5, startS: 22, smoothY: 2, lanes: 1, road: 'huella', roadTone: [92, 74, 54], roadSurf: 19, berm: 'tierra', rails: 'ninguna', railStyle: 'metal', railGap: 1, kerbs: false,
+    baseH(x, z) {
+      let h = 22 * fbm(x / 180, z / 180, 3) + 5 * fbm(x / 50, z / 50, 2) + hill(x, z, 140, -40, 120, 26);
+      for (const [px, pz, r, d] of NAHUEL_PITS) { const q = Math.hypot(x - px, z - pz); h -= d * smooth(r, r * 0.45, q); }
+      h += smooth(300, 800, Math.hypot(x, z)) * 320 * (0.5 + 0.5 * ridged(x / 600, z / 600, 4));
+      return h;
+    },
+    pal: { dry: 0x4c5a2e, dry2: 0x3a4824, green: 0x3e6a26, dirt: 0x5a4632, rock: 0x5a5850, rock2: 0x6c6a5e, snow: 0xeef2f6, gravel: 0x5a4a38, lake: 0x3e6a26, snowLine: 900, greenH: 300, rockH: [120, 400] },
+    veg: [{ type: 'ara', n: 260 }, { type: 'conifer', n: 900 }, { type: 'bush', n: 700 }, { type: 'nalca', n: 180 }, { type: 'rock', n: 90 }],
+    hazards: {}, traffic: { n: 0, kinds: [], speed: [0, 0] }, arch: 'DESAFÍO 4x4 · NAHUELBUTA', aiMu: 1, laps: 1, mainSurf: 18, defWeather: 'rain',
+    ui: { sub: 'Desafío 4x4 · Etapa 4 · Barro de Nahuelbuta', top: '4x4', shield: 'E4', rows: [['Pozones', '5'], ['Troncos', '5'], ['Largo', '1,0 km']] },
+    signs: [], speeds: [20, 20], loading: 'Llenando los pozones de barro…',
+    medals: [150, 205, 280], cps: [0.2, 0.42, 0.62, 0.82],
+    needs: [
+      { t: s => s.tire === 'mt', ok: 'Neumáticos de barro (MT)', bad: 'Sin neumáticos MT el barro tapa la banda y patinas', w: 3 },
+      { t: s => s.lock !== 'no', ok: 'Bloqueo de diferencial', bad: 'Sin bloqueos, en el pozón una rueda gira en el aire y te quedas', w: 2 },
+      { t: s => s.winch, ok: 'Huinche para la cuesta y los pozones', bad: 'Sin huinche: si te entierras, solo queda el rescate', w: 2 },
+      { t: s => s.psi <= 25, ok: 'Presión moderada', bad: 'Con 35 psi la huella es angosta y se hunde', w: 1 },
+      { t: s => s.susp !== 'orig' || s.size >= 33, ok: 'Despeje para los troncos', bad: 'Despeje original: los troncos golpean el chasis', w: 1 },
+    ],
+    obstacles(api) {
+      const { rock, log, zoneXY, zone, anchor, sign, F, rng } = api;
+      // cada pozón tiene una araucaria con eslinga poco después de la salida (alcance del huinche: 45 m)
+      const tq = {};
+      for (const [px, pz, r] of NAHUEL_PITS) { zoneXY(px, pz, r * 0.9, 18, 1.6); if (track.query(px, pz, tq) && tq.dist < 25) anchor(tq.s + r + 20, (rng() < 0.5 ? -1 : 1) * (api.RH + 3 + rng() * 2), 'tree'); }
+      for (const f of [0.15, 0.33, 0.48, 0.7, 0.9]) { const full = rng() < 0.5; log(F(f), full ? -3.6 : -3.6 + rng() * 1.5, full ? 3.6 : 0.4 + rng() * 2, 0.17 + rng() * 0.07, (rng() - 0.5) * 0.5); }
+      for (const f of [0.3, 0.33, 0.36, 0.39]) zone(F(f), 0, 7, 18, 1.2);
+      sign(F(0.285), -1, 'CUESTA DE BARRO');
+      for (let k = 0; k < 16; k++) rock(F(rng()), (rng() * 2 - 1) * 2.5, 0.3 + rng() * 0.3, 0.3 + rng() * 0.3, 0.12 + rng() * 0.16, 16);
+      for (const f of [0.36, 0.4, 0.43]) anchor(F(f), (rng() < 0.5 ? -1 : 1) * (api.RH + 4 + rng() * 3), 'tree');
+    },
+  },
 };
 const MAP_IDS = Object.keys(MAPS);
 // el mapa se elige en el menú; también se puede abrir directo con #mapa=alameda en la dirección
@@ -634,7 +845,7 @@ const BLEND = MAP.blend;              // transición al terreno
 const LANE = ROAD_HALF * 0.55;        // separación de carriles para la IA
 const LAKE = MAP.water && MAP.water.type === 'circle' ? MAP.water : { x: 1e7, z: 1e7, r: 0 };
 function baseH(x, z) { return MAP.baseH(x, z); }
-const BERM_SURF = { ripio: 2, vereda: 10, nieve: 9, tierra: 0 }[MAP.berm] ?? 2;
+const BERM_SURF = { ripio: 2, vereda: 10, nieve: 9, tierra: MAP.mode === '4x4' ? 19 : 0, arena: 17 }[MAP.berm] ?? 2;
 
 // =====================================================================
 // Pista: muestreo cada ~2 m, alturas suavizadas, búsqueda espacial
@@ -674,7 +885,8 @@ const track = (() => {
   // la rasante ignora las quebradas de los esteros (ahí van puentes)
   const roadBase = MAP.roadH ? (x, z) => MAP.roadH(x, z) : baseH;
   for (let i = 0; i < n; i++) Y[i] = Math.max(roadBase(X[i], Z[i]), MAP.minRoadY ?? -1e9);
-  circSmooth(Y, 35, 4);
+  // las huellas 4x4 siguen el terreno de cerca; las carreteras se suavizan mucho
+  circSmooth(Y, MAP.smoothY ?? 35, MAP.smoothY ? 2 : 4);
 
   // Defensas: según el mapa (exterior de curvas, todo el circuito, precipicios o solo puentes)
   const railL = new Uint8Array(n), railR = new Uint8Array(n), kerbL = new Uint8Array(n), kerbR = new Uint8Array(n);
@@ -776,10 +988,18 @@ const BERM_RAISE = MAP.bermRaise || 0;
 const Q = {};
 // HZ[i]: peligros del camino (baches, pozas, hielo…) que tocan la muestra i de la pista
 let HZ = null;
+const TERRAIN_SURF = MAP.terrainSurf ?? 0;
+// altura del suelo: en el Desafío 4x4 se lee de una caché fina y se suman rocas, escalones y troncos
 function groundAt(x, z, q = Q) {
+  if (OB4 && OB4.on) return ground4(x, z, q);
+  const y = groundBaseAt(x, z, q);
+  if (MAP.surfAt) q.surf = MAP.surfAt(x, z, q.surf);
+  return y;
+}
+function groundBaseAt(x, z, q = Q) {
   const hb = baseH(x, z);
   q.hz = null;
-  if (!track.query(x, z, q) || q.dist > ROAD_HALF + FLAT_EXTRA + BLEND) { q.surf = 0; q.ok = false; return hb; }
+  if (!track.query(x, z, q) || q.dist > ROAD_HALF + FLAT_EXTRA + BLEND) { q.surf = TERRAIN_SURF; q.ok = false; return hb; }
   const onBridge = track.bridge[q.i];
   // fuera del tablero de un puente no hay suelo: se cae a la quebrada
   if (onBridge && q.dist >= ROAD_HALF + 0.05) { q.surf = 0; return hb; }
@@ -798,7 +1018,49 @@ function groundAt(x, z, q = Q) {
       q.hz = h;
     }
   } else if (q.dist < ROAD_HALF + FLAT_EXTRA) { q.surf = BERM_SURF; y += BERM_RAISE; }
-  else q.surf = 0;
+  else q.surf = TERRAIN_SURF;
+  return y;
+}
+// ---- Desafío 4x4: caché del terreno (baldosas de 16 m cada 0,5 m) + obstáculos con forma exacta ----
+let OB4 = null;
+const HC4 = new Map(), _hq = {};
+function tile4(i, j) {
+  const key = i * 73856093 ^ j * 19349663;
+  let t = HC4.get(key);
+  if (t && t.i === i && t.j === j) return t;
+  const N = 33, h = new Float32Array(N * N), s = new Uint8Array(N * N);
+  for (let b = 0; b < N; b++) for (let a = 0; a < N; a++) {
+    const x = i * 16 + a * 0.5, z = j * 16 + b * 0.5;
+    h[b * N + a] = groundBaseAt(x, z, _hq);
+    s[b * N + a] = MAP.surfAt ? MAP.surfAt(x, z, _hq.surf) : _hq.surf;
+  }
+  t = { i, j, h, s }; HC4.set(key, t);
+  return t;
+}
+function ground4(x, z, q) {
+  const i = Math.floor(x / 16), j = Math.floor(z / 16), t = tile4(i, j);
+  const fx = (x - i * 16) * 2, fz = (z - j * 16) * 2, ix = Math.min(31, fx | 0), iz = Math.min(31, fz | 0), u = fx - ix, v = fz - iz, h = t.h, N = 33;
+  const a = h[iz * N + ix], b = h[iz * N + ix + 1], c = h[(iz + 1) * N + ix], d = h[(iz + 1) * N + ix + 1];
+  let y = (a + (b - a) * u) * (1 - v) + (c + (d - c) * u) * v;
+  q.surf = t.s[Math.round(fz) * N + Math.round(fx)];
+  q.ob = null; q.hz = null; q.dig = 0;
+  const l = OB4.cells.get(Math.floor(x / 4) * 4099 + Math.floor(z / 4));
+  if (l) for (let k = 0; k < l.length; k++) {
+    const o = l[k], dx = x - o.x, dz = z - o.z;
+    if (o.t === 'zone') { if (dx * dx + dz * dz < o.r * o.r && !q.ob) { q.surf = o.surf; q.dig = o.dig; } continue; }
+    const u2 = dx * o.c + dz * o.s, v2 = -dx * o.s + dz * o.c;   // ejes propios del obstáculo
+    let hh = -1e9;
+    if (o.t === 'rock') { const r2 = (u2 / o.a) ** 2 + (v2 / o.b) ** 2; if (r2 < 1) hh = o.y + o.h * Math.sqrt(1 - r2); }
+    else if (o.t === 'ledge') {
+      const eu = o.a - Math.abs(u2), ev = o.b - Math.abs(v2);
+      if (eu > 0 && ev > 0) { const e = Math.min(eu, ev); hh = o.y - (e < 0.07 ? (0.07 - e) * 1.2 : 0); }
+    } else if (o.t === 'log') {
+      // tronco: cilindro tendido entre dos puntos
+      const t2 = clamp(u2 / o.a, -1, 1) * o.a, dd = Math.hypot(u2 - t2, v2);
+      if (dd < o.r && Math.abs(u2) < o.a) hh = o.y + o.r + Math.sqrt(o.r * o.r - dd * dd);
+    }
+    if (hh > y) { y = hh; q.surf = o.surf; q.ob = o; }
+  }
   return y;
 }
 
@@ -815,8 +1077,17 @@ function waterAt(x, z) {
   if (!WATER) return -Infinity;
   if (WATER.type === 'circle') return Math.hypot(x - WATER.x, z - WATER.z) < WATER.r + 40 ? WATER.y : -Infinity;
   if (WATER.type === 'plane') return x > WATER.x0 && x < WATER.x1 && z > WATER.z0 - 40 && z < WATER.z1 ? WATER.y : -Infinity;
-  if (WATER.type === 'river') { const p = polyNearest(WATER.pts, x, z); return p.d < WATER.width / 2 ? baseH(p.x, p.z) + 2.2 : -Infinity; }
+  if (WATER.type === 'river') { const p = polyNearest(WATER.pts, x, z); return p.d < WATER.width / 2 ? baseH(p.x, p.z) + (WATER.depthAt ? WATER.depthAt(p.x, p.z) : 2.2) : -Infinity; }
   return -Infinity;
+}
+// corriente del río (m/s) en (x,z), a lo largo del cauce
+function waterFlow(x, z, out) {
+  out.x = 0; out.z = 0;
+  if (!WATER || WATER.type !== 'river' || !WATER.flow) return out;
+  let best = 1e18, bi = 0; const P = WATER.pts;
+  for (let i = 0; i < P.length - 1; i++) { const d = polyDist([P[i], P[i + 1]], x, z); if (d < best) { best = d; bi = i; } }
+  const dx = P[bi + 1][0] - P[bi][0], dz = P[bi + 1][1] - P[bi][1], l = Math.hypot(dx, dz), sp = WATER.flow(z) * smooth(WATER.width / 2, WATER.width / 4, best);
+  out.x = dx / l * sp; out.z = dz / l * sp; return out;
 }
 
 // =====================================================================
@@ -1087,6 +1358,27 @@ function asphaltTex(solidCenter) {
 // calzada según el mapa: carretera, avenida de 3+3 pistas, asfalto de montaña gastado o ripio
 function roadTex(style, solid) {
   if (style === 'carretera') return asphaltTex(solid);
+  if (style === 'huella') {
+    // huella 4x4: tierra o arena con las dos marcas de las ruedas y piedras sueltas
+    const [r0, g0, b0] = MAP.roadTone || [118, 98, 76];
+    return canvasTex(512, 512, (g, w, h) => {
+      const r = mulberry32(29), px = m => m / (2 * ROAD_HALF) * w;
+      const id = g.createImageData(w, h);
+      for (let i = 0; i < w * h; i++) { const v = (r() - 0.5) * 34; id.data[i * 4] = r0 + v; id.data[i * 4 + 1] = g0 + v; id.data[i * 4 + 2] = b0 + v * 0.8; id.data[i * 4 + 3] = 255; }
+      g.putImageData(id, 0, 0);
+      for (const c of [-0.8, 0.8]) {
+        const x0 = w / 2 + px(c) - px(0.32), gr = g.createLinearGradient(x0, 0, x0 + px(0.64), 0);
+        gr.addColorStop(0, 'rgba(40,30,20,0)'); gr.addColorStop(0.5, 'rgba(40,30,20,0.3)'); gr.addColorStop(1, 'rgba(40,30,20,0)');
+        g.fillStyle = gr; g.fillRect(x0, 0, px(0.64), h);
+        g.strokeStyle = 'rgba(30,22,14,0.22)'; g.lineWidth = 2;
+        for (let y = 0; y < h; y += 9) { g.beginPath(); g.moveTo(x0 + px(0.08), y); g.lineTo(x0 + px(0.56), y + 4); g.stroke(); }
+      }
+      for (let k = 0; k < 900; k++) {
+        const x = r() * w, y = r() * h, s = 1 + r() * 3, v = 0.6 + r() * 0.6;
+        g.fillStyle = `rgba(${r0 * v | 0},${g0 * v | 0},${b0 * v | 0},0.9)`; g.beginPath(); g.ellipse(x, y, s, s * 0.7, r() * 3, 0, 7); g.fill();
+      }
+    });
+  }
   const city = style === 'ciudad', W = city ? 1024 : 512;
   return canvasTex(W, W, (g, w, h) => {
     const r = mulberry32(style === 'ripio' ? 17 : 23 + (solid ? 1 : 0));
@@ -1163,6 +1455,7 @@ const texDirtBerm = canvasTex(256, 256, (g, w, h) => {
   const r = mulberry32(8); g.strokeStyle = 'rgba(60,90,40,0.55)';
   for (let k = 0; k < 700; k++) { const x = r() * w, y = r() * h; if (Math.min(x, w - x) > w * 0.35 && r() < 0.7) continue; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 5, y - 3 - r() * 7); g.stroke(); }
 });
+const texSandBerm = canvasTex(256, 256, (g, w, h) => noiseFill(g, w, h, 196, 26, 73, [22, 4, -40]));
 const texConcrete = canvasTex(256, 64, (g, w, h) => {
   noiseFill(g, w, h, 176, 18, 81);
   g.fillStyle = 'rgba(60,58,55,0.5)'; g.fillRect(0, 0, 3, h);
@@ -1244,12 +1537,34 @@ function buildTerrain(N) {
   geo.setIndex(new THREE.BufferAttribute(idx, 1));
   geo.computeVertexNormals();
   geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(V * V * 3), 3));
+  geo.setIndex(null);
   TERR = { geo, pos, roadD, n: V * V, snow: -1 };
   colorTerrain(WEATHER.id === 'snow' ? 1 : 0);
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: texGround, bumpMap: texGround, bumpScale: 0.8, roughness: 0.96, metalness: 0 });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.receiveShadow = true;
-  return mesh;
+  // en bloques que comparten los mismos vértices, normales y colores: la cámara descarta los que no ve
+  // (antes se dibujaban siempre los ~350.000 triángulos, aunque la mitad quedara detrás)
+  const grp = new THREE.Group(), step = Math.ceil(N / 7), lo = new THREE.Vector3(), hi = new THREE.Vector3();
+  for (let bj = 0; bj < N; bj += step) for (let bi = 0; bi < N; bi += step) {
+    const nj = Math.min(step, N - bj), ni = Math.min(step, N - bi), ix = new Uint32Array(ni * nj * 6);
+    let p = 0;
+    for (let j = bj; j < bj + nj; j++) for (let i = bi; i < bi + ni; i++) {
+      const a = j * V + i, b = a + 1, c = a + V, d = c + 1;
+      ix[p++] = a; ix[p++] = c; ix[p++] = b; ix[p++] = b; ix[p++] = c; ix[p++] = d;
+    }
+    lo.set(Infinity, Infinity, Infinity); hi.set(-Infinity, -Infinity, -Infinity);
+    for (let j = bj; j <= bj + nj; j++) for (let i = bi; i <= bi + ni; i++) {
+      const k = (j * V + i) * 3;
+      lo.x = Math.min(lo.x, pos[k]); lo.y = Math.min(lo.y, pos[k + 1]); lo.z = Math.min(lo.z, pos[k + 2]);
+      hi.x = Math.max(hi.x, pos[k]); hi.y = Math.max(hi.y, pos[k + 1]); hi.z = Math.max(hi.z, pos[k + 2]);
+    }
+    const g = new THREE.BufferGeometry();
+    for (const k of ['position', 'normal', 'uv', 'color']) g.setAttribute(k, geo.attributes[k]);
+    g.setIndex(new THREE.BufferAttribute(ix, 1));
+    g.boundingBox = new THREE.Box3(lo.clone(), hi.clone()); g.boundingSphere = g.boundingBox.getBoundingSphere(new THREE.Sphere());
+    const m = new THREE.Mesh(g, mat); m.receiveShadow = true; m.matrixAutoUpdate = false;
+    grp.add(m);
+  }
+  return grp;
 }
 // colores del terreno según la paleta del mapa; snowW > 0 agrega la nevazón del clima "Nieve"
 function colorTerrain(snowW) {
@@ -1311,8 +1626,8 @@ function buildRoad() {
   geo.addGroup(idxDash.length, idxSolid.length, 1);
   geo.addGroup(idxDash.length + idxSolid.length, idxSkirt.length, 0);
   geo.computeVertexNormals();
-  texRoadDash = roadTex(MAP.road, false); texRoadSolid = MAP.road === 'ripio' ? texRoadDash : roadTex(MAP.road, true);
-  const gravel = MAP.road === 'ripio';
+  const gravel = MAP.road === 'ripio' || MAP.road === 'huella';
+  texRoadDash = roadTex(MAP.road, false); texRoadSolid = gravel ? texRoadDash : roadTex(MAP.road, true);
   const mk = t => new THREE.MeshStandardMaterial({ map: t, bumpMap: t, bumpScale: gravel ? 1.2 : 0.5, roughness: gravel ? 0.97 : 0.8, metalness: 0 });
   const mats = [mk(texRoadDash), mk(texRoadSolid)];
   WET.road.push(...mats.map(m => ({ m, r: m.roughness, wr: gravel ? 0.66 : 0.32, wc: gravel ? 0.55 : 0.66 })));
@@ -1369,7 +1684,7 @@ function buildRoadside(group) {
     }
     berm[0].push(r0); berm[1].push(r1); if (raised) curb.push(c0, c1);
   }
-  const bermTex = { vereda: texSidewalk, nieve: texSnowBerm, tierra: texDirtBerm }[MAP.berm] || texGravel;
+  const bermTex = { vereda: texSidewalk, nieve: texSnowBerm, tierra: texDirtBerm, arena: texSandBerm }[MAP.berm] || texGravel;
   const bermMat = new THREE.MeshStandardMaterial({ map: bermTex, roughness: MAP.berm === 'nieve' ? 0.7 : 1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
   texGravel.repeat.set(1, 1);
   group.add(stripMesh([...berm[0], ...berm[1]], bermMat));
@@ -1636,9 +1951,9 @@ function buildWater() {
       const pts = [];
       for (let k = 0; k < WATER.pts.length - 1; k++) {
         const [ax, az] = WATER.pts[k], [bx, bz] = WATER.pts[k + 1], steps = Math.max(1, Math.round(Math.hypot(bx - ax, bz - az) / 8));
-        for (let s = 0; s < steps; s++) { const x = lerp(ax, bx, s / steps), z = lerp(az, bz, s / steps); pts.push([x, baseH(x, z) + 2.2, z]); }
+        for (let s = 0; s < steps; s++) { const x = lerp(ax, bx, s / steps), z = lerp(az, bz, s / steps); pts.push([x, baseH(x, z) + (WATER.depthAt ? WATER.depthAt(x, z) : 2.2), z]); }
       }
-      m = waterRibbon(pts, WATER.width + 2, waterMat(0x7d6a4a, [1, 1], 0.96, 0.12));
+      m = waterRibbon(pts, WATER.width + 2, waterMat(WATER.depthAt ? 0x8c6e50 : 0x7d6a4a, [1, 1], WATER.depthAt ? 0.88 : 0.96, 0.12));
     }
     if (m) { m.receiveShadow = true; decor.water = m; world.add(m); }
   }
@@ -1907,7 +2222,7 @@ function tribuna(s, side) {
 function startArch() {
   const f = roadFrame(track.START_S, 1, 0);
   const g = new THREE.Group(); g.position.set(f.x, f.y, f.z); g.rotation.y = f.heading;
-  const AW = Math.max(9.2, RAIL_D + 1.3);
+  const AW = MAP.mode === '4x4' ? ROAD_HALF + 2.4 : Math.max(9.2, RAIL_D + 1.3);
   const banner = bannerTex(MAP.arch);
   const bm = new THREE.MeshStandardMaterial({ map: banner, roughness: 0.6, emissive: 0xffffff, emissiveMap: banner, emissiveIntensity: 0.05 });
   const beam = new THREE.Mesh(new THREE.BoxGeometry(AW * 2 + 0.6, 1.7, 0.5), [M.signBack, M.signBack, M.signBack, M.signBack, bm, bm]);
@@ -1985,8 +2300,15 @@ function woodSignTex(text) {
 function buildDecor() {
   const city = MAP_ID === 'alameda' ? decorAlameda() : {};
   buildWater();
+  if (MAP.mode === '4x4') city.blocked = (x, z) => ob4Near(x, z, 1.5);
   buildVegetation(city);
   startArch();
+  if (MAP.mode === '4x4') {
+    decor4x4();
+    for (let k = 0; k < 3; k++) for (const side of [1, -1]) { const f = roadFrame(track.START_S + 10 + k * 12, side, ROAD_HALF + 3.5); chileanFlag(f.x, f.y, f.z, 6.5, 0.9); }
+    if (MAP.condors) buildCondors();
+    return;
+  }
   tribuna(track.START_S - 40, 1);
   for (let k = 0; k < 6; k++) {
     for (const side of [1, -1]) { const f = roadFrame(track.START_S + 30 + k * 28, side, Math.max(ROAD_HALF + 4.2, RAIL_D + 1.4)); chileanFlag(f.x, f.y, f.z, 7.5, 1); }
@@ -2405,6 +2727,135 @@ function decorAlameda() {
   return { blocked: (x, z) => occ.has(key(x, z)), extra: { tree: trees } };
 }
 
+// ---------- Desafío 4x4: obstáculos (datos para la física) ----------
+function buildObstacles4() {
+  const L = track.length, S0 = track.START_S, rng = mulberry32(4400 + MAP.stage * 97), q = {}, fr = {};
+  const O = { list: [], cells: new Map(), anchors: [], signs: [], on: false };
+  const frame = (s, d) => { track.at(s, fr); return { x: fr.x + fr.tz * d, z: fr.z - fr.tx * d, tx: fr.tx, tz: fr.tz }; };
+  const add = (o, rad) => {
+    O.list.push(o);
+    for (let i = Math.floor((o.x - rad) / 4); i <= Math.floor((o.x + rad) / 4); i++) for (let j = Math.floor((o.z - rad) / 4); j <= Math.floor((o.z + rad) / 4); j++) {
+      const k = i * 4099 + j; if (!O.cells.has(k)) O.cells.set(k, []); O.cells.get(k).push(o);
+    }
+    return o;
+  };
+  const zoneXY = (x, z, r, surf, dig = 1) => add({ t: 'zone', x, z, r, surf, dig }, r);
+  const api = {
+    rng, L, S0, RH: ROAD_HALF, F: f => S0 + f * L,
+    // roca: medio elipsoide (radios a, b en planta y altura c) apoyada en el suelo
+    rock(s, d, a, b, c, surf = 15) {
+      const f = frame(s, d), ang = rng() * Math.PI;
+      return add({ t: 'rock', x: f.x, z: f.z, y: groundBaseAt(f.x, f.z, q) - c * 0.12, a, b, h: c, c: Math.cos(ang), s: Math.sin(ang), surf }, Math.max(a, b));
+    },
+    // escalón de roca de cara vertical (si el terreno sube, se funde con la pendiente detrás)
+    ledge(s, d, w, depth, hgt, surf = 15) {
+      const f0 = frame(s, d), b0 = groundBaseAt(f0.x, f0.z, q), f1 = frame(s + depth, d), g = (groundBaseAt(f1.x, f1.z, q) - b0) / depth;
+      let top = b0 + hgt;
+      // subiendo: escalón de "hgt" que se funde con la ladera; bajando: repisa corta y caída de "hgt" al final
+      if (g > 0.02) depth = Math.min(depth, hgt / g + 0.3);
+      else if (g < -0.02) { depth = Math.min(depth, hgt / -g + 0.3); const f2 = frame(s + depth, d); top = groundBaseAt(f2.x, f2.z, q) + hgt; }
+      const c = frame(s + depth / 2, d);
+      return add({ t: 'ledge', x: c.x, z: c.z, y: top, a: depth / 2, b: w / 2, c: c.tx, s: c.tz, surf, hgt }, Math.hypot(depth, w) / 2);
+    },
+    // tronco tendido de d0 a d1 (lateral), algo sesgado
+    log(s, d0, d1, r, skew = 0) {
+      const A = frame(s - skew * 1.5, d0), B = frame(s + skew * 1.5, d1), len = Math.hypot(B.x - A.x, B.z - A.z);
+      const cx = (A.x + B.x) / 2, cz = (A.z + B.z) / 2, y = Math.min(groundBaseAt(A.x, A.z, q), groundBaseAt(B.x, B.z, q), groundBaseAt(cx, cz, q)) - r * 0.3;
+      return add({ t: 'log', x: cx, z: cz, y, a: len / 2, r, c: (B.x - A.x) / len, s: (B.z - A.z) / len, surf: 21 }, len / 2 + r);
+    },
+    zone(s, d, r, surf, dig) { const f = frame(s, d); return zoneXY(f.x, f.z, r, surf, dig); },
+    zoneXY,
+    // punto de anclaje para el huinche (árbol o roca grande con eslinga amarilla)
+    anchor(s, d, kind) {
+      const f = frame(s, d), y = groundBaseAt(f.x, f.z, q);
+      O.anchors.push({ x: f.x, y, z: f.z, kind });
+      if (kind === 'rock') add({ t: 'rock', x: f.x, z: f.z, y: y - 0.3, a: 1.5, b: 1.3, h: 1.7, c: 1, s: 0, surf: 15, anchor: true }, 1.5);
+    },
+    sign(s, side, text) { O.signs.push({ s, side, text }); },
+  };
+  MAP.obstacles(api);
+  return O;
+}
+// hay un obstáculo cerca de (x,z)? (para no plantar árboles encima)
+function ob4Near(x, z, pad) {
+  const l = OB4 && OB4.cells.get(Math.floor(x / 4) * 4099 + Math.floor(z / 4)); if (!l) return false;
+  for (const o of l) if (o.t !== 'zone' && Math.hypot(x - o.x, z - o.z) < Math.max(o.a, o.b || o.r || 0) + pad) return true;
+  return false;
+}
+// ---------- Desafío 4x4: rocas, escalones, troncos, barro, controles, balizas y anclajes ----------
+function decor4x4() {
+  const m4 = new THREE.Matrix4(), qq = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), ps = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
+  const rocks = OB4.list.filter(o => o.t === 'rock'), ledges = OB4.list.filter(o => o.t === 'ledge'), logs = OB4.list.filter(o => o.t === 'log');
+  const rg = new THREE.IcosahedronGeometry(1, 2); jitterGeo(rg, 0.06, 41);
+  const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, flatShading: true });
+  WET.road.push({ m: rockMat, r: 0.9, wr: 0.5, wc: 0.8 });
+  const ri = new THREE.InstancedMesh(rg, rockMat, Math.max(1, rocks.length));
+  rocks.forEach((o, k) => {
+    qq.setFromAxisAngle(up, Math.atan2(-o.s, o.c));
+    ri.setMatrixAt(k, m4.compose(ps.set(o.x, o.y, o.z), qq, sc.set(o.a, o.h, o.b)));
+    ri.setColorAt(k, col.setHex(MAP_ID === 'x4_dunas' ? 0x6e4c3c : 0x7c756c).offsetHSL(0, 0, (Math.random() - 0.5) * 0.12));
+  });
+  ri.count = rocks.length; ri.castShadow = true; ri.receiveShadow = true; world.add(ri);
+  if (ledges.length) {
+    const lg = new RoundedBoxGeometry(1, 1, 1, 2, 0.06);
+    const li = new THREE.InstancedMesh(lg, rockMat, ledges.length);
+    ledges.forEach((o, k) => {
+      const hh = o.hgt + 0.9; qq.setFromAxisAngle(up, Math.atan2(-o.s, o.c));
+      li.setMatrixAt(k, m4.compose(ps.set(o.x, o.y - hh / 2, o.z), qq, sc.set(o.a * 2, hh, o.b * 2)));
+      li.setColorAt(k, col.setHex(o.surf === 16 ? 0x5c5850 : 0x857c70).offsetHSL(0, 0, (Math.random() - 0.5) * 0.08));
+    });
+    li.castShadow = true; li.receiveShadow = true; world.add(li);
+  }
+  const bark = new THREE.MeshStandardMaterial({ color: 0x4e3a28, roughness: 0.95 });
+  for (const o of logs) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(o.r, o.r * 1.12, o.a * 2, 12).rotateZ(Math.PI / 2), bark);
+    m.position.set(o.x, o.y + o.r, o.z); m.rotation.y = Math.atan2(-o.s, o.c); m.castShadow = true; m.receiveShadow = true; world.add(m);
+  }
+  // pozones de barro y arena blanda: manchas sobre el terreno
+  const blob = (inner, outer) => canvasTex(128, 128, (g, w, h) => {
+    const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(0.7, inner); gr.addColorStop(1, outer); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  }, true);
+  const mudMat = new THREE.MeshStandardMaterial({ map: blob('rgba(58,42,28,0.95)', 'rgba(58,42,28,0)'), transparent: true, depthWrite: false, roughness: 0.22, envMapIntensity: 1.3, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 });
+  const sandMat = new THREE.MeshStandardMaterial({ map: blob('rgba(236,208,160,0.9)', 'rgba(236,208,160,0)'), transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 });
+  for (const o of OB4.list) if (o.t === 'zone') groundPatch(o.x, o.z, o.r * 2.2, o.r * 2.2, o.surf === 17 ? sandMat : mudMat, Math.random() * 3, 0.06, 10);
+  // anclajes del huinche (eslinga amarilla)
+  const strap = new THREE.MeshStandardMaterial({ color: 0xf2c21b, roughness: 0.6 });
+  for (const a of OB4.anchors) {
+    if (a.kind === 'tree') {
+      const g = new THREE.Group(); g.position.set(a.x, a.y - 0.2, a.z);
+      const H = 12 + Math.random() * 6;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, H, 8), bark); trunk.position.y = H / 2;
+      const crown = new THREE.Mesh(jitterGeo(new THREE.IcosahedronGeometry(3.2, 1), 0.2, 9), new THREE.MeshStandardMaterial({ color: MAP_ID === 'x4_barro' ? 0x223a1c : 0x3a5a26, roughness: 0.85, flatShading: true }));
+      crown.position.y = H; crown.scale.set(1, 0.8, 1);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.05, 6, 16), strap); ring.rotation.x = Math.PI / 2; ring.position.y = 0.9;
+      g.add(trunk, crown, ring); g.traverse(o => { if (o.isMesh) o.castShadow = true; }); world.add(g);
+      addObstacle(a.x, a.z, 0.45, null, 'tree');
+    } else {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.06, 6, 16), strap); ring.position.set(a.x, a.y + 1.35, a.z); ring.rotation.x = Math.PI / 2.4; world.add(ring);
+    }
+  }
+  // letreros de los pasos difíciles
+  for (const sgn of OB4.signs) { const f = roadFrame(sgn.s, sgn.side, ROAD_HALF + 2.2); const b = board(2.6, 0.75, woodSignTex(sgn.text), 1.1, 2); b.position.set(f.x, f.y, f.z); faceTraffic(b, f); world.add(b); }
+  // balizas de la ruta (naranja y blanco) a ambos lados
+  const poleTex = canvasTex(16, 128, (g, w, h) => { for (let k = 0; k < 6; k++) { g.fillStyle = k % 2 ? '#f4f4f0' : '#ff6a10'; g.fillRect(0, k * h / 6, w, h / 6); } });
+  const pg = new THREE.CylinderGeometry(0.035, 0.045, 1.3, 6); pg.translate(0, 0.65, 0);
+  const marks = [];
+  for (let s = 0; s < track.length; s += 15) for (const side of [1, -1]) { const f = roadFrame(s, side, ROAD_HALF + 1.5); if (!ob4Near(f.x, f.z, 0.5)) marks.push(f); }
+  const mi = new THREE.InstancedMesh(pg, new THREE.MeshStandardMaterial({ map: poleTex, roughness: 0.6 }), marks.length);
+  marks.forEach((f, k) => mi.setMatrixAt(k, m4.makeTranslation(f.x, f.y, f.z))); world.add(mi);
+  // arcos de los controles
+  MAP.cps.forEach((cf, k) => {
+    const f = roadFrame(track.START_S + cf * track.length, 1, 0), g = new THREE.Group(), AW = ROAD_HALF + 1.6;
+    g.position.set(f.x, f.y, f.z); g.rotation.y = f.heading;
+    const banner = bannerTex('CONTROL ' + (k + 1)), bm = new THREE.MeshStandardMaterial({ map: banner, roughness: 0.6, emissive: 0xffffff, emissiveMap: banner, emissiveIntensity: 0.05 });
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(AW * 2 + 0.4, 1.0, 0.3), [M.signBack, M.signBack, M.signBack, M.signBack, bm, bm]); beam.position.y = 4.4; g.add(beam);
+    for (const sd of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4.9, 0.4), new THREE.MeshStandardMaterial({ color: 0xff6a10, roughness: 0.6 })); p.position.set(sd * AW, 2.45, 0); g.add(p); }
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; }); world.add(g);
+    const L = roadFrame(track.START_S + cf * track.length, 1, AW), R = roadFrame(track.START_S + cf * track.length, -1, AW);
+    addObstacle(L.x, L.z, 0.3, null, 'metal'); addObstacle(R.x, R.z, 0.3, null, 'metal');
+  });
+}
+
 // ---------- Los Caracoles: estacas, curvas numeradas, galerías antinieve, hotel Portillo ----------
 function decorCaracoles() {
   const n = track.n, q = {};
@@ -2561,7 +3012,7 @@ function profile(spec) {
     lower.push([zRw, P.belt], [zRear, P.belt - 0.12], [zRear - 0.01, P.bumpR], [zRear + 0.04, P.yb + 0.12]);
     gh = [[zRw, P.belt], [zF + P.ws, P.belt], ...top(zF + P.wsTop, zRoofR), [zRoofR, P.roof]];
   } else {
-    const zCab = zR + P.cab;
+    const zCab = zR + (spec.cab ?? P.cab);
     lower.push([zRear + 0.04, P.belt], [zRear - 0.01, P.belt - 0.08], [zRear - 0.01, P.bumpR], [zRear + 0.05, P.yb + 0.1]);
     gh = [[zCab, P.belt], [zF + P.ws, P.belt], ...top(zF + P.wsTop, zCab + 0.06), [zCab + 0.06, P.roof]];
   }
@@ -2743,10 +3194,29 @@ const WHEEL_DESIGN = {
   rally: { n: 6, sw: 0.07, color: 0xf2f2ee },
   pickup: { n: 6, sw: 0.085, color: 0x9ea2a6 },
   gt: { n: 10, sw: 0.034, color: 0x2a2c30 },
+  pickup1: { n: 5, sw: 0.09, color: 0x3a3c40 },
 };
+// neumático de barro: tacos grandes y separados que llegan al flanco
+let TIRE_MT = null;
+function tireMT() {
+  if (TIRE_MT) return TIRE_MT;
+  const t = canvasTex(512, 128, (g, w, h) => {
+    g.fillStyle = '#121212'; g.fillRect(0, 0, w, h);
+    for (let k = 0; k < 24; k++) {
+      const x = k * w / 24;
+      g.fillStyle = '#1f1f1f';
+      g.fillRect(x + 2, h * 0.22, w / 24 * 0.55, h * 0.26); g.fillRect(x + w / 48, h * 0.52, w / 24 * 0.55, h * 0.26);
+      g.fillStyle = '#191919'; g.fillRect(x + 4, h * 0.1, w / 24 * 0.35, h * 0.1); g.fillRect(x + w / 48 + 4, h * 0.8, w / 24 * 0.35, h * 0.1);
+    }
+    g.fillStyle = 'rgba(255,255,255,0.07)'; g.font = `700 18px ${FONT}`;
+    for (let k = 0; k < 4; k++) g.fillText('ANDES M/T 35x12.5 R17', k * w / 4 + 6, h * 0.97);
+  });
+  t.repeat.set(3, 1);
+  return (TIRE_MT = new THREE.MeshStandardMaterial({ map: t, bumpMap: t, bumpScale: 2, roughness: 0.92, side: THREE.DoubleSide }));
+}
 const RIMS = { cinco: { n: 5, sw: 0.1, color: 0xc9ccd0 }, multi: { n: 14, sw: 0.026, color: 0xd5d7da }, malla: { n: 22, sw: 0.014, color: 0xb8a46a }, off: { n: 8, sw: 0.06, color: 0x222426, bead: true } };
 function makeWheel(spec, side, lod, mods) {
-  const R = spec.R, w = spec.body === 'pickup' || spec.body === 'coupe' ? 0.27 : 0.23, rr = R * 0.68;
+  const R = spec.R, w = spec.tireW || (spec.body === 'pickup' || spec.body === 'coupe' ? 0.27 : 0.23), rr = Math.min(R * 0.68, 0.27);
   let D = WHEEL_DESIGN[spec.id] || WHEEL_DESIGN.taxi;
   if (mods && RIMS[mods.rims]) D = RIMS[mods.rims];
   if (mods && mods.rimCol != null) D = { ...D, color: mods.rimCol };
@@ -2755,7 +3225,8 @@ function makeWheel(spec, side, lod, mods) {
   const prof = [[rr, -0.46], [R * 0.83, -0.52], [R * 0.95, -0.5], [R * 0.995, -0.4], [R, -0.2], [R, 0.2], [R * 0.995, 0.4], [R * 0.95, 0.5], [R * 0.83, 0.52], [rr, 0.46]]
     .map(([r, a]) => new THREE.Vector2(r, a * w));
   const tg = new THREE.LatheGeometry(prof, 40); tg.rotateZ(-Math.PI / 2);
-  const tire = new THREE.Mesh(tg, CM.tire); tire.castShadow = true; spin.add(tire);
+  const chunky = spec.setup && (spec.setup.tire === 'mt' || spec.setup.tire === 'roca');
+  const tire = new THREE.Mesh(tg, chunky ? tireMT() : CM.tire); tire.castShadow = true; spin.add(tire);
   // llanta: aro, pestaña, rayos, centro, tuercas y disco de freno en una sola malla
   const L = [], ox = side * w * 0.38;
   piece(L, new THREE.CylinderGeometry(rr * 0.98, rr * 0.98, w * 0.86, 28, 1, true).rotateZ(Math.PI / 2), new THREE.Color(D.color).multiplyScalar(0.55).getHex());
@@ -2814,7 +3285,7 @@ function buildCarModel(spec, paintHex, mods = null, opts = {}) {
   const gh = pr.gh, B0 = gh[0], B1 = gh[1], T1 = gh[2], T0 = gh[gh.length - 1];
   const zWsBase = B1[0], zWsTop = T1[0], zRw = B0[0], zRoofR = T0[0];
   const zA = y => lineZ(B1, T1, y), zC = y => lineZ(B0, T0, y);
-  const hasB = spec.body !== 'coupe';
+  const twoDoor = spec.body === 'coupe' || spec.singleCab, hasB = !twoDoor;
   const zB = (zA(P.belt + 0.25) + zC(P.belt + 0.25)) / 2 + (spec.body === 'hatch' ? 0.06 : 0);
   const [cz0, cz1] = polyRangeZ(gh), NC = 46, czs = [];
   for (let s = 0; s < NC; s++) czs.push(lerp(cz0 + 0.004, cz1 - 0.004, s / (NC - 1)));
@@ -2923,7 +3394,7 @@ function buildCarModel(spec, paintHex, mods = null, opts = {}) {
   const exL = mods ? mods.exhaust : 0, exR = [0.042, 0.05, 0.06][exL];
   for (const s of spec.body === 'coupe' || exL > 0 ? [-1, 1] : [-1]) piece(CH, new THREE.CylinderGeometry(exR, exR, 0.16 + exL * 0.04, 12, 1, true), exL === 2 ? 0x6a5a9a : 0xd0d0d0, s * (W / 2 - 0.45), P.yb + 0.08, exZ, Math.PI / 2);
   // líneas de puertas y manillas
-  const doorZ = spec.body === 'coupe' ? [Math.min(zWsBase - 0.05, pr.zF - spec.R - 0.12), zC(P.belt) + 0.22]
+  const doorZ = twoDoor ? [Math.min(zWsBase - 0.05, pr.zF - spec.R - 0.12), zC(P.belt) + 0.22]
     : [Math.min(zWsBase - 0.05, pr.zF - spec.R - 0.12), zB, Math.max(zC(P.belt) + 0.04, pr.zR + spec.R + 0.12)];
   for (const s of [-1, 1]) {
     for (const z of doorZ) {
@@ -2931,7 +3402,7 @@ function buildCarModel(spec, paintHex, mods = null, opts = {}) {
       const pts = []; for (let k = 0; k <= 6; k++) { const y = lerp(sp[0] + 0.1, P.belt - 0.01, k / 6); pts.push([s * (sideX(spec, pr, z, y) + 0.002), y, z]); }
       piece(DK, ribbon(pts, [0, 0, 1], 0.007, [s, 0, 0]), 0x050505);
     }
-    const hz = spec.body === 'coupe' ? [doorZ[1] + 0.3] : [doorZ[1] + 0.13, doorZ[2] + 0.15];
+    const hz = twoDoor ? [doorZ[1] + 0.3] : [doorZ[1] + 0.13, doorZ[2] + 0.15];
     for (const z of hz) piece(CH, rbox(0.13, 0.026, 0.03, 0.01), 0xd5d5d5, s * (sideX(spec, pr, z, P.belt - 0.12) + 0.008), P.belt - 0.12, z);
   }
 
@@ -3079,12 +3550,70 @@ function buildCarModel(spec, paintHex, mods = null, opts = {}) {
   return { root, body, wheels, pr, paint, lowerM, cab, glass, lights, parts, spec, lod, rideH, extraDef };
 }
 // de lejos se ocultan interior, molduras y calipers (no se notan y ahorran dibujo)
-function updateCarLOD(m) {
+// y más lejos todavía (rivales y tránsito a más de ~55 m) se dibuja una copia fusionada del auto: un dibujo por
+// material en vez de 20–46 piezas sueltas. Es lo que más carga al procesador en los mapas con tránsito.
+function updateCarLOD(m, allowFar = false) {
   if (!m) return;
-  const near = m.root.position.distanceToSquared(camera.position) < 75 * 75;
-  if (m.lodNear === near) return;
-  m.lodNear = near;
-  for (const o of m.lod) o.visible = near;
+  const d2 = m.root.position.distanceToSquared(camera.position), near = d2 < 75 * 75;
+  if (m.lodNear !== near) { m.lodNear = near; for (const o of m.lod) o.visible = near; }
+  if (!allowFar) return;
+  const far = m.isFar ? d2 > 52 * 52 : d2 > 58 * 58;
+  if (far !== !!m.isFar) {
+    if (far && (!m.far || m.farDirty)) buildFarLOD(m);
+    m.isFar = far; m.body.visible = !far; m.far.visible = far;
+    for (const w of m.wheels) { if (far) { w.wasVis = w.pivot.visible; w.pivot.visible = false; } else w.pivot.visible = w.wasVis ?? true; }
+  } else if (far && m.farDirty && performance.now() - m.farT > 400) { buildFarLOD(m); m.far.visible = true; }
+  if (far) { m.far.position.copy(m.body.position); m.far.quaternion.copy(m.body.quaternion); }
+}
+const _farInv = new THREE.Matrix4(), _farM = new THREE.Matrix4();
+function buildFarLOD(m) {
+  if (m.far) { m.root.remove(m.far); for (const o of m.far.children) o.geometry.dispose(); }
+  m.root.updateMatrixWorld(true); _farInv.copy(m.body.matrixWorld).invert();
+  // las luces de un mismo tipo comparten el material de la primera (setLights las enciende igual a todas)
+  const groups = new Map(), lightKey = new Map(), lightMat = new Map();
+  for (const L of m.lights) if (!L.broken) { lightKey.set(L.mesh, L.kind); if (!lightMat.has(L.kind)) lightMat.set(L.kind, L.mat); }
+  const add = (mat, g, cast) => {
+    if (!mat) return;
+    const n = g.attributes.position.count; if (!n) return;
+    for (const a of Object.keys(g.attributes)) if (a !== 'position' && a !== 'normal' && a !== 'uv' && !(a === 'color' && mat.vertexColors)) g.deleteAttribute(a);
+    if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    if (!g.attributes.normal) g.computeVertexNormals();
+    if (mat.vertexColors && !g.attributes.color) g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3));
+    let gr = groups.get(mat.uuid); if (!gr) groups.set(mat.uuid, gr = { mat, geos: [], cast: false });
+    gr.geos.push(g); gr.cast = gr.cast || cast;
+  };
+  // trozo [start, start+count) de una geometría sin índice (para piezas con varios materiales)
+  const slice = (g, start, count) => {
+    const s = new THREE.BufferGeometry();
+    count = Math.min(count, g.attributes.position.count - start);
+    for (const [k, a] of Object.entries(g.attributes)) s.setAttribute(k, new THREE.BufferAttribute(a.array.slice(start * a.itemSize, (start + count) * a.itemSize), a.itemSize, a.normalized));
+    return s;
+  };
+  const take = o => {
+    // de las piezas de detalle solo se quedan las molduras (marcos de ventanas, líneas de puertas): dan la silueta
+    if (!o.isMesh || (m.lod.includes(o) && o.material !== CM.trimDark && o.material !== CM.trimChrome)) return;
+    for (let p = o; p && p !== m.root; p = p.parent) if (!p.visible && !m.lod.includes(p)) return;
+    const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    g.morphAttributes = {}; g.applyMatrix4(_farM.multiplyMatrices(_farInv, o.matrixWorld));
+    const lk = lightKey.get(o);
+    if (Array.isArray(o.material)) {
+      if (g.groups.length) for (const gp of g.groups) add(o.material[gp.materialIndex], slice(g, gp.start, gp.count), o.castShadow);
+      else { g.clearGroups(); add(o.material[0], g, o.castShadow); }
+    } else { g.clearGroups(); add(lk ? lightMat.get(lk) : o.material, g, o.castShadow); }
+  };
+  // (si ya estaba de lejos, la carrocería y las ruedas están ocultas: se miran como estaban antes de ocultarlas)
+  const bv = m.body.visible; m.body.visible = true;
+  const wv = m.wheels.map(w => w.pivot.visible); if (m.isFar) m.wheels.forEach(w => w.pivot.visible = w.wasVis ?? true);
+  m.body.traverse(take); for (const w of m.wheels) w.pivot.traverse(take);
+  m.body.visible = bv; m.wheels.forEach((w, i) => w.pivot.visible = wv[i]);
+  const far = new THREE.Group();
+  for (const gr of groups.values()) {
+    const merged = gr.geos.length > 1 ? mergeGeometries(gr.geos) : gr.geos[0];
+    const list = merged ? [merged] : gr.geos;
+    if (merged && gr.geos.length > 1) for (const g of gr.geos) g.dispose();
+    for (const g of list) { const mesh = new THREE.Mesh(g, gr.mat); mesh.castShadow = gr.cast; far.add(mesh); }
+  }
+  far.visible = false; m.root.add(far); m.far = far; m.farDirty = false; m.farT = performance.now();
 }
 function setLights(m, braking, reverse, headScale = 1) {
   const tl = braking ? 5 : (tod.lights ? 1.4 : 0.3), hl = tod.lights ? 6 : 0.04;
@@ -3139,7 +3668,44 @@ const SURF = [
   { name: 'grava suelta', mu: 0.56, rr: 0.05, drag: 0.5, bump: 0.03, cat: 'loose', loose: true, dust: [0.62, 0.6, 0.56] },
   { name: 'nieve en la calzada', mu: 0.42, rr: 0.04, drag: 0.45, bump: 0.012, cat: 'snow', loose: true, dust: [0.93, 0.95, 0.98] },
   { name: 'tapa metálica', mu: 0.75, rr: 0.013, drag: 0, bump: 0.01, cat: 'paved' },
+  { name: 'roca', mu: 0.95, rr: 0.015, drag: 0, bump: 0.02, cat: 'paved' },
+  { name: 'roca mojada', mu: 0.55, rr: 0.015, drag: 0, bump: 0.02, cat: 'wet' },
+  { name: 'arena', mu: 0.5, rr: 0.1, drag: 1.2, bump: 0.02, cat: 'loose', loose: true, dust: [0.85, 0.72, 0.52] },
+  { name: 'barro profundo', mu: 0.35, rr: 0.13, drag: 1.6, bump: 0.03, cat: 'mud', loose: true, dust: [0.3, 0.23, 0.16], mud: true },
+  { name: 'tierra suelta', mu: 0.7, rr: 0.035, drag: 0.4, bump: 0.025, cat: 'loose', loose: true, dust: [0.6, 0.5, 0.38] },
+  { name: 'pasto mojado', mu: 0.5, rr: 0.04, drag: 0.4, bump: 0.02, cat: 'wet' },
+  { name: 'tronco', mu: 0.5, rr: 0.02, drag: 0, bump: 0.03, cat: 'wet' },
 ];
+// ---- 4x4: agarre (μ) por superficie y neumático [carretera, AT, barro, roca], rodadura y cuánto se entierra ----
+const OFFSURF = {
+  0: { mu: [0.66, 0.76, 0.8, 0.74], crr: 0.03, soft: 0.25, dig: 0.15 },
+  1: { mu: [0.95, 0.92, 0.85, 1.02], crr: 0.012, soft: 0, dig: 0 },
+  2: { mu: [0.6, 0.72, 0.74, 0.68], crr: 0.03, soft: 0.2, dig: 0.1 },
+  4: { mu: [0.5, 0.56, 0.6, 0.6], crr: 0.05, soft: 0.4, dig: 0.2 },
+  7: { mu: [0.26, 0.38, 0.6, 0.34], crr: 0.08, soft: 1, dig: 0.6, sink: 0.06, psiK: 0.5 },
+  8: { mu: [0.58, 0.7, 0.72, 0.66], crr: 0.04, soft: 0.3, dig: 0.15 },
+  9: { mu: [0.3, 0.42, 0.46, 0.36], crr: 0.06, soft: 0.8, dig: 0.3, sink: 0.08 },
+  15: { mu: [0.82, 0.95, 0.9, 1.2], crr: 0.014, soft: 0, rock: 1, dig: 0 },
+  16: { mu: [0.42, 0.52, 0.55, 0.8], crr: 0.014, soft: 0, rock: 1, dig: 0 },
+  17: { mu: [0.42, 0.56, 0.48, 0.5], crr: 0.1, soft: 1, dig: 1, sand: 1, sink: 0.09 },
+  18: { mu: [0.2, 0.32, 0.56, 0.3], crr: 0.13, soft: 1, dig: 0.8, sink: 0.07, psiK: 0.35 },
+  19: { mu: [0.6, 0.72, 0.78, 0.7], crr: 0.035, soft: 0.3, dig: 0.15 },
+  20: { mu: [0.4, 0.5, 0.62, 0.48], crr: 0.04, soft: 0.5, dig: 0.2, sink: 0.02 },
+  21: { mu: [0.42, 0.5, 0.56, 0.64], crr: 0.02, soft: 0, rock: 0.5, dig: 0 },
+};
+const TIRE4_IDX = { ht: 0, at: 1, mt: 2, roca: 3 };
+// agarre real en una superficie con la preparación elegida (presión: más baja = más huella en blando y roca)
+function offGrip(surf, setup, wet) {
+  // psiK: cuánto ayuda bajar la presión (en arena, todo; en barro profundo menos: ahí manda la banda del neumático)
+  const s = OFFSURF[surf] || OFFSURF[1], ti = TIRE4_IDX[setup.tire] ?? 1, pf = (35 - setup.psi) / 23, pk = s.psiK ?? 1;
+  let mu = s.mu[ti] * (1 + pf * (0.08 + 0.3 * s.soft * pk + 0.22 * (s.rock || 0)));
+  if (wet && !s.rock && surf !== 17) mu *= 0.84;
+  const crr = s.crr * (1 - 0.6 * pf * s.soft * pk) * (1 + 0.5 * pf * (1 - s.soft));
+  const dig = s.dig * (1 - 0.72 * pf * pk) * (s.sand && setup.tire === 'mt' ? 1.8 : 1) * (!s.sand && setup.tire === 'mt' ? 0.65 : 1);
+  // hundimiento por presión de contacto (Bekker): huella más larga y blanda → flota; neumático más grande → menos surco
+  const sink = (s.sink || 0) * (1 - 0.8 * pk * (1 - (setup.psi / 35) ** 1.5)) * 31 / (setup.size || 31);
+  return { mu, crr, dig, soft: s.soft, sink };
+}
 // neumáticos: agarre relativo por categoría de superficie
 const TIRES = {
   calle: { name: 'Calle', paved: 1, wet: 0.92, loose: 1, mud: 1, snow: 0.9, ice: 0.9, oil: 1 },
@@ -3148,7 +3714,7 @@ const TIRES = {
   todoterreno: { name: 'Todoterreno', paved: 0.92, wet: 0.9, loose: 1.2, mud: 1.4, snow: 1.15, ice: 1, oil: 1 },
   invierno: { name: 'Invierno', paved: 0.94, wet: 0.97, loose: 1.05, mud: 1.1, snow: 1.55, ice: 1.9, oil: 1.05 },
 };
-const TIRE_DEFAULT = { taxi: 'calle', rally: 'deportivo', pickup: 'todoterreno', gt: 'deportivo' };
+const TIRE_DEFAULT = { taxi: 'calle', rally: 'deportivo', pickup: 'todoterreno', pickup1: 'todoterreno', gt: 'deportivo' };
 // el clima cambia el agarre: con lluvia el asfalto moja; con nieve hay escarcha
 const WEATHER_MU = { clear: {}, rain: { paved: 0.8, loose: 0.92, mud: 0.9, wet: 0.92 }, snow: { paved: 0.74, loose: 0.88, wet: 0.85, mud: 0.9 } };
 function gripTable(spec) {
@@ -3571,6 +4137,456 @@ class Vehicle {
 let onShift = null;
 const _tA = new THREE.Vector3(), _tB = new THREE.Vector3(), _tC = new THREE.Vector3(), _tD = new THREE.Vector3(), _tN = new THREE.Vector3(),
   _tR = new THREE.Vector3(), _tV = new THREE.Vector3(), _tAx = new THREE.Vector3(), _tE = new THREE.Euler(), _tQ = new THREE.Quaternion(), _tQ2 = new THREE.Quaternion();
+
+// =====================================================================
+// Física 4x4 (Desafío 4x4): chasis 3D con cuatro ruedas independientes. Cada rueda tiene su
+// suspensión (resorte, amortiguador, topes, barra estabilizadora) y toca el terreno como un círculo:
+// un escalón más alto que el radio del neumático es una pared. La caja automática tiene convertidor
+// de torque y reductora; un diferencial abierto manda el torque a la rueda que menos agarra (con una
+// rueda en el aire te quedas), un bloqueo obliga a las dos a girar igual. El agarre depende del tipo
+// de neumático, la presión y la superficie; en arena y barro la rueda que patina se entierra.
+// =====================================================================
+const SETUP4_DEFAULT = { tire: 'at', size: 31, psi: 35, lock: 'no', tc: 1, susp: 'orig', sway: 'con', gear: 373, snorkel: 0, winch: 0, armor: 0 };
+const SIZE4 = { 31: { R: 0.394, w: 0.265, m: 30 }, 33: { R: 0.419, w: 0.285, m: 35 }, 35: { R: 0.445, w: 0.305, m: 41 }, 37: { R: 0.47, w: 0.325, m: 47 } };
+const SUSP4 = { orig: { lift: 0, droop: 0.11, comp: 0.1, k: 1 }, lev: { lift: 0.06, droop: 0.14, comp: 0.11, k: 1 }, larga: { lift: 0.09, droop: 0.22, comp: 0.14, k: 0.75 } };
+const LOW_RANGE = 2.72;
+// valores que existen en el taller: lo guardado que no calce (datos viejos o raros) vuelve al de fábrica
+const SETUP4_OPTS = { tire: ['ht', 'at', 'mt', 'roca'], size: [31, 33, 35, 37], psi: [35, 25, 18, 12], lock: ['no', 'tras', 'ambos'], tc: [1, 0], gear: [373, 456, 538], susp: ['orig', 'lev', 'larga'], sway: ['con', 'des'], snorkel: [0, 1], winch: [0, 1], armor: [0, 1] };
+function getSetup4(id) {
+  const s = { ...SETUP4_DEFAULT, ...store.get('setup4_' + MAP_ID + '_' + id, {}) };
+  for (const k in SETUP4_OPTS) if (!SETUP4_OPTS[k].includes(s[k])) s[k] = SETUP4_DEFAULT[k];
+  return s;
+}
+// datos físicos y visuales de la camioneta preparada
+function truckSpec(base, setup) {
+  const sz = SIZE4[setup.size] || SIZE4[31], su = SUSP4[setup.susp] || SUSP4.orig, dR = sz.R - 0.394;
+  const extra = (setup.winch ? 45 : 0) + (setup.armor ? 60 : 0) + (setup.snorkel ? 6 : 0) + (sz.m - 30) * 4;
+  return { ...base, R: sz.R, tireW: sz.w, rideH: su.lift + dR, lift: su.lift, dR, h: base.h + (su.lift + dR) * 0.9, mass: base.mass + extra, final: setup.gear / 100, setup };
+}
+const _HQ = {}, _flow = { x: 0, z: 0 }, _wp = new THREE.Vector3();
+class Truck4x4 {
+  constructor(spec) {
+    const S = spec.setup, sz = SIZE4[S.size] || SIZE4[31], su = SUSP4[S.susp] || SUSP4.orig;
+    Object.assign(this, { spec, setup: S, isPlayer: true, dmgMode: 'real', isTruck: true });
+    this.R = sz.R; this.mu = 60 + sz.m; this.Iw = sz.m * sz.R * sz.R * 0.8 + 1.4;
+    this.m = spec.mass; this.mS = this.m - 4 * this.mu; this.h = spec.h;
+    const L = spec.L; this.a = L * (1 - spec.frontW); this.b = L * spec.frontW;
+    const W = spec.wid, H = spec.hgt, Ln = spec.len, m = this.m;
+    this.I = [m * (H * H + Ln * Ln) / 12 * 0.8, m * (W * W + Ln * Ln) / 12 * 0.9, m * (W * W + H * H) / 12 * 0.75];
+    this.s0 = 0.32; this.sMin = this.s0 - su.comp; this.sMax = this.s0 + su.droop;
+    this.kt = 2.3e5 * (0.45 + 0.55 * S.psi / 35); this.ct = 2600;
+    this.wheels = [0, 1, 2, 3].map(i => {
+      const front = i < 2, left = i % 2 === 0, load = this.mS * G * (front ? this.b : this.a) / L / 2;
+      const k = load / G * (2 * Math.PI * (front ? 1.45 : 1.35)) ** 2 * su.k;
+      return { i, front, left, ax: (left ? 1 : -1) * spec.tw / 2, az: front ? this.a : -this.b, ay: this.R - this.h + this.s0, load, k, c: 2 * 0.36 * Math.sqrt(k * load / G),
+        kArb: S.sway === 'des' ? 0 : (front ? 24000 : 15000) * (S.susp === 'larga' ? 0.6 : 1),
+        s: this.s0, sv: 0, sa: 0, w: 0, wN: 0, steer: 0, dig: 0, zdig: 0, Fn: 0, FnAxial: 0, surf: 0, contact: false, anc: null, ancL: null,
+        P: new THREE.Vector3(), C: new THREE.Vector3(), n: new THREE.Vector3(0, 1, 0), tf: [0, 0, 1], tl: [1, 0, 0],
+        vlong: 0, vlat: 0, Fx: 0, Fy: 0, mu: 1, mux: 0, Vn: 1, K: 0, F0: 0, A: 0, B: 0, Tc: 0, dir: 0, slip: 0, gr: null };
+    });
+    // puntos del chasis que pueden tocar el suelo (paragolpes, protecciones, estribos, techo, pick-up), relativos al centro de masa
+    const lift = spec.lift || 0, dR = spec.dR || 0, up = lift + dR, gc = 0.27 + up, h = this.h, pr = profile(spec), zf = pr.zFront, zr = pr.zRear;
+    const roofF = pr.zF + pr.P.wsTop - 0.1, roofR = pr.zR + (spec.cab ?? pr.P.cab) + 0.15, roofY = spec.hgt + up - 0.04;
+    this.bodyPts = [[0.75, 0.47 + up, zf - 0.08], [-0.75, 0.47 + up, zf - 0.08], [0, 0.42 + up, zf - 0.25], [0.75, 0.56 + up, zr + 0.08], [-0.75, 0.56 + up, zr + 0.08], [0, 0.5 + up, zr + 0.2],
+      [0, gc + 0.02, this.a * 0.55], [0, gc, -0.25], [0.45, gc + 0.04, -this.b * 0.55], [-0.45, gc + 0.04, -this.b * 0.55],
+      [0.82, gc + 0.12, 0.1], [-0.82, gc + 0.12, 0.1], [0.82, gc + 0.12, -0.8], [-0.82, gc + 0.12, -0.8],
+      [0.68, roofY, roofF], [-0.68, roofY, roofF], [0.68, roofY, roofR], [-0.68, roofY, roofR], [0.85, 1.25 + up, zr + 0.25], [-0.85, 1.25 + up, zr + 0.25]].map(([x, y, z]) => [x, y - h, z]);
+    this.floatPts = [[0.8, gc, zf - 0.6], [-0.8, gc, zf - 0.6], [0.8, gc, zr + 0.6], [-0.8, gc, zr + 0.6]].map(([x, y, z]) => [x, y - h, z]);
+    this.buoyA = Ln * W * 0.22 / 4;
+    // toma de aire: con snorkel respira sobre el techo
+    this.intake = S.snorkel ? [-0.92, spec.hgt + up + 0.15 - h, pr.zF + pr.P.wsTop + 0.1] : [0.45, 0.84 + up - h, pr.zF - 0.05];
+    this.hook = [0, 0.55 + up - h, zf + 0.05];
+    // motor y convertidor de torque (la camioneta "calza" a unas 2.100–2.500 rpm contra un obstáculo)
+    const stall = spec.id === 'pickup' ? 2100 : 2500;
+    this.Cc = torqueCurve(spec, stall) / (stall * Math.PI / 30) ** 2; this.Ie = spec.id === 'pickup' ? 0.32 : 0.22;
+    this.transfer = '4H'; this.lockF = false; this.lockR = false; this.tc = !!S.tc; this.auto = true; this.abs = true;
+    this.mech = { power: 1, grip: [1, 1, 1, 1], align: 0, drag: 1, misfire: 0, dead: false };
+    this.winch = { on: false, x: 0, y: 0, z: 0, len: 0, tension: 0, dist: 0 };
+    this.surf = [0, 0, 0, 0]; this.skid = [0, 0, 0, 0]; this.spin = [0, 0, 0, 0]; this.contact = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    this._m = new THREE.Matrix4(); this.pos = new THREE.Vector3(); this.q = new THREE.Quaternion(); this.vel = new THREE.Vector3(); this.av = new THREE.Vector3(); this.acc = new THREE.Vector3();
+    this.grip = {}; this.updateGrip();
+    this.reset(0, 0, 0);
+  }
+  updateGrip() { this.wet = WEATHER.id === 'rain'; for (const k of Object.keys(OFFSURF)) this.grip[k] = offGrip(+k, this.setup, this.wet); }
+  grip4(sf) { if (this.wet && sf === 15) sf = 16; return this.grip[sf] || this.grip[1]; }
+  get speed() { return this.vel.length(); }
+  worldPt(l, out = _wp) {
+    const e = this._m.makeRotationFromQuaternion(this.q).elements;
+    return out.set(this.pos.x + e[0] * l[0] + e[4] * l[1] + e[8] * l[2], this.pos.y + e[1] * l[0] + e[5] * l[1] + e[9] * l[2], this.pos.z + e[2] * l[0] + e[6] * l[1] + e[10] * l[2]);
+  }
+  reset(x, z, psi) {
+    const s = Math.sin(psi), c = Math.cos(psi), q = {};
+    const hF = groundAt(x + s * this.a, z + c * this.a, q), hR = groundAt(x - s * this.b, z - c * this.b, q);
+    const hL = groundAt(x + c * 0.8, z - s * 0.8, q), hRt = groundAt(x - c * 0.8, z + s * 0.8, q);
+    this.q.setFromEuler(new THREE.Euler(-Math.atan2(hF - hR, this.a + this.b), psi, Math.atan2(hL - hRt, 1.6), 'YXZ'));
+    this.pos.set(x, (hF * this.b + hR * this.a) / (this.a + this.b) + this.h + 0.03, z);
+    this.vel.set(0, 0, 0); this.av.set(0, 0, 0); this.acc.set(0, 0, 0);
+    for (const wh of this.wheels) Object.assign(wh, { s: this.s0, sv: 0, w: 0, dig: 0, anc: null, ancL: null });
+    Object.assign(this, { we: this.spec.idle * Math.PI / 30, gear: 1, shiftT: 0, neutT: 0, gearT: 0, flood: 0, revHold: 0, steer: 0, thr: 0, brk: 1, hand: false, throttleIn: 0, brakeIn: 0, load: 0,
+      overturned: false, upT: 0, drowned: false, inWater: 0, waterY: -1e9, scrape: 0, scrapePt: null, impact: 0, events: [], tumble: false, Om: 0, _hit: null, _wl: -Infinity });
+    this.winch.on = false; this.mech.dead = false;
+    this.syncFields();
+  }
+  ratio(g = this.gear) { const s = this.spec, lr = this.transfer === '4L' ? LOW_RANGE : 1; return g > 0 ? s.gears[g - 1] * s.final * lr : g < 0 ? -3.4 * s.final * lr : 0; }
+  shift(dir) { const g = clamp(this.gear + dir, -1, this.spec.gears.length); if (g !== this.gear) { this.gear = g; this.shiftT = 0.3; this.gearT = 0; } }
+  autoShift(thr) {
+    if (this.gear < 1 || this.shiftT > 0) return;
+    // decide por la velocidad real (no por una rueda que patina); en reductora se queda en las marchas bajas.
+    // Histéresis: solo sube si en la marcha siguiente no tendría que volver a bajar al acelerar
+    const sp = this.spec, rpm = this.we * 30 / Math.PI, rl = sp.redline, n = this.transfer === '4L' ? 3 : sp.gears.length, tr = Math.abs(this.u) / this.R * Math.abs(this.ratio()) * 30 / Math.PI;
+    const kick = 0.36 * rl, down = thr > 0.6 ? kick : 0.24 * rl;
+    if (this.gear < n && this.gearT > 0.6 && ((rpm > rl * 0.9 && tr > rl * 0.7) || (tr > rl * 0.6 && thr < 0.45))) {
+      if (tr * sp.gears[this.gear] / sp.gears[this.gear - 1] > kick * 1.12) { this.gear++; this.shiftT = 0.35; this.gearT = 0; }
+    } else if (this.gear > 1 && this.gearT > 1.2) {
+      const prev = tr * sp.gears[this.gear - 2] / sp.gears[this.gear - 1];
+      if (tr < down && prev < rl * 0.85) { this.gear--; this.shiftT = 0.3; this.gearT = 0; }
+    }
+  }
+  // 2H → 4H → 4L (la reductora solo entra casi detenido)
+  cycleTransfer() {
+    const next = { '2H': '4H', '4H': '4L', '4L': '2H' }[this.transfer];
+    if ((next === '4L' || this.transfer === '4L') && this.speed > 1.5) return 'Detente para meter o sacar la reductora';
+    this.transfer = next; this.neutT = 0.4;
+    return { '2H': '2H · tracción trasera', '4H': '4H · doble tracción', '4L': '4L · reductora' }[next];
+  }
+  cycleLock() {
+    const L = this.setup.lock;
+    if (L === 'no') return 'No tienes bloqueos: instálalos en la preparación';
+    if (this.speed > 7) return 'Baja de 25 km/h para bloquear';
+    if (!this.lockR) { this.lockR = true; return 'Bloqueo trasero'; }
+    if (L === 'ambos' && !this.lockF) { this.lockF = true; return 'Bloqueo trasero y delantero'; }
+    this.lockR = this.lockF = false; return 'Diferenciales abiertos';
+  }
+  toggleWinch(anchors) {
+    if (!this.setup.winch) return 'No tienes huinche: instálalo en la preparación';
+    if (this.winch.on) { this.winch.on = false; return 'Huinche suelto'; }
+    const hk = this.worldPt(this.hook), e = this._m.elements; let best = null, bd = 45;
+    for (const a of anchors) {
+      const dx = a.x - hk.x, dz = a.z - hk.z, d = Math.hypot(dx, dz);
+      if (d < bd && (dx * e[8] + dz * e[10]) / d > 0.25) { bd = d; best = a; }
+    }
+    if (!best) return 'No hay un anclaje adelante (árbol o roca con eslinga amarilla, a menos de 45 m)';
+    Object.assign(this.winch, { on: true, x: best.x, y: best.y, z: best.z, len: Math.hypot(best.x - hk.x, best.y + 0.9 - hk.y, best.z - hk.z) });
+    return 'Huinche enganchado · tirando';
+  }
+  update(dt, inp) {
+    // dirección con geometría de Ackermann
+    const sp = this.speed, u = this.u, maxS = 0.62;
+    const target = clamp(inp.steer, -1, 1) * (sp > 12 ? maxS * 12 / sp : maxS);
+    this.steer += clamp(target - this.steer, -1.7 * dt, 1.7 * dt);
+    const W = this.wheels, tw = this.spec.tw, Lw = this.a + this.b, st = this.steer;
+    if (Math.abs(st) > 1e-4) {
+      const Rt = Lw / Math.tan(Math.abs(st)), inner = Math.atan(Lw / (Rt - tw / 2)), outer = Math.atan(Lw / (Rt + tw / 2)), sg = Math.sign(st);
+      W[0].steer = sg * (sg > 0 ? inner : outer); W[1].steer = sg * (sg > 0 ? outer : inner);
+    } else W[0].steer = W[1].steer = 0;
+    // pedales y caja automática
+    let thr = inp.throttle, brk = inp.brake;
+    if (inp.hold) { thr = 0; brk = 1; if (this.gear === 0) this.gear = 1; this.revHold = 0; }
+    else if (this.auto) {
+      if (this.gear >= 1) { if (u < 0.6 && brk > 0.3 && thr < 0.05) { this.revHold += dt; if (this.revHold > 0.4) { this.gear = -1; this.revHold = 0; } } else this.revHold = 0; }
+      else if (this.gear === -1) { if (u > -0.6 && thr > 0.3 && brk < 0.05) { this.revHold += dt; if (this.revHold > 0.25) { this.gear = 1; this.revHold = 0; } } else this.revHold = 0; }
+      else this.gear = 1;
+      if (this.gear === -1) { const x = thr; thr = brk; brk = x; }
+      this.autoShift(thr);
+    }
+    // asistente de partida en pendiente: detenido y sin acelerar, frena solo
+    if (Math.abs(u) < 0.35 && thr < 0.05) brk = Math.max(brk, 0.55);
+    this.shiftT -= dt; this.neutT -= dt; this.gearT += dt; this.thr = thr; this.brk = brk; this.hand = !!inp.handbrake;
+    const n = Math.max(1, Math.ceil(dt * 480)), h = dt / n;
+    for (let k = 0; k < n; k++) this.sub(h);
+    this.syncFields();
+    this.post(dt);
+  }
+  sub(dt) {
+    const pos = this.pos, v = this.vel, w = this.av, e = this._m.makeRotationFromQuaternion(this.q).elements;
+    const ex0 = e[0], ex1 = e[1], ex2 = e[2], ey0 = e[4], ey1 = e[5], ey2 = e[6], ez0 = e[8], ez1 = e[9], ez2 = e[10];
+    let Fx = 0, Fy = -this.mS * G, Fz = 0, Tx = 0, Ty = 0, Tz = 0;
+    const add = (fx, fy, fz, px, py, pz) => { Fx += fx; Fy += fy; Fz += fz; const rx = px - pos.x, ry = py - pos.y, rz = pz - pos.z; Tx += ry * fz - rz * fy; Ty += rz * fx - rx * fz; Tz += rx * fy - ry * fx; };
+    const R = this.R, W = this.wheels;
+    // ---- ruedas: contacto con el terreno, fuerza normal y agarre lateral ----
+    for (const wh of W) {
+      const ly = wh.ay - wh.s;
+      const cx = pos.x + ex0 * wh.ax + ey0 * ly + ez0 * wh.az, cy = pos.y + ex1 * wh.ax + ey1 * ly + ez1 * wh.az, cz = pos.z + ex2 * wh.ax + ey2 * ly + ez2 * wh.az;
+      wh.C.set(cx, cy, cz);
+      const sd = Math.sin(wh.steer), cd = Math.cos(wh.steer), fx = ex0 * sd + ez0 * cd, fy = ex1 * sd + ez1 * cd, fz = ex2 * sd + ez2 * cd;
+      const hl = Math.hypot(fx, fz) || 1, hx = fx / hl, hz = fz / hl;
+      let best = 0, bdx = 0, bg = 0, bs = 0, bdig = 0;
+      for (let k = -3; k <= 3; k++) {
+        // el surco baja todo el contacto; su resistencia (compactar y empujar arena/barro) va en "bull", según hacia dónde se mueve
+        const dx = k / 3 * R * 0.97, g = groundAt(cx + hx * dx, cz + hz * dx, _HQ) - wh.dig;
+        const dy = cy - g, pen = (k === 0 && dy < 0) ? R - dy : R - Math.hypot(dx, dy);
+        if (pen > best) { best = pen; bdx = dx; bg = g; bs = _HQ.surf; bdig = _HQ.dig || 0; }
+      }
+      wh.contact = best > 0; wh.FnAxial = 0;
+      if (!wh.contact) { wh.Fn = 0; wh.K = 0; wh.F0 = 0; wh.mux = 0; wh.Fy = 0; wh.anc = wh.ancL = null; continue; }
+      wh.surf = bs; wh.zdig = bdig;
+      const px = cx + hx * bdx, pz = cz + hz * bdx, dyb = cy - bg, dist = Math.hypot(bdx, dyb) || 1;
+      let nx = -hx * bdx / dist, ny = dyb / dist, nz = -hz * bdx / dist;
+      if (dyb < 0 && bdx === 0) { nx = 0; ny = 1; nz = 0; }
+      wh.n.set(nx, ny, nz); wh.P.set(px, bg, pz);
+      const rx = cx - pos.x, ry = cy - pos.y, rz = cz - pos.z;
+      const vcx = v.x + w.y * rz - w.z * ry - ey0 * wh.sv, vcy = v.y + w.z * rx - w.x * rz - ey1 * wh.sv, vcz = v.z + w.x * ry - w.y * rx - ey2 * wh.sv;
+      // el neumático se aplasta hasta ~16 cm (después toca la llanta): sin tope, una rueda metida en el canto de un escalón
+      // recibía una fuerza enorme y salía catapultada
+      const Fn = Math.max(0, this.kt * Math.min(best, 0.16) - this.ct * (vcx * nx + vcy * ny + vcz * nz));
+      wh.Fn = Fn;
+      const nd = -(nx * ey0 + ny * ey1 + nz * ey2);
+      wh.FnAxial = Fn * nd;
+      // lo que no va por el eje de la suspensión (p. ej. chocar la cara de un escalón) va directo al chasis
+      add(Fn * (nx + nd * ey0), Fn * (ny + nd * ey1), Fn * (nz + nd * ey2), px, bg, pz);
+      // ejes de la huella: avance = eje de la rueda × normal. Así, si el contacto queda sobre el eje (el canto de un
+      // escalón alto), la rueda que gira hacia adelante trepa por la cara en vez de empujarse hacia abajo
+      const ax_ = ex0 * cd - ez0 * sd, ay_ = ex1 * cd - ez1 * sd, az_ = ex2 * cd - ez2 * sd;
+      let tfx = ay_ * nz - az_ * ny, tfy = az_ * nx - ax_ * nz, tfz = ax_ * ny - ay_ * nx, tfl = Math.hypot(tfx, tfy, tfz);
+      if (tfl < 0.2) { const fn = fx * nx + fy * ny + fz * nz; tfx = fx - fn * nx; tfy = fy - fn * ny; tfz = fz - fn * nz; tfl = Math.hypot(tfx, tfy, tfz) || 1; }
+      tfx /= tfl; tfy /= tfl; tfz /= tfl;
+      const tlx = ny * tfz - nz * tfy, tly = nz * tfx - nx * tfz, tlz = nx * tfy - ny * tfx;
+      wh.tf[0] = tfx; wh.tf[1] = tfy; wh.tf[2] = tfz; wh.tl[0] = tlx; wh.tl[1] = tly; wh.tl[2] = tlz;
+      const qx = px - pos.x, qy = bg - pos.y, qz = pz - pos.z;
+      const vpx = v.x + w.y * qz - w.z * qy, vpy = v.y + w.z * qx - w.x * qz, vpz = v.z + w.x * qy - w.y * qx;
+      wh.vlong = vpx * tfx + vpy * tfy + vpz * tfz; wh.vlat = vpx * tlx + vpy * tly + vpz * tlz;
+      const gr = this.grip4(bs), mu = gr.mu * this.mech.grip[wh.i]; wh.gr = gr; wh.mu = mu;
+      // lateral: detenida, la huella se "ancla" y no se escurre por la ladera
+      let Fy;
+      if (Math.abs(wh.vlat) < 0.05 && Math.abs(wh.vlong) < 0.3) {
+        if (!wh.anc) wh.anc = [px, pz];
+        const off = (px - wh.anc[0]) * tlx + (pz - wh.anc[1]) * tlz;
+        Fy = -mu * Fn * (off / 0.04 + wh.vlat / 0.05);
+        if (Math.abs(Fy) > mu * Fn) { wh.anc = null; Fy = Math.sign(Fy) * mu * Fn; }
+      } else { wh.anc = null; Fy = -mu * Fn * Math.tanh(5.5 * wh.vlat / Math.max(Math.abs(wh.vlong), 0.5)); }
+      wh.Fy = Fy;
+      // longitudinal: linealizada para resolverla junto con la transmisión
+      const mux = Math.sqrt(Math.max(0.04, mu * mu - (Fy / Math.max(Fn, 1)) ** 2)) * Fn, Vn = Math.max(Math.abs(wh.vlong), 0.6);
+      const vs0 = R * wh.w - wh.vlong, th = Math.tanh(10 * vs0 / Vn);
+      wh.K = mux * 10 / Vn * (1 - th * th); wh.F0 = mux * th - wh.K * vs0; wh.mux = mux; wh.Vn = Vn;
+    }
+    // ---- suspensión: resortes con precarga, amortiguadores, topes y barra estabilizadora ----
+    const aDx = this.acc.x, aDy = this.acc.y, aDz = this.acc.z;
+    for (const wh of W) {
+      const other = W[wh.i ^ 1];
+      let Fs = wh.load + wh.k * (this.s0 - wh.s) + (wh.sv < 0 ? 0.75 : 1.35) * wh.c * -wh.sv + wh.kArb * (other.s - wh.s);
+      if (wh.s < this.sMin + 0.025) Fs += 2.5e5 * (this.sMin + 0.025 - wh.s) - 4000 * Math.min(0, wh.sv);
+      if (Fs < -0.4 * wh.load) Fs = -0.4 * wh.load;
+      const aD = -(aDx * ey0 + aDy * ey1 + aDz * ey2);
+      wh.sa = (this.mu * G * ey1 + Fs + wh.FnAxial) / this.mu - aD;
+      let Fb = Fs;
+      // a fondo de recorrido (rueda colgando) el limitador carga el peso de la rueda al chasis
+      if (wh.s >= this.sMax - 1e-4 && wh.sa > 0) { Fb = Fs - wh.sa * this.mu; wh.sa = 0; if (wh.sv > 0) wh.sv = 0; }
+      const ax = pos.x + ex0 * wh.ax + ey0 * wh.ay + ez0 * wh.az, ay = pos.y + ex1 * wh.ax + ey1 * wh.ay + ez1 * wh.az, az = pos.z + ex2 * wh.ax + ey2 * wh.ay + ez2 * wh.az;
+      add(ey0 * Fb, ey1 * Fb, ey2 * Fb, ax, ay, az);
+    }
+    // ---- motor y convertidor de torque ----
+    // caja automática: los cambios no pasan por neutro (embragues que se traslapan), solo la caja de transferencia
+    const ratio = this.neutT > 0 ? 0 : this.ratio(), four = this.transfer !== '2H', drv = four ? 4 : 2;
+    let Om = four ? (W[0].w + W[1].w + W[2].w + W[3].w) / 4 : (W[2].w + W[3].w) / 2;
+    const we = this.we, wt = Om * ratio, rl = this.spec.redline * Math.PI / 30, idle = this.spec.idle * Math.PI / 30;
+    let Te = 0;
+    if (!this.mech.dead) {
+      const thr = we > rl ? 0 : this.thr;
+      Te = thr * torqueCurve(this.spec, we * 30 / Math.PI) * this.mech.power * (this.shiftT > 0 ? 0.65 : 1);
+      if (we < idle * 1.05 && this.thr < 0.15) Te += clamp((idle * 1.05 - we) / idle * 8, 0, 1) * this.spec.Tmax * 0.5;
+    }
+    Te -= (0.04 + 0.1 * we / rl) * this.spec.Tmax * (this.thr < 0.05 ? 1 : 0.35);
+    // kd: cuánto baja el torque en las ruedas si estas giran más rápido (se resuelve implícito: con la
+    // reductora la relación es ~43:1 y un acople explícito se vuelve inestable)
+    let Tp = 0, Tt = 0, kd = 0;
+    if (ratio !== 0) {
+      const SR = we > 1 ? wt / we : 0, C = this.Cc * (1 + 3 * smooth(0.72, 0.96, SR)), r2 = ratio * ratio * 0.86;
+      if (wt <= 0) { Tp = C * we * we; Tt = Tp * 2.1; }
+      else if (we >= wt) {
+        Tp = C * (we * we - wt * wt); const TR = SR < 0.85 ? 2.1 - 1.1 * SR / 0.85 : 1; Tt = Tp * TR;
+        kd = (2 * C * wt * TR + (SR < 0.85 ? Tp * 1.1 / 0.85 / Math.max(we, 1) : 0)) * r2;
+      } else { Tp = -C * 0.7 * (wt * wt - we * we); Tt = Tp; kd = 1.4 * C * wt * r2; }
+    }
+    this.we = Math.max(0, we + dt * (Te - Tp) / this.Ie);
+    const Tdrive = ratio !== 0 ? Tt * ratio * 0.86 : 0;
+    // ---- reparto a las ruedas (implícito): diferenciales abiertos o bloqueados, frenos y control de tracción ----
+    const Iw = this.Iw, bF = this.brk * 2900, bR = this.brk * 1900 + (this.hand ? 3500 : 0);
+    for (const wh of W) {
+      wh.Tc = (wh.front ? bF : bR) + (wh.gr && wh.contact ? wh.gr.crr * wh.Fn * R : 0);
+      wh.dir = Math.abs(wh.w) > 0.3 ? Math.sign(wh.w) : (Math.sign(wh.vlong) || 0);
+    }
+    if (this.tc) for (const [l, r, open] of [[0, 1, four && !this.lockF], [2, 3, !this.lockR]]) {
+      if (!open) continue;
+      const d = Math.abs(W[l].w) - Math.abs(W[r].w), ex = Math.abs(d) - 1.5;
+      if (ex > 0 && this.thr > 0.1) (d > 0 ? W[l] : W[r]).Tc += Math.min(1800, ex * 260);
+    }
+    for (const wh of W) { wh.A = R * R * wh.K; wh.B = R * wh.K * wh.vlong - R * wh.F0; }
+    const axes = this._axes || (this._axes = [{ l: 0, r: 1 }, { l: 2, r: 3 }]);
+    axes[0].on = four; axes[0].lock = this.lockF; axes[1].on = true; axes[1].lock = this.lockR;
+    for (const a of axes) a.d = a.dN = a.on && !a.lock ? (W[a.l].w - W[a.r].w) / 2 : 0;
+    const Iom = drv * Iw + 0.8;
+    let OmN = Om;
+    for (let it = 0; it < 3; it++) {
+      let num = Iom * Om + dt * (Tdrive + kd * Om), den = Iom + dt * kd;
+      for (const a of axes) if (a.on) { const Lw_ = W[a.l], Rw_ = W[a.r]; num += dt * (Lw_.B - Lw_.A * a.dN + Rw_.B + Rw_.A * a.dN); den += dt * (Lw_.A + Rw_.A); }
+      OmN = num / den;
+      for (const a of axes) if (a.on && !a.lock) { const Lw_ = W[a.l], Rw_ = W[a.r]; a.dN = (2 * Iw * a.d + dt * ((Lw_.B - Lw_.A * OmN) - (Rw_.B - Rw_.A * OmN))) / (2 * Iw + dt * (Lw_.A + Rw_.A)); }
+    }
+    for (const a of axes) {
+      if (a.on) { W[a.l].wN = OmN + a.dN; W[a.r].wN = OmN - a.dN; }
+      else for (const i of [a.l, a.r]) { const wh = W[i]; wh.wN = (Iw * wh.w + dt * wh.B) / (Iw + dt * wh.A); }
+    }
+    // frenos y rodadura: fricción que frena el giro sin invertirlo (la rueda puede quedar bloqueada)
+    for (const wh of W) {
+      const dw = wh.Tc * dt / (Iw + dt * wh.A);
+      wh.w = Math.abs(wh.wN) <= dw ? 0 : wh.wN - Math.sign(wh.wN) * dw;
+    }
+    for (const a of axes) if (a.on && a.lock) { const m = (W[a.l].w + W[a.r].w) / 2; W[a.l].w = W[a.r].w = m; }
+    this.Om = OmN;
+    // ---- fuerzas de los neumáticos, hundimiento en blando ----
+    for (const wh of W) {
+      if (!wh.contact || wh.Fn <= 0) continue;
+      const vs = R * wh.w - wh.vlong, tf = wh.tf, tl = wh.tl;
+      let Fxx = wh.mux * Math.tanh(10 * vs / wh.Vn);
+      const held = (this.brk > 0.3 || (this.hand && !wh.front)) && Math.abs(wh.w) < 0.05;
+      if (held && Math.abs(wh.vlong) < 0.12) {
+        if (!wh.ancL) wh.ancL = [wh.P.x, wh.P.z];
+        const off = (wh.P.x - wh.ancL[0]) * tf[0] + (wh.P.z - wh.ancL[1]) * tf[2];
+        Fxx = -wh.mu * wh.Fn * (off / 0.04 + wh.vlong / 0.06);
+        if (Math.abs(Fxx) > wh.mu * wh.Fn) { wh.ancL = null; Fxx = Math.sign(Fxx) * wh.mu * wh.Fn; }
+      } else wh.ancL = null;
+      let fy = wh.Fy; const tot = Math.hypot(Fxx, fy), lim = wh.mu * wh.Fn;
+      if (tot > lim) { const k = lim / tot; Fxx *= k; fy *= k; }
+      wh.Fx = Fxx; wh.slip = vs;
+      const gr = wh.gr;
+      const bull = wh.Fn * (gr.soft * 0.035 + wh.dig * 1.2) * Math.min(1, Math.abs(wh.vlong) / 0.3) * Math.sign(wh.vlong);
+      add(tf[0] * (Fxx - bull) + tl[0] * fy, tf[1] * (Fxx - bull) + tl[1] * fy, tf[2] * (Fxx - bull) + tl[2] * fy, wh.P.x, wh.P.y, wh.P.z);
+      if (gr.dig > 0) {
+        // patinando, el neumático excava: puede llegar hasta los ejes y dejar la camioneta varada sobre el chasis
+        wh.dig = clamp(wh.dig + dt * (gr.dig * (1 + wh.zdig) * Math.max(0, Math.abs(vs) - 0.5) * 0.045 - Math.abs(wh.vlong) * 0.1 * Math.max(0, 1 - Math.abs(vs))), 0, R * 0.8);
+        // cada trozo de suelo nuevo cede bajo la carga hasta sostenerla: con mucha presión se va abriendo surco
+        if (gr.sink) { const zt = Math.min(0.24, gr.sink * Math.sqrt(wh.Fn / wh.load) * (1 + 0.8 * wh.zdig)); if (wh.dig < zt) wh.dig = Math.min(zt, wh.dig + dt * (0.02 + Math.abs(wh.vlong) * 0.25)); }
+      } else wh.dig = Math.max(0, wh.dig - dt * Math.abs(wh.vlong) * 0.3);
+    }
+    // ---- chasis contra el suelo: paragolpes, protecciones, estribos y techo (volcamiento) ----
+    const muB = this.setup.armor ? 0.3 : 0.55;
+    for (const [lx, ly, lz] of this.bodyPts) {
+      const px = pos.x + ex0 * lx + ey0 * ly + ez0 * lz, py = pos.y + ex1 * lx + ey1 * ly + ez1 * lz, pz = pos.z + ex2 * lx + ey2 * ly + ez2 * lz;
+      const pen = groundAt(px, pz, _HQ) - py;
+      if (pen <= 0) continue;
+      const onRock = !!_HQ.ob;
+      // normal según la pendiente local: contra la cara de un escalón empuja hacia atrás, no hacia arriba
+      const e2 = 0.12, gx = (groundAt(px + e2, pz, _HQ) - groundAt(px - e2, pz, _HQ)) / (2 * e2), gz = (groundAt(px, pz + e2, _HQ) - groundAt(px, pz - e2, _HQ)) / (2 * e2);
+      const nl = Math.hypot(gx, 1, gz), nx = -gx / nl, ny = 1 / nl, nz = -gz / nl, depth = Math.min(pen * ny, 0.3);
+      const rx = px - pos.x, ry = py - pos.y, rz = pz - pos.z;
+      const vx = v.x + w.y * rz - w.z * ry, vy = v.y + w.z * rx - w.x * rz, vz = v.z + w.x * ry - w.y * rx, vn = vx * nx + vy * ny + vz * nz;
+      const Fn = Math.max(0, 1.4e5 * depth - 7000 * Math.min(vn, 0));
+      const tx = vx - vn * nx, ty = vy - vn * ny, tz = vz - vn * nz, vt = Math.hypot(tx, ty, tz), ft = muB * Fn / Math.max(vt, 0.05);
+      add(nx * Fn - tx * ft, ny * Fn - ty * ft, nz * Fn - tz * ft, px, py, pz);
+      if (vt > 0.6) { this._scr = Math.max(this._scr || 0, Math.min(1, vt / 6)); this._scrP = [px, py, pz]; }
+      if (-vn > 2.2 && (!this._hit || -vn > this._hit.dv)) this._hit = { px, py, pz, dv: -vn, rock: onRock };
+    }
+    // ---- árboles, postes y letreros (círculos en planta) ----
+    this.x = pos.x; this.z = pos.z; this.psi = Math.atan2(ez0, ez2);
+    forNearObstacles(pos.x, pos.z, o => {
+      const c = circleHit(this, o); if (!c) return;
+      if (o.brk) { knockDown(o, v.x, v.z); return; }
+      const vn = v.x * c.nx + v.z * c.nz, F = Math.max(0, 2.2e5 * Math.min(c.depth, 0.3) - 9000 * Math.min(vn, 0));
+      add(c.nx * F, 0, c.nz * F, c.px, pos.y, c.pz);
+      if (-vn > 2 && (!this._hit || -vn > this._hit.dv)) this._hit = { px: c.px, py: pos.y, pz: c.pz, dv: -vn, kind: o.kind, nx: c.nx, nz: c.nz };
+    });
+    // ---- agua: flotación, arrastre de la corriente y toma de aire ----
+    const wl = waterAt(pos.x, pos.z); this._wl = wl; let sub = 0; this.intakeGap = 9;
+    if (wl > -1e8) {
+      // al entrar al agua la cabina flota; en unos segundos se llena por los burletes y la camioneta se asienta
+      const bA = this.buoyA * (1 - 0.45 * this.flood);
+      for (const [lx, ly, lz] of this.floatPts) {
+        const px = pos.x + ex0 * lx + ey0 * ly + ez0 * lz, py = pos.y + ex1 * lx + ey1 * ly + ez1 * lz, pz = pos.z + ex2 * lx + ey2 * ly + ez2 * lz, d = clamp(wl - py, 0, 1.3);
+        if (d > 0) { add(0, 1000 * G * bA * d, 0, px, py, pz); sub += d / 4; }
+      }
+      this.flood = sub > 0.15 ? Math.min(1, this.flood + dt / 9) : Math.max(0, this.flood - dt / 40);
+      let bow = 0;
+      if (sub > 0) {
+        waterFlow(pos.x, pos.z, _flow);
+        const rvx = v.x - _flow.x, rvz = v.z - _flow.z, rv = Math.hypot(rvx, rvz), fw = rv > 0.01 ? Math.abs((rvx * ez0 + rvz * ez2) / rv) : 1;
+        const Fd = 0.5 * 1000 * 1.05 * sub * (fw * this.spec.wid + (1 - fw) * this.spec.len) * 0.9 * rv;
+        add(-rvx * Fd, -v.y * 900 * sub, -rvz * Fd, pos.x, pos.y - 0.3, pos.z);
+        // ola de proa: entrar rápido al agua la levanta sobre el capó
+        bow = Math.min(0.35, 0.022 * rv * rv) * smooth(0.1, 0.4, sub);
+      }
+      if (!this.mech.dead) {
+        const [lx, ly, lz] = this.intake;
+        this.intakeGap = pos.y + ex1 * lx + ey1 * ly + ez1 * lz - (wl + bow);
+        if (this.intakeGap < 0) { this.drowned = true; this.mech.dead = true; }
+      }
+    }
+    this.inWater = sub;
+    // ---- huinche ----
+    const Wn = this.winch;
+    if (Wn.on) {
+      const [lx, ly, lz] = this.hook, hx = pos.x + ex0 * lx + ey0 * ly + ez0 * lz, hy = pos.y + ex1 * lx + ey1 * ly + ez1 * lz, hz = pos.z + ex2 * lx + ey2 * ly + ez2 * lz;
+      const dx = Wn.x - hx, dy = Wn.y + 0.9 - hy, dz = Wn.z - hz, d = Math.hypot(dx, dy, dz) || 1;
+      Wn.dist = d; Wn.tension = 0;
+      if (d > Wn.len) { const F = Math.min(42000, 1.5e5 * (d - Wn.len)); add(dx / d * F, dy / d * F, dz / d * F, hx, hy, hz); Wn.tension = F; }
+    }
+    // ---- aire ----
+    const vv = v.length(), kAir = 0.6 * this.spec.CdA * vv;
+    Fx -= kAir * v.x; Fy -= kAir * v.y; Fz -= kAir * v.z;
+    // ---- integración del cuerpo rígido ----
+    const m = this.m, ax = Fx / m, ay = Fy / m, az = Fz / m;
+    this.acc.set(ax, ay, az);
+    v.x += ax * dt; v.y += ay * dt; v.z += az * dt;
+    pos.x += v.x * dt; pos.y += v.y * dt; pos.z += v.z * dt;
+    const I = this.I;
+    let wlx = w.x * ex0 + w.y * ex1 + w.z * ex2, wly = w.x * ey0 + w.y * ey1 + w.z * ey2, wlz = w.x * ez0 + w.y * ez1 + w.z * ez2;
+    const tlx = Tx * ex0 + Ty * ex1 + Tz * ex2, tly = Tx * ey0 + Ty * ey1 + Tz * ey2, tlz = Tx * ez0 + Ty * ez1 + Tz * ez2;
+    const dwx = (tlx - (I[2] - I[1]) * wly * wlz) / I[0], dwy = (tly - (I[0] - I[2]) * wlz * wlx) / I[1], dwz = (tlz - (I[1] - I[0]) * wlx * wly) / I[2];
+    const damp = 1 - 0.12 * dt;
+    wlx = (wlx + dwx * dt) * damp; wly = (wly + dwy * dt) * damp; wlz = (wlz + dwz * dt) * damp;
+    w.set(ex0 * wlx + ey0 * wly + ez0 * wlz, ex1 * wlx + ey1 * wly + ez1 * wlz, ex2 * wlx + ey2 * wly + ez2 * wlz);
+    const q = this.q, hx = 0.5 * dt * w.x, hy = 0.5 * dt * w.y, hz = 0.5 * dt * w.z, qx = q.x, qy = q.y, qz = q.z, qw = q.w;
+    q.set(qx + hx * qw + hy * qz - hz * qy, qy + hy * qw + hz * qx - hx * qz, qz + hz * qw + hx * qy - hy * qx, qw - hx * qx - hy * qy - hz * qz).normalize();
+    for (const wh of W) {
+      wh.sv += wh.sa * dt; wh.s += wh.sv * dt;
+      if (wh.s > this.sMax) { wh.s = this.sMax; if (wh.sv > 0) wh.sv = 0; }
+      if (wh.s < this.sMin - 0.03) { wh.s = this.sMin - 0.03; if (wh.sv < 0) wh.sv = 0; }
+    }
+    if (clampWorld(pos)) v.multiplyScalar(0.3);
+  }
+  syncFields() {
+    const e = this._m.makeRotationFromQuaternion(this.q).elements;
+    this.ey = [e[4], e[5], e[6]]; this.ez = [e[8], e[9], e[10]];
+    this.x = this.pos.x; this.z = this.pos.z; this.y = this.pos.y - this.h * e[5];
+    this.psi = Math.atan2(e[8], e[10]); this.vx = this.vel.x; this.vz = this.vel.z; this.vy = this.vel.y; this.r = this.av.y;
+    this.u = this.vel.x * e[8] + this.vel.y * e[9] + this.vel.z * e[10];
+    this.rpm = this.we * 30 / Math.PI;
+    this.pitchDeg = Math.asin(clamp(e[9], -1, 1)) * 180 / Math.PI; this.rollDeg = Math.asin(clamp(e[1], -1, 1)) * 180 / Math.PI;
+  }
+  post(dt) {
+    const Wn = this.winch;
+    // el huinche recoge más lento mientras más tira (motor eléctrico de 4 t: ~15 m/min suelto, ~6 m/min a plena carga)
+    if (Wn.on) { if (Wn.tension < 40000) Wn.len = Math.max(1.5, Wn.len - 0.25 * (1 - 0.6 * Wn.tension / 42000) * dt); if (Wn.dist < 2.6) Wn.on = false; }
+    let soft = 0, rough = 0;
+    for (let i = 0; i < 4; i++) {
+      const wh = this.wheels[i];
+      this.surf[i] = wh.contact ? wh.surf : 0;
+      this.skid[i] = wh.contact ? clamp((Math.abs(wh.slip) - 1.2) / 6, 0, 1) : 0;
+      this.spin[i] = wh.contact && Math.abs(wh.slip) > 2.5;
+      this.contact[i][0] = wh.P.x; this.contact[i][1] = wh.P.y; this.contact[i][2] = wh.P.z;
+      if (wh.gr && wh.contact) { soft += wh.gr.soft / 4; rough += (wh.gr.rock ? 0.02 : 0.008); }
+    }
+    this.grounded = this.wheels.some(w => w.contact);
+    this.offroad = soft; this.rumble = rough;
+    this.scrape = this._scr || 0; this.scrapePt = this._scrP; this._scr = 0;
+    if (this._hit) { const h = this._hit; this.events.push({ kind: h.kind || (h.rock ? 'rock' : 'ground'), px: h.px, py: h.py, pz: h.pz, nx: h.nx ?? 0, ny: h.nx != null ? 0 : 1, nz: h.nz ?? 0, dv: h.dv * 1.2 }); this._hit = null; }
+    if (this.ey[1] < 0.3 && this.speed < 1.5) { this.upT += dt; if (this.upT > 1.8) this.overturned = true; } else { this.upT = 0; this.overturned = false; }
+    this.waterY = this._wl;
+    this.load = this.mech.dead ? 0 : clamp(this.thr, 0, 1) * (this.shiftT > 0 ? 0.4 : 1);
+    this.throttleIn = this.thr; this.brakeIn = this.brk;
+  }
+  sync(model, dt) {
+    model.root.position.copy(_tA.set(0, -this.h, 0).applyQuaternion(this.q).add(this.pos)); model.root.quaternion.copy(this.q);
+    model.body.rotation.set(this.sagP || 0, 0, this.sagR || 0); model.body.position.y = model.rideH || 0;
+    for (let i = 0; i < 4; i++) {
+      const wh = this.wheels[i], mw = model.wheels[i];
+      mw.pivot.position.set(wh.ax, wh.ay - wh.s + this.h, wh.az);
+      mw.pivot.rotation.y = wh.steer + (i < 2 ? this.mech.align : 0);
+      mw.spin.rotation.x += wh.w * dt;
+    }
+    setLights(model, this.brk > 0.05 && this.gear !== -1 && this.speed > 0.3, this.gear === -1);
+  }
+}
 
 // =====================================================================
 // Rivales (pilotos de la IA siguiendo una línea de carrera)
@@ -4244,6 +5260,7 @@ class CarDamage {
   hit(worldPoint, worldNormal, dv) {
     if (this.mode === 'off' || dv < 1.2) return null;
     const m = this.m, out = { broken: [], detached: [] };
+    m.farDirty = true; // la copia de lejos se rehace con las abolladuras
     m.root.updateMatrixWorld(true);
     this.inv.copy(m.body.matrixWorld).invert();
     const P = this.P.copy(worldPoint).applyMatrix4(this.inv);
@@ -4451,6 +5468,139 @@ function updateFallers(dt) {
 function resetFallers() { for (const f of fallers) { f.obj.quaternion.copy(f.q0); f.obj.position.copy(f.p0); f.o.alive = true; } fallers.length = 0; }
 
 // =====================================================================
+// Sonido sintetizado (Web Audio): motor, neumáticos, viento, golpes
+// =====================================================================
+// Motor por explosiones: cada cilindro, en su orden de encendido, suelta un pulso de presión al escape.
+// El pulso recorre el tubo (resonancias de cuarto de onda), pasa por el silenciador y sale; se suman la
+// admisión, el ruido mecánico, el traqueteo del diésel, el silbido y la válvula de alivio del turbo y el
+// petardeo al soltar el acelerador. Corre en un AudioWorklet (hilo de audio aparte).
+const ENGINE_WORKLET = `
+const TAU = Math.PI * 2;
+class EngineVoice extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [
+      { name: 'rpm', defaultValue: 800, minValue: 0, maxValue: 12000, automationRate: 'k-rate' },
+      { name: 'load', defaultValue: 0, minValue: 0, maxValue: 1, automationRate: 'k-rate' },
+      { name: 'gain', defaultValue: 0, minValue: 0, maxValue: 4, automationRate: 'k-rate' },
+      { name: 'pitch', defaultValue: 1, minValue: 0.25, maxValue: 4, automationRate: 'k-rate' },
+    ];
+  }
+  constructor(options) {
+    super();
+    this.seed = (Math.random() * 1e9) >>> 0;
+    this.th = 0; this.pulses = []; this.boost = 0; this.loadS = 0; this.bov = 0; this.bovT = 1; this.whPh = 0;
+    this.buf = [new Float32Array(4096), new Float32Array(4096)]; this.wi = 0; this.fb = [0, 0];
+    this.m1 = 0; this.m2 = 0; this.dcx = 0; this.dcy = 0; this.in1 = 0; this.in2 = 0; this.mech = 0; this.bovF = 0;
+    this.configure((options && options.processorOptions) || {});
+    this.port.onmessage = e => this.configure(e.data);
+  }
+  configure(o) {
+    this.cyl = o.cyl || 4; this.diesel = !!o.diesel; this.turbo = !!o.turbo; this.exh = o.exh || 0;
+    this.spool = o.spool || 2800; this.fc = o.fc || 700; this.big = !!o.big;
+    // orden de encendido: pulsos parejos en los 720° del ciclo; en el V8 de cigüeñal cruzado los bancos se alternan desparejo (el "borboteo")
+    const pat = o.cross ? [0, 1, 0, 0, 1, 0, 1, 1] : null;
+    this.fire = []; this.bank = [];
+    for (let c = 0; c < this.cyl; c++) { this.fire.push(2 * c / this.cyl); this.bank.push(pat ? pat[c] : (this.cyl >= 6 ? c % 2 : 0)); }
+    const L = o.pipe || [2.0, 2.15];
+    this.D = L.map(l => Math.max(16, Math.min(4000, Math.round(2 * l / 343 * sampleRate))));
+  }
+  rnd() { this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0; return this.seed / 4294967296; }
+  trigger(c, load, rpm, dur) {
+    const rough = 0.04 + (rpm < 1300 ? 0.1 : 0.03) * (1 - load);          // ralentí algo irregular
+    let amp = (0.14 + 0.86 * Math.pow(load, 0.7)) * (1 + (this.rnd() - 0.5) * 2 * rough);
+    const p = { t: 0, dur, amp, bank: this.bank[c], ring: 0, rdur: 1, rf: 0 };
+    if (this.diesel) { p.ring = (0.22 + 0.4 * (1 - Math.min(1, rpm / 3000))) * (0.5 + 0.5 * load + 0.25); p.rdur = 0.0024 * sampleRate; p.rf = 2400 + this.rnd() * 1900; }
+    this.pulses.push(p);
+    // petardeo: combustible que se enciende en el escape al soltar el acelerador a alta vuelta
+    if (this.exh > 0 && load < 0.06 && rpm > 2600 && this.rnd() < 0.045 * this.exh)
+      this.pulses.push({ t: 0, dur: 0.0016 * sampleRate, amp: 2.2 + this.rnd(), bank: this.bank[c], ring: 0.9, rdur: 0.006 * sampleRate, rf: 700 + this.rnd() * 500 });
+    if (this.pulses.length > 80) this.pulses.splice(0, this.pulses.length - 80);
+  }
+  process(inputs, outputs, P) {
+    const out = outputs[0], ch = out[0]; if (!ch) return true;
+    const N = ch.length, sr = sampleRate;
+    const rpm = Math.max(0, P.rpm[0]) * P.pitch[0], load = Math.min(1, Math.max(0, P.load[0])), gain = P.gain[0];
+    if (gain < 0.0004) { for (const c of out) c.fill(0); this.pulses.length = 0; return true; }
+    const dth = rpm / 60 / sr, rev = rpm > 1 ? 60 / rpm : 1;
+    // pulso de escape: ~250° de válvula abierta
+    const dur = Math.max(30, Math.min(0.03 * sr, rev * 0.7 * sr));
+    // silenciador: se abre con la carga; el escape libre deja pasar más agudos
+    const fc = this.fc * (0.75 + 0.5 * load) * (this.big ? 0.8 : 1);
+    const am = Math.exp(-TAU * fc / sr), ai1 = Math.exp(-TAU * 2600 / sr), ai2 = Math.exp(-TAU * 650 / sr);
+    const dl = Math.exp(-TAU * 1800 / sr);   // pérdidas dentro del tubo
+    // turbo: la presión sube con vueltas y carga, con retardo; al soltar, la válvula de alivio "sopla"
+    const tgt = this.turbo ? load * Math.min(1, Math.max(0, (rpm - this.spool * 0.55) / (this.spool * 0.7))) : 0;
+    const prevLoad = this.loadS; this.loadS += (load - this.loadS) * 0.25;
+    if (this.turbo && this.boost > 0.45 && prevLoad > 0.5 && load < 0.15 && this.bovT > 0.5) { this.bov = this.boost; this.bovT = 0; }
+    for (let i = 0; i < N; i++) {
+      const prev = this.th; let th = prev + dth; if (th >= 2) th -= 2;
+      for (let c = 0; c < this.cyl; c++) {
+        const f = this.fire[c];
+        if (prev <= th ? (f > prev && f <= th) : (f > prev || f <= th)) this.trigger(c, load, rpm, dur);
+      }
+      this.th = th;
+      let b0 = 0, b1 = 0, ring = 0, envSum = 0;
+      for (let k = this.pulses.length - 1; k >= 0; k--) {
+        const p = this.pulses[k], ph = p.t / p.dur;
+        const env = ph < 0.09 ? ph / 0.09 : Math.exp(-(ph - 0.09) * 5.2) * (1 - ph);
+        const v = p.amp * env; envSum += env;
+        if (p.bank) b1 += v; else b0 += v;
+        if (p.ring > 0 && p.t < p.rdur * 3) ring += p.ring * Math.exp(-p.t / p.rdur) * Math.sin(TAU * p.rf * p.t / sr);
+        if (++p.t >= Math.max(p.dur, p.ring > 0 ? p.rdur * 3 : 0)) this.pulses.splice(k, 1);
+      }
+      // tubos de escape: guía de onda con reflexión invertida en la salida (cuarto de onda) y pérdidas
+      const w = this.wi, r0 = this.buf[0][(w - this.D[0]) & 4095], r1 = this.buf[1][(w - this.D[1]) & 4095];
+      this.fb[0] = r0 + (this.fb[0] - r0) * dl; this.fb[1] = r1 + (this.fb[1] - r1) * dl;
+      const y0 = b0 - 0.58 * this.fb[0], y1 = b1 - 0.58 * this.fb[1];
+      this.buf[0][w] = y0; this.buf[1][w] = y1; this.wi = (w + 1) & 4095;
+      let x = y0 + y1 * (this.cyl >= 6 || this.bank.includes(1) ? 1 : 0) + ring * 0.6;
+      // silenciador (2 polos)
+      this.m1 = x + (this.m1 - x) * am; this.m2 = this.m1 + (this.m2 - this.m1) * am;
+      let s = this.m2 * (1 + this.exh * 0.25) + (x - this.m2) * (0.06 + this.exh * 0.07);
+      // admisión: ruido filtrado que respira con cada pulso
+      const n = this.rnd() * 2 - 1;
+      this.in1 = n + (this.in1 - n) * ai1; this.in2 = this.in1 + (this.in2 - this.in1) * ai2;
+      s += (this.in1 - this.in2) * load * Math.min(1, rpm / 5000) * (0.25 + 0.6 * Math.min(1, envSum)) * 0.9;
+      // ruido mecánico (distribución, inyectores)
+      this.mech = n * 0.5 + this.mech * 0.5;
+      s += (n - this.mech) * 0.02 * Math.min(1.5, rpm / 3000) * (this.diesel ? 1.6 : 1);
+      // turbo
+      if (this.turbo) {
+        this.boost += (tgt - this.boost) * (1 / sr) * 2.6;
+        this.whPh += (1800 + this.boost * 7200) / sr; if (this.whPh > 1) this.whPh -= 1;
+        s += Math.sin(TAU * this.whPh) * 0.035 * this.boost * this.boost;
+        if (this.bovT < 0.6) {
+          this.bovF = n + (this.bovF - n) * 0.55;
+          s += (n - this.bovF) * this.bov * 0.5 * Math.exp(-this.bovT / 0.16) * (this.diesel ? 0.5 : 1) * (0.7 + 0.3 * Math.sin(TAU * 22 * this.bovT));
+          this.bovT += 1 / sr;
+        }
+      }
+      // sin continua y saturación suave
+      this.dcy = s - this.dcx + 0.997 * this.dcy; this.dcx = s;
+      const o = Math.tanh(this.dcy * 0.55) * gain;
+      ch[i] = o;
+    }
+    for (let c = 1; c < out.length; c++) out[c].set(ch);
+    return true;
+  }
+}
+registerProcessor('engine-voice', EngineVoice);
+`;
+// configuración sonora de cada motor
+function engineCfg(spec) {
+  const ex = spec.exh || 0;
+  const base = {
+    taxi: { cyl: 4, fc: 620, pipe: [2.2, 2.2] },
+    rally: { cyl: 4, turbo: true, spool: 3200, fc: 1250, pipe: [1.5, 1.5], exh: 1 },
+    pickup: { cyl: 4, diesel: true, turbo: true, spool: 1900, fc: 480, pipe: [2.6, 2.6] },
+    pickup1: { cyl: 6, fc: 640, pipe: [2.3, 2.45] },
+    gt: { cyl: 8, cross: true, fc: 900, pipe: [1.7, 1.86], exh: 0.6 },
+    bus: { cyl: 6, diesel: true, turbo: true, spool: 1400, fc: 330, pipe: [3.2, 3.4], big: true },
+    truck: { cyl: 6, diesel: true, turbo: true, spool: 1300, fc: 300, pipe: [3.6, 3.8], big: true },
+  }[spec.id] || { cyl: 4, fc: 600, pipe: [2.2, 2.2] };
+  return { ...base, fc: base.fc * (1 + ex * 0.35), exh: Math.max(base.exh || 0, ex) };
+}
+// =====================================================================
 // Música generativa: instrumentos sintetizados (quena, charango, guitarra, bombo,
 // güiro, bajo, teclados) con aire andino, de cumbia chilena y de cueca.
 // Cada mapa tiene su propio tema; la intensidad sube con la velocidad.
@@ -4491,6 +5641,8 @@ const THEMES = {
     bass: 'r.....f.o...', bassInst: 'sine', leadInst: 'quena',
     layers: { pad: 0, arp: 0, lead: 0.3, bass: 0.4, bombo: 0.45, shaker: 0.55, snare: 0.8 } },
 };
+// etapas 4x4: roca y río con aire andino, dunas con el tema tenso, barro bajo la lluvia con la cueca sureña
+Object.assign(THEMES, { x4_rocas: THEMES.cordillera, x4_rio: THEMES.cordillera, x4_dunas: THEMES.caracoles, x4_barro: THEMES.austral });
 
 class Music {
   constructor(snd) {
@@ -4516,6 +5668,8 @@ class Music {
   go(name) {
     if (!THEMES[name] || this.name === name) return;
     this.name = name; this.th = THEMES[name]; this.step = 0; this.bar = 0; this.lead = this.makeLead(this.th);
+    // en carrera la música va bajo el motor (más o menos la mitad); en el menú puede sonar más
+    this.level = name === 'menu' ? 0.32 : 0.15;
     const t = this.ctx.currentTime;
     this.bus.gain.cancelScheduledValues(t);
     this.bus.gain.setTargetAtTime(0, t, 0.05);
@@ -4678,25 +5832,9 @@ class Music {
   }
 }
 
-// =====================================================================
-// Sonido (Web Audio): motores con carácter propio por auto, neumáticos, viento, golpes y música
-// =====================================================================
-// Cada motor se arma con un tren de pulsos a la frecuencia de encendido (rpm / 60 × cilindros / 2),
-// resonancias del escape, admisión, traqueteo diésel, turbo (silbido y descarga) y petardeos al soltar el acelerador.
-const ENGINES = {
-  taxi:   { cyl: 4, rough: 0.07, lope: 0.04, rolloff: 1.15, lp0: 380, lpT: 1500, body: [140, 380], bodyG: 5, intake: 0.5, clatter: 0,   turbo: 0,   crackle: 0.05, gain: 1,    sub: 0.5 },
-  rally:  { cyl: 4, rough: 0.10, lope: 0.12, rolloff: 0.85, lp0: 520, lpT: 3400, body: [170, 520], bodyG: 6, intake: 0.8, clatter: 0,   turbo: 1,   crackle: 0.9,  gain: 1.05, sub: 0.55 },
-  pickup: { cyl: 4, rough: 0.16, lope: 0.10, rolloff: 1.4,  lp0: 240, lpT: 950,  body: [90, 260],  bodyG: 7, intake: 0.4, clatter: 1,   turbo: 0.5, crackle: 0,    gain: 1.15, sub: 0.8 },
-  gt:     { cyl: 8, rough: 0.12, lope: 0.42, rolloff: 0.75, lp0: 480, lpT: 3800, body: [110, 330], bodyG: 7, intake: 0.9, clatter: 0,   turbo: 0,   crackle: 1,    gain: 1.2,  sub: 0.7 },
-  bus:    { cyl: 6, rough: 0.20, lope: 0.08, rolloff: 1.5,  lp0: 200, lpT: 700,  body: [70, 200],  bodyG: 7, intake: 0.3, clatter: 0.8, turbo: 0.6, crackle: 0,    gain: 1.3,  sub: 0.9 },
-  truck:  { cyl: 6, rough: 0.20, lope: 0.08, rolloff: 1.5,  lp0: 200, lpT: 700,  body: [70, 200],  bodyG: 7, intake: 0.3, clatter: 0.8, turbo: 0.6, crackle: 0,    gain: 1.3,  sub: 0.9 },
-};
-const _sDir = new THREE.Vector3();
+
 class Sound {
-  constructor() {
-    this.ctx = null; this.muted = store.get('muted', false); this.music = new Music(this);
-    this.rvS = {}; this.trS = {}; this.startAt = 0; this.blipT = 0; this.tUp = 0;
-  }
+  constructor() { this.ctx = null; this.muted = store.get('muted', false); this.music = new Music(this); this.startAt = 0; this.blipT = 0; }
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -4709,9 +5847,6 @@ class Sound {
     this.nb = nb;
     this.eng = this.engineVoice(1);
     this.riv = this.engineVoice(0.6);
-    this.trf = this.engineVoice(0.5);
-    this.whO = ctx.createOscillator(); this.whO.type = 'sine'; this.whO.frequency.value = 400;
-    this.whg = ctx.createGain(); this.whg.gain.value = 0; this.whO.connect(this.whg); this.whg.connect(this.master); this.whO.start();
     this.squeal = this.noiseVoice('bandpass', 1350, 5);
     this.sq2 = ctx.createOscillator(); this.sq2.type = 'triangle'; this.sq2.frequency.value = 1180;
     this.sq2g = ctx.createGain(); this.sq2g.gain.value = 0; this.sq2.connect(this.sq2g); this.sq2g.connect(this.master); this.sq2.start();
@@ -4722,7 +5857,52 @@ class Sound {
     this.splash = this.noiseVoice('bandpass', 900, 0.6);
     this.rumble = ctx.createOscillator(); this.rumble.type = 'square'; this.rumble.frequency.value = 38;
     this.rumbleG = ctx.createGain(); this.rumbleG.gain.value = 0; this.rumble.connect(this.rumbleG); this.rumbleG.connect(this.master); this.rumble.start();
+    // rodadura sobre el asfalto (sube con la velocidad) y zumbido de caja de dientes rectos
+    this.road = this.noiseVoice('lowpass', 380, 0.5);
+    this.whine = ctx.createOscillator(); this.whine.type = 'sine'; this.whineG = ctx.createGain(); this.whineG.gain.value = 0;
+    this.whine.connect(this.whineG); this.whineG.connect(this.master); this.whine.start();
+    // motor del huinche (4x4)
+    this.winch = ctx.createOscillator(); this.winch.type = 'sawtooth'; this.winch.frequency.value = 160; this.winchG = ctx.createGain(); this.winchG.gain.value = 0;
+    const wl = ctx.createBiquadFilter(); wl.type = 'lowpass'; wl.frequency.value = 900; this.winch.connect(wl); wl.connect(this.winchG); this.winchG.connect(this.master); this.winch.start();
+    this.initWorklet();
     this.music.init(ctx, this.master);
+  }
+  // motores por explosiones (AudioWorklet); si el navegador no lo soporta, quedan los osciladores de antes
+  async initWorklet() {
+    try {
+      if (!this.ctx.audioWorklet) return;
+      const url = URL.createObjectURL(new Blob([ENGINE_WORKLET], { type: 'application/javascript' }));
+      await this.ctx.audioWorklet.addModule(url);
+      this.wEng = this.workletVoice(); this.wRiv = this.workletVoice(); this.wTr = this.workletVoice();
+      this.worklet = true;
+      for (const v of [this.eng, this.riv]) v.out.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+    } catch (e) { this.worklet = false; }
+  }
+  workletVoice() {
+    const c = this.ctx, node = new AudioWorkletNode(c, 'engine-voice', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [1], processorOptions: { cyl: 4 } });
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 18000; lp.Q.value = 0.5;
+    node.connect(lp);
+    let pan = null;
+    if (c.createStereoPanner) { pan = c.createStereoPanner(); lp.connect(pan); pan.connect(this.master); } else lp.connect(this.master);
+    return { node, lp, pan, key: '' };
+  }
+  // un motor: vueltas, carga (acelerador), volumen, efecto Doppler, posición estéreo y apagado por distancia
+  voice(v, spec, rpm, load, vol, pitch = 1, pan = 0, lpf = 18000) {
+    const t = this.ctx.currentTime, key = spec.id + '|' + (spec.exh || 0);
+    if (v.key !== key) { v.node.port.postMessage(engineCfg(spec)); v.key = key; }
+    const P = v.node.parameters;
+    P.get('rpm').setTargetAtTime(Math.max(0, rpm), t, 0.012); P.get('load').setTargetAtTime(clamp(load, 0, 1), t, 0.02);
+    P.get('gain').setTargetAtTime(vol, t, 0.05); P.get('pitch').setTargetAtTime(clamp(pitch, 0.6, 1.6), t, 0.05);
+    if (v.pan) v.pan.pan.setTargetAtTime(clamp(pan, -1, 1), t, 0.05);
+    v.lp.frequency.setTargetAtTime(lpf, t, 0.05);
+  }
+  // fuente que se mueve respecto a la cámara: volumen, Doppler, paneo y aire que absorbe los agudos
+  spatial(src, vx, vz) {
+    const dx = src.x - camera.position.x, dz = src.z - camera.position.z, d = Math.hypot(dx, dz) || 1;
+    const rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);     // derecha de la cámara
+    const lvx = game.car ? game.car.vx : 0, lvz = game.car ? game.car.vz : 0;
+    const vr = ((vx - lvx) * dx + (vz - lvz) * dz) / d;         // se aleja (+) o se acerca (−)
+    return { d, pitch: 343 / (343 + clamp(vr, -120, 120)), pan: -(dx * rx + dz * rz) / d * 0.85, lpf: 18000 / (1 + d / 35) + 500 };
   }
   noise() { const s = this.ctx.createBufferSource(); s.buffer = this.nb; s.loop = true; s.loopStart = Math.random(); s.start(0, Math.random() * 1.5); return s; }
   noiseVoice(type, f, q) {
@@ -4730,117 +5910,65 @@ class Sound {
     const g = c.createGain(); g.gain.value = 0; this.noise().connect(f1); f1.connect(g); g.connect(this.master);
     return { f: f1, g };
   }
-  // forma de onda con muchos armónicos (pulso asimétrico): cuanto menor el "rolloff", más agresivo el motor
-  wave(rolloff) {
-    this._w = this._w || {}; const k = rolloff.toFixed(2);
-    if (!this._w[k]) {
-      const N = 48, re = new Float32Array(N + 1), im = new Float32Array(N + 1);
-      for (let n = 1; n <= N; n++) { re[n] = Math.sin(n * Math.PI * 0.22) / Math.pow(n, rolloff); im[n] = 0.55 / Math.pow(n, rolloff + 0.4); }
-      this._w[k] = this.ctx.createPeriodicWave(re, im);
-    }
-    return this._w[k];
-  }
   engineVoice(vol) {
-    const c = this.ctx, mkO = (type, f = 100) => { const o = c.createOscillator(); o.type = type; o.frequency.value = f; return o; },
-      mkG = (g = 0) => { const n = c.createGain(); n.gain.value = g; return n; }, mkF = (type, f, q) => { const n = c.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q; return n; };
-    const v = { vol, prof: null, t: c.currentTime, boost: 0, armed: 0, thrP: 0 };
-    v.o1 = mkO('sawtooth'); v.o2 = mkO('sawtooth'); v.o3 = mkO('sine'); v.o4 = mkO('triangle');
-    v.g1 = mkG(0.5); v.g2 = mkG(0.28); v.g3 = mkG(0.3); v.g4 = mkG(0.1);
-    const mix = mkG(1), ws = c.createWaveShaper(), curve = new Float32Array(1024);
-    for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = 1.4 * 3.2 * x / (1 + 3.2 * Math.abs(x)); }
-    ws.curve = curve;
-    v.lp = mkF('lowpass', 800, 1.5); v.pk1 = mkF('peaking', 150, 1.1); v.pk2 = mkF('peaking', 400, 1.4);
-    v.am = mkG(1); v.cut = mkG(1); v.out = mkG(0);
-    for (const [o, g] of [[v.o1, v.g1], [v.o2, v.g2], [v.o3, v.g3], [v.o4, v.g4]]) { o.connect(g); g.connect(mix); o.start(); }
-    mix.connect(ws); ws.connect(v.lp); v.lp.connect(v.pk1); v.pk1.connect(v.pk2); v.pk2.connect(v.am); v.am.connect(v.cut); v.cut.connect(v.out);
-    // el motor "respira": variación de ciclo a ciclo (en el V8 es el típico bamboleo)
-    v.lfo = mkO('sine', 7); v.lfoG = mkG(0); v.lfo.connect(v.lfoG); v.lfoG.connect(v.am.gain); v.lfo.start();
-    // admisión
-    v.ib = mkF('bandpass', 400, 0.8); v.ig = mkG(0); this.noise().connect(v.ib); v.ib.connect(v.ig); v.ig.connect(v.am);
-    // traqueteo del diésel: ruido cortado al ritmo de la combustión
-    v.ch = mkF('highpass', 1400, 0.7); v.cg = mkG(0); v.cm = mkO('square', 30); v.cmG = mkG(0);
-    this.noise().connect(v.ch); v.ch.connect(v.cg); v.cm.connect(v.cmG); v.cmG.connect(v.cg.gain); v.cm.start(); v.cg.connect(v.am);
-    // turbo
-    v.w1 = mkO('sine', 1800); v.w2 = mkO('triangle', 2700); v.wg = mkG(0); v.w1.connect(v.wg); v.w2.connect(v.wg); v.wg.connect(v.out); v.w1.start(); v.w2.start();
-    v.pan = c.createStereoPanner ? c.createStereoPanner() : null;
-    if (v.pan) { v.out.connect(v.pan); v.pan.connect(this.master); } else v.out.connect(this.master);
-    return v;
+    const c = this.ctx;
+    const mk = (type, gv) => { const o = c.createOscillator(); o.type = type; const g = c.createGain(); g.gain.value = gv; o.connect(g); o.start(); return { o, g }; };
+    const a = mk('sawtooth', 0.5), b = mk('square', 0.22), d = mk('triangle', 0.2), e = mk('sawtooth', 0.12);
+    const sh = c.createWaveShaper(), curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; curve[i] = (1 + 2.5) * x / (1 + 2.5 * Math.abs(x)); }
+    sh.curve = curve;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3;
+    const out = c.createGain(); out.gain.value = 0;
+    [a, b, d, e].forEach(v => v.g.connect(sh)); sh.connect(lp); lp.connect(out); out.connect(this.master);
+    const nf = c.createBiquadFilter(); nf.type = 'bandpass'; nf.Q.value = 1.2; const ng = c.createGain(); ng.gain.value = 0;
+    this.noise().connect(nf); nf.connect(ng); ng.connect(lp);
+    return { a, b, d, e, lp, out, nf, ng, vol };
   }
-  setEngine(v, rpm, thr, spec, vol, o = {}) {
-    const c = this.ctx, t = c.currentTime, P = ENGINES[spec.id] || ENGINES.taxi;
-    const dt = clamp(t - v.t, 0.001, 0.1); v.t = t;
-    if (v.prof !== P) {
-      v.prof = P; const w = this.wave(P.rolloff); v.o1.setPeriodicWave(w); v.o2.setPeriodicWave(w);
-      v.pk1.gain.value = P.bodyG; v.pk2.gain.value = P.bodyG * 0.7; v.g3.gain.value = 0.3 * P.sub;
-    }
-    const red = spec.redline || 6000, rr = clamp(rpm / red, 0, 1.1), exh = spec.exh || 0, ex = 1 + exh * 0.3, dop = o.dop || 1;
-    v.thrP += (thr - v.thrP) * Math.min(1, dt * 9);
-    const tp = v.thrP, f = rpm / 60 * P.cyl / 2 * dop, k = 0.012;
-    v.o1.frequency.setTargetAtTime(f, t, k); v.o2.frequency.setTargetAtTime(f * 1.006, t, k);
-    v.o3.frequency.setTargetAtTime(f * 0.5, t, k); v.o4.frequency.setTargetAtTime(f * 2, t, k);
-    v.g4.gain.setTargetAtTime(0.06 + tp * 0.16, t, 0.05);
-    v.lfo.frequency.setTargetAtTime(rpm / 120 * dop, t, 0.05);
-    v.lfoG.gain.setTargetAtTime(Math.min(0.55, (P.rough * (1 - rr * 0.6) + P.lope * Math.pow(Math.max(0, 1 - rr), 1.6)) * (1 + (o.mis || 0) * 2)), t, 0.1);
-    v.lp.frequency.setTargetAtTime(P.lp0 + f * 2.2 * ex + tp * P.lpT * ex, t, 0.04); v.lp.Q.value = 1.2 + tp * 2.2;
-    v.pk1.frequency.setTargetAtTime(P.body[0] * (1 + rr * 0.35), t, 0.05); v.pk2.frequency.setTargetAtTime(P.body[1] * (1 + rr * 0.5), t, 0.05);
-    v.ib.frequency.setTargetAtTime(260 + tp * 800 + rr * 500, t, 0.05); v.ig.gain.setTargetAtTime((0.015 + tp * 0.16 * P.intake) * (0.4 + rr), t, 0.05);
-    const cl = P.clatter * (0.14 - tp * 0.05);
-    v.cg.gain.setTargetAtTime(cl, t, 0.05); v.cmG.gain.setTargetAtTime(cl, t, 0.05); v.cm.frequency.setTargetAtTime(Math.max(5, f), t, k); v.ch.frequency.setTargetAtTime(1300 + rr * 900, t, 0.05);
-    let lvl = (0.06 + tp * 0.13 + rr * 0.07) * P.gain * (1 + exh * 0.22) * vol * v.vol * (o.inside || 1);
-    if (o.dead) lvl = 0;
-    v.out.gain.setTargetAtTime(lvl, t, 0.04);
-    // limitador de revoluciones y fallas por motor dañado
-    let cut = 1;
-    if (rr > 0.985 && thr > 0.5) cut = Math.sin(t * 100) > 0 ? 1 : 0.2;
-    if (o.mis > 0 && Math.random() < o.mis * 0.2) cut = Math.min(cut, 0.2);
-    v.cut.gain.setValueAtTime(cut, t);
-    if (v.pan) v.pan.pan.setTargetAtTime(o.pan || 0, t, 0.05);
-    // turbo: silbido que sube con la presión y descarga al soltar el acelerador
-    if (P.turbo) {
-      const tgt = clamp(tp * (rr - 0.22) / 0.55, 0, 1);
-      v.boost += (tgt - v.boost) * (1 - Math.exp(-dt / (tgt > v.boost ? 0.5 : 0.25)));
-      if (thr > 0.6) v.armed = v.boost;
-      else if (thr < 0.12 && v.armed > 0.45) { if (P.turbo > 0.8 && vol * v.vol > 0.05) this.blowoff(v.armed * clamp(vol, 0, 1) * v.vol, o.pan || 0); v.armed = 0; }
-      const wf = (1500 + v.boost * 2400 + rr * 1600) * dop;
-      v.w1.frequency.setTargetAtTime(wf, t, 0.05); v.w2.frequency.setTargetAtTime(wf * 1.5, t, 0.05);
-      v.wg.gain.setTargetAtTime(o.dead ? 0 : P.turbo * v.boost * v.boost * 0.1, t, 0.06);
-    } else v.wg.gain.setTargetAtTime(0, t, 0.1);
-    // petardeos al soltar el acelerador con el motor revolucionado
-    if (P.crackle && thr < 0.06 && rr > 0.4 && !o.dead && vol * v.vol > 0.03 && Math.random() < dt * P.crackle * 7 * rr)
-      this.pop(clamp(vol, 0, 1) * v.vol * (0.4 + Math.random() * 0.6), P.cyl === 8);
+  setEngine(v, rpm, thr, spec, vol) {
+    const t = this.ctx.currentTime, cyl = spec.id === 'gt' ? 8 : 4, f = rpm / 60 * cyl / 2;
+    v.a.o.frequency.setTargetAtTime(f, t, 0.015);
+    v.b.o.frequency.setTargetAtTime(f * 0.5 * 1.004, t, 0.015);
+    v.d.o.frequency.setTargetAtTime(f * 2, t, 0.015);
+    v.e.o.frequency.setTargetAtTime(f * 1.5 * 0.997, t, 0.015);
+    const diesel = spec.id === 'pickup', ex = 1 + (spec.exh || 0) * 0.3;   // escape deportivo/directo: más abierto y fuerte
+    v.lp.frequency.setTargetAtTime((diesel ? 160 : 260) + f * 2.4 * ex + thr * (diesel ? 900 : 2400) * ex, t, 0.04);
+    v.nf.frequency.setTargetAtTime(f * 4, t, 0.05);
+    v.ng.gain.setTargetAtTime(thr * (diesel ? 0.5 : 0.28) * ex, t, 0.05);
+    v.out.gain.setTargetAtTime(vol * v.vol * (0.07 + thr * 0.13 + rpm / spec.redline * 0.07) * (1 + (spec.exh || 0) * 0.22), t, 0.04);
   }
-  // revoluciones aproximadas de un auto de la IA o del tránsito según su velocidad (con sus cambios)
-  rpmOf(spec, v) {
-    const idle = spec.idle || 800, red = spec.redline || 5000;
-    if (spec.gears && spec.R) {
-      const k = 60 / (2 * Math.PI) * v / spec.R * spec.final;
-      for (let g = 0; g < spec.gears.length; g++) { const r = k * spec.gears[g]; if (r < red * 0.9 || g === spec.gears.length - 1) return clamp(r, idle, red); }
-    }
-    return clamp(idle + v * (red - idle) / 30, idle, red * 0.85);
-  }
-  // efecto Doppler y paneo estéreo de otro auto respecto de la cámara
-  spatial(S, e, d, dt) {
-    if (S.ent !== e) { S.ent = e; S.d = d; S.dop = 1; S.pan = 0; }
-    const rate = (S.d - d) / dt; S.d = d;
-    S.dop += (1 + clamp(rate / 343 * 1.4, -0.16, 0.16) - S.dop) * Math.min(1, dt * 6);
-    camera.getWorldDirection(_sDir);
-    const fl = Math.hypot(_sDir.x, _sDir.z) || 1, fx = _sDir.x / fl, fz = _sDir.z / fl;
-    const pan = clamp(((e.x - camera.position.x) * -fz + (e.z - camera.position.z) * fx) / Math.max(d, 4), -1, 1) * 0.8;
-    S.pan += (pan - S.pan) * Math.min(1, dt * 10);
-    return S;
-  }
-  update(car, rival, rivalDist) {
+  update(car, rival, rivalDist, extra = {}) {
     if (!this.ctx) return;
-    const t = this.ctx.currentTime, sp = car.speed, dt = clamp(t - (this.tUp || t), 0.001, 0.1); this.tUp = t;
-    const D = car.dmg, dEng = D ? D.engine : 0, dead = !!(D && D.dead), inside = cam.mode === 2 ? 1.35 : 1;
-    const shiftCut = car.shiftT > 0 ? 0.45 : 1, run = t < this.startAt ? 0 : clamp((t - this.startAt) / 0.5, 0, 1);
+    const t = this.ctx.currentTime, sp = car.speed;
+    const shiftCut = car.shiftT > 0 ? 0.45 : 1;
+    // la música sube de intensidad con la velocidad; el motor recién parte después de la marcha de arranque
     const gs = game.state;
     this.music.tgt = gs === 'race' ? 0.6 + 0.4 * clamp(sp / 42, 0, 1) : gs === 'finished' ? 0.35 : 0.3;
-    const thr = t < this.blipT ? Math.max(car.throttleIn, 0.7) : car.throttleIn * shiftCut;
-    this.setEngine(this.eng, car.rpm, thr, car.spec, run, { mis: dEng > 0.5 ? (dEng - 0.5) * 2 : 0, dead, inside, pan: 0 });
-    // ruido de la caja: sube con la velocidad (más fuerte en reversa)
-    this.whO.frequency.setTargetAtTime(280 + sp * 30, t, 0.05);
-    this.whg.gain.setTargetAtTime(car.gear === 0 || dead ? 0 : clamp(sp / 45, 0, 1) * (car.gear === -1 ? 0.03 : 0.012) * (0.5 + car.throttleIn * 0.5) * inside, t, 0.08);
+    const run = t < this.startAt ? 0 : clamp((t - this.startAt) / 0.5, 0, 1);
+    if (this.worklet) {
+      // en la cámara del capó se oye más la admisión y menos el escape (filtrado por la carrocería)
+      let load = car.mech && car.mech.dead ? 0 : (car.load ?? car.throttleIn) * shiftCut;
+      if (t < this.blipT) load = Math.max(load, 0.7);   // golpe de acelerador al reducir
+      const inside = cam.mode === 2;
+      this.voice(this.wEng, car.spec, car.mech && car.mech.dead ? 0 : car.rpm, load, run * (inside ? 0.75 : 1) * (0.55 + 0.45 * load) * 0.62, 1, 0, inside ? 2400 : 18000);
+      if (rival) {
+        const S = this.spatial(rival, rival.vx || 0, rival.vz || 0), vol = clamp(1 - S.d / 120, 0, 1) ** 2 * 0.7;
+        this.voice(this.wRiv, rival.spec, clamp(rival.spec.idle + rival.v * 95, 900, rival.spec.redline), rival.braking ? 0.05 : 0.85, vol, S.pitch, S.pan, S.lpf);
+      } else this.wRiv.node.parameters.get('gain').setTargetAtTime(0, t, 0.1);
+      const tr = extra.traffic;
+      if (tr && tr.kind !== 'cow') {
+        const S = this.spatial(tr, tr.vx || 0, tr.vz || 0), big = tr.kind === 'bus' || tr.kind === 'truck', vol = clamp(1 - S.d / (big ? 110 : 70), 0, 1) ** 2 * (big ? 0.8 : 0.45);
+        const spec = big ? { id: tr.kind, idle: 600, redline: 2400 } : tr.spec;
+        this.voice(this.wTr, spec, clamp(700 + tr.v * (big ? 70 : 110), 650, big ? 2200 : 4500), tr.braking ? 0.05 : 0.6, vol, S.pitch, S.pan, S.lpf);
+      } else this.wTr.node.parameters.get('gain').setTargetAtTime(0, t, 0.1);
+    } else this.setEngine(this.eng, car.rpm, car.throttleIn * shiftCut, car.spec, run);
+    // caja de dientes rectos del auto de rally y del GT; en reversa todos aúllan (la marcha atrás es de dientes rectos)
+    const straight = car.spec.id === 'rally' || car.spec.id === 'gt', rev = car.gear === -1 && sp > 0.3;
+    this.whine.frequency.setTargetAtTime(Math.max(40, car.rpm / 60 * 21), t, 0.02);
+    this.whineG.gain.setTargetAtTime(rev ? 0.012 + 0.02 * Math.min(1, sp / 8) : straight && car.gear > 0 ? 0.006 + 0.01 * (car.throttleIn || 0) * Math.min(1, sp / 20) : 0, t, 0.05);
+    this.road.g.gain.setTargetAtTime(Math.min(0.07, sp * 0.0016) * (car.offroad > 0.5 ? 0.4 : 1), t, 0.1);
+    this.road.f.frequency.setTargetAtTime(220 + sp * 6, t, 0.1);
+    this.winchG.gain.setTargetAtTime(extra.winch ? 0.05 : 0, t, 0.05);
+    this.winch.frequency.setTargetAtTime(extra.winch ? 140 + extra.winch * 60 : 160, t, 0.1);
     let skA = 0, skD = 0, loose = 0, wet = 0;
     for (let i = 0; i < 4; i++) {
       const S = SURF[car.surf[i]];
@@ -4858,20 +5986,19 @@ class Sound {
     this.scrape.g.gain.setTargetAtTime(car.scrape * 0.22, t, 0.03);
     this.rumbleG.gain.setTargetAtTime(Math.min(0.05, car.rumble * sp * 0.04), t, 0.03);
     this.rumble.frequency.setTargetAtTime(20 + sp * 1.4, t, 0.05);
-    if (rival) {
-      const S = this.spatial(this.rvS, rival, rivalDist, dt), vol = clamp(1 - rivalDist / 75, 0, 1) ** 2;
-      this.setEngine(this.riv, this.rpmOf(rival.spec, rival.v || 0), rival.braking ? 0.1 : 0.8, rival.spec, vol, { dop: S.dop, pan: S.pan });
-    } else { this.riv.out.gain.setTargetAtTime(0, t, 0.1); this.rvS.ent = null; }
-    // el tránsito más cercano (autos, micros y camiones) también suena
-    let tn = null, td = 1e9;
-    for (const m of game.traffic) {
-      if (m.kind === 'cow' || m.crashed || m.retired) continue;
-      const d = Math.hypot(m.x - car.x, m.z - car.z); if (d < td) { td = d; tn = m; }
+    if (!this.worklet) {
+      if (rival) {
+        const vol = clamp(1 - rivalDist / 70, 0, 1) ** 2;
+        this.setEngine(this.riv, clamp(rival.spec.idle + rival.v * 95, 900, rival.spec.redline), rival.braking ? 0.1 : 0.8, rival.spec, vol);
+      } else this.riv.out.gain.setTargetAtTime(0, t, 0.1);
     }
-    if (tn && td < 80) {
-      const S = this.spatial(this.trS, tn, td, dt);
-      this.setEngine(this.trf, this.rpmOf(tn.spec, tn.v || 0), tn.braking ? 0.05 : 0.3, tn.spec, clamp(1 - td / 80, 0, 1) ** 2, { dop: S.dop, pan: S.pan });
-    } else { this.trf.out.gain.setTargetAtTime(0, t, 0.1); this.trS.ent = null; }
+  }
+  hit(strength) {
+    if (!this.ctx || strength < 0.05) return;
+    const c = this.ctx, s = c.createBufferSource(); s.buffer = this.nb;
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 280 + strength * 900;
+    const g = c.createGain(), t = c.currentTime; g.gain.setValueAtTime(Math.min(1, strength * 1.4), t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35 + strength * 0.3);
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t, Math.random()); s.stop(t + 0.8);
   }
   // petardeo del escape: estallido corto + golpe grave
   pop(s, deep = false, delay = 0) {
@@ -4884,20 +6011,12 @@ class Sound {
     og.gain.setValueAtTime(0.3 * s, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.1); o.connect(og); og.connect(this.master); o.start(t); o.stop(t + 0.12);
     if (!delay && Math.random() < 0.5) this.pop(s * 0.6, deep, 0.07 + Math.random() * 0.1);
   }
-  // válvula de descarga del turbo ("pssh")
-  blowoff(s, pan = 0) {
-    if (!this.ctx || s < 0.05) return;
-    const c = this.ctx, t = c.currentTime, src = c.createBufferSource(); src.buffer = this.nb;
-    const bf = c.createBiquadFilter(); bf.type = 'bandpass'; bf.Q.value = 1.8; bf.frequency.setValueAtTime(5200, t); bf.frequency.exponentialRampToValueAtTime(2600, t + 0.5);
-    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2 * s, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
-    src.connect(bf); bf.connect(g); g.connect(this.master); src.start(t, Math.random() * 1.5); src.stop(t + 0.7);
-  }
-  // cambio de marcha: golpe de la caja; los autos deportivos petardean al subir y dan un golpe de acelerador al bajar
+  // cambio de marcha: golpe de la caja; el rally y el GT petardean al subir a fondo y dan un golpe de acelerador al bajar
   shift(car, dir) {
     if (!this.ctx) return;
     this.hit(0.09);
-    const P = ENGINES[car.spec.id];
-    if (dir > 0 && P && P.crackle && car.rpm > car.spec.redline * 0.7 && car.throttleIn > 0.3) { this.pop(0.9, P.cyl === 8); this.pop(0.6, P.cyl === 8, 0.06); }
+    const sport = car.spec.id === 'gt' || car.spec.id === 'rally';
+    if (dir > 0 && sport && car.rpm > car.spec.redline * 0.7 && car.throttleIn > 0.3) { this.pop(0.9, car.spec.id === 'gt'); this.pop(0.6, car.spec.id === 'gt', 0.06); }
     if (dir < 0) this.blipT = this.ctx.currentTime + 0.22;
   }
   // arranque: marcha y tos del motor antes de la largada
@@ -4911,13 +6030,6 @@ class Sound {
     o.connect(lp); lp.connect(ag); ag.connect(g); g.connect(this.master);
     o.start(t); am.start(t); o.stop(t + 1); am.stop(t + 1);
     this.pop(0.5, false, 0.8);
-  }
-  hit(strength) {
-    if (!this.ctx || strength < 0.05) return;
-    const c = this.ctx, s = c.createBufferSource(); s.buffer = this.nb;
-    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 280 + strength * 900;
-    const g = c.createGain(), t = c.currentTime; g.gain.setValueAtTime(Math.min(1, strength * 1.4), t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35 + strength * 0.3);
-    s.connect(f); f.connect(g); g.connect(this.master); s.start(t, Math.random()); s.stop(t + 0.8);
   }
   beep(freq, dur = 0.18, vol = 0.25) {
     if (!this.ctx) return;
@@ -4982,9 +6094,11 @@ class Sound {
   }
   silence() {
     if (!this.ctx) return; const t = this.ctx.currentTime;
-    for (const v of [this.eng, this.riv, this.trf]) { v.out.gain.setTargetAtTime(0, t, 0.05); v.wg.gain.setTargetAtTime(0, t, 0.05); }
-    for (const v of [this.squeal, this.gravel, this.wind, this.scrape, this.rain, this.splash]) v.g.gain.setTargetAtTime(0, t, 0.05);
-    this.sq2g.gain.setTargetAtTime(0, t, 0.05); this.rumbleG.gain.setTargetAtTime(0, t, 0.05); this.whg.gain.setTargetAtTime(0, t, 0.05);
+    for (const v of [this.eng, this.riv]) v.out.gain.setTargetAtTime(0, t, 0.05);
+    for (const v of [this.squeal, this.gravel, this.wind, this.scrape, this.rain, this.splash, this.road]) v.g.gain.setTargetAtTime(0, t, 0.05);
+    this.sq2g.gain.setTargetAtTime(0, t, 0.05); this.rumbleG.gain.setTargetAtTime(0, t, 0.05);
+    for (const g of [this.whineG, this.winchG]) g.gain.setTargetAtTime(0, t, 0.05);
+    if (this.worklet) for (const v of [this.wEng, this.wRiv, this.wTr]) v.node.parameters.get('gain').setTargetAtTime(0, t, 0.05);
   }
   setMuted(m) { this.muted = m; store.set('muted', m); if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.85, this.ctx.currentTime, 0.05); }
 }
@@ -5010,6 +6124,10 @@ addEventListener('keydown', e => {
     case 'KeyQ': case 'ControlRight': if (!game.car.auto) game.car.shift(-1); break;
     case 'KeyC': cycleCamera(); break;
     case 'KeyR': if (game.state !== 'paused') resetToTrack(); break;
+    case 'KeyF': if (TRIAL && game.state !== 'paused') showMsg(game.car.cycleTransfer(), '', 1.4); break;
+    case 'KeyL': if (TRIAL && game.state !== 'paused') showMsg(game.car.cycleLock(), '', 1.4); break;
+    case 'KeyG': if (TRIAL && game.state !== 'paused') showMsg(game.car.toggleWinch(OB4.anchors), '', 1.8); break;
+    case 'KeyT': if (TRIAL && game.state !== 'paused') { game.car.tc = !game.car.tc; showMsg(game.car.tc ? 'Control de tracción activado' : 'Control de tracción desactivado', '', 1.2); } break;
     case 'Digit1': game.car.abs = !game.car.abs; updatePills(); break;
     case 'Digit2': game.car.tcs = !game.car.tcs; updatePills(); break;
     case 'KeyM': toggleMute(); break;
@@ -5168,6 +6286,11 @@ function drawMinimap(car, rivals) {
   g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 11; g.stroke(MM.path);
   g.strokeStyle = '#cfd8d3'; g.lineWidth = 5; g.stroke(MM.path);
   for (const t of game.traffic) { if (!t.model.root.visible) continue; const [x, z] = MM.P(t.x, t.z); g.fillStyle = t.kind === 'cow' ? '#c58a4a' : '#8d989c'; g.fillRect(x - 3.5, z - 3.5, 7, 7); }
+  if (TRIAL) MAP.cps.forEach((cf, k) => {
+    const p = track.at(track.START_S + cf * track.length, {}), [x, z] = MM.P(p.x, p.z);
+    g.fillStyle = k < game.cp ? '#7fd98f' : '#ff6a10'; g.strokeStyle = '#111'; g.lineWidth = 2; g.beginPath(); g.arc(x, z, 8, 0, 7); g.fill(); g.stroke();
+    g.fillStyle = '#111'; g.font = `800 12px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(k + 1), x, z + 1);
+  });
   const st = track.at(track.START_S, {}), [sx, sz] = MM.P(st.x, st.z);
   g.fillStyle = '#d52b1e'; g.fillRect(sx - 3, sz - 9, 6, 18);
   rivals.forEach((r, i) => { const [x, z] = MM.P(r.x, r.z); g.fillStyle = '#' + RIVAL_COLORS[i % 5].toString(16).padStart(6, '0'); g.beginPath(); g.arc(x, z, 7, 0, 7); g.fill(); g.strokeStyle = '#111'; g.lineWidth = 2; g.stroke(); });
@@ -5646,6 +6769,7 @@ function placeVehicle(car, dist, lane) {
   car.sense(); car.y = car.groundY; car.prevGY = car.groundY;
 }
 function setupGarage() {
+  if (TRIAL) { setupTruck(); return; }
   const base = CARS[game.carIdx], mods = getMods(base.id), spec = modSpec(base, mods);
   disposeModel(game.model);
   game.model = buildCarModel(spec, mods.paint ?? spec.paint, mods); scene.add(game.model.root);
@@ -5673,9 +6797,10 @@ onShift = (car, dir) => {
 };
 
 function startRace() {
-  sound.init();
-  sound.crank();
-  sound.music.set(MAP_ID);
+  document.body.classList.add('racing');
+  if (TRIAL) { startTrial(); return; }
+  sound.init(); sound.crank(); sound.music.set(MAP_ID);
+  $('off4').classList.add('hidden'); $('lap-lbl').textContent = 'Vuelta';
   game.mode = opt('mode') || 'race';
   game.laps = game.mode === 'race' ? (MAP.laps || 3) : Infinity;
   todKey = TOD[opt('tod')] ? opt('tod') : 'day';
@@ -5708,7 +6833,6 @@ function startRace() {
   game.best = store.get(bestKey(car.spec.id), 0);
   car.gear = 0;
   game.countdown = 3.6; game.state = 'countdown';
-  document.body.classList.add('racing');
   $('menu').classList.add('hidden'); $('hud').classList.remove('hidden');
   $('pause').classList.add('hidden'); $('results').classList.add('hidden');
   $('touch').classList.toggle('hidden', !IS_TOUCH);
@@ -5724,12 +6848,13 @@ function showMenu() {
   sound.silence();
   sound.music.duck(false); sound.music.set('menu');
   $('b-music-menu').textContent = 'Música: ' + (sound.music.on ? 'sí' : 'no');
+  document.body.classList.remove('racing');
   for (const r of game.rivals) disposeModel(r.model); game.rivals = [];
   for (const t of game.traffic) disposeModel(t.model); game.traffic = [];
   resetWorldDamage(); clearHazards();
   game.mode = opt('mode') || 'race';
   setupGarage();
-  document.body.classList.remove('racing');
+  if (winchLine) winchLine.visible = false;
   $('menu').classList.remove('hidden'); $('hud').classList.add('hidden'); $('touch').classList.add('hidden');
   $('pause').classList.add('hidden'); $('results').classList.add('hidden');
 }
@@ -5745,6 +6870,7 @@ function toggleMute() { sound.setMuted(!sound.muted); $('b-sound').textContent =
 function resetWorldDamage() { resetRails(); resetFallers(); if (debris) debris.clear(); if (loose) loose.clear(); }
 // R: vuelve a la ruta. Si el auto está volcado o con el motor destruido, llega la grúa (+10 s)
 function resetToTrack() {
+  if (TRIAL) { trialRescue(); return; }
   const car = game.car; if (!car || game.state === 'countdown') return;
   const tow = car.tumble || car.overturned || (car.dmg && car.dmg.dead);
   const q = {}; let s = game.lastS;
@@ -5778,6 +6904,209 @@ function showResults() {
   const pos = standings().findIndex(e => e.me) + 1;
   $('res-title').textContent = pos === 1 ? '¡Ganaste, campeón!' : `Llegaste ${pos}º`;
   $('results').classList.remove('hidden');
+}
+
+// =====================================================================
+// Desafío 4x4: etapa contra el reloj con controles, rescates y medallas
+// =====================================================================
+const TRIAL = MAP.mode === '4x4';
+// equipo visible: snorkel, huinche, protecciones
+function truckGear(model, spec, setup) {
+  const P = model.pr.P, pr = model.pr, W = spec.wid, blk = new THREE.MeshStandardMaterial({ color: 0x151617, roughness: 0.55, metalness: 0.3 });
+  const tube = (a, b, r) => { const d = new THREE.Vector3().subVectors(b, a), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10), blk); m.position.copy(a).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); m.castShadow = true; model.body.add(m); return m; };
+  if (setup.snorkel) {
+    const zA = pr.zF + P.ws, zT = pr.zF + P.wsTop, x = -(W / 2 - 0.05);
+    tube(new THREE.Vector3(x - 0.04, P.hoodF - 0.15, zA + 0.12), new THREE.Vector3(x + 0.07, P.belt + 0.05, zA + 0.02), 0.055);
+    tube(new THREE.Vector3(x + 0.07, P.belt + 0.05, zA + 0.02), new THREE.Vector3(x + 0.16, P.roof + 0.1, zT + 0.02), 0.05);
+    const head = new THREE.Mesh(rbox(0.16, 0.13, 0.22, 0.04), blk); head.position.set(x + 0.16, P.roof + 0.16, zT + 0.08); model.body.add(head);
+  }
+  if (setup.winch) {
+    const z = endZ(spec, pr, P.bumpF + 0.05, 0, true) + 0.06;
+    const box = new THREE.Mesh(rbox(0.62, 0.2, 0.26, 0.04), blk); box.position.set(0, P.bumpF + 0.04, z); box.castShadow = true; model.body.add(box);
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.015, 6, 12), new THREE.MeshStandardMaterial({ color: 0xc8231b, roughness: 0.5 })); hook.position.set(0, P.bumpF + 0.02, z + 0.16); model.body.add(hook);
+  }
+  if (setup.armor) {
+    for (const s of [-1, 1]) tube(new THREE.Vector3(s * (W / 2 - 0.02), P.yb - 0.02, pr.zF - spec.R - 0.25), new THREE.Vector3(s * (W / 2 - 0.02), P.yb - 0.02, pr.zR + spec.R + 0.25), 0.045);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(W * 0.6, 0.025, 1.1), blk); plate.position.set(0, P.yb - 0.07, pr.zF - 0.1); model.body.add(plate);
+  }
+}
+function placeTruck(car, s) {
+  const p = track.at(s, {});
+  car.reset(p.x, p.z, Math.atan2(p.tx, p.tz));
+  for (let k = 0; k < 50; k++) car.update(1 / 60, { throttle: 0, brake: 1, steer: 0, hold: true });
+  car.gear = 1;
+  car.events.length = 0;
+}
+function setupTruck() {
+  if (!isTruck(CARS[game.carIdx])) game.carIdx = CARS.findIndex(isTruck);
+  const base = CARS[game.carIdx], setup = getSetup4(base.id), mods = getMods(base.id), spec = truckSpec(base, setup);
+  const vis = { ...MOD_DEFAULT, paint: mods.paint, finish: mods.finish, stripes: mods.stripes, stripeCol: mods.stripeCol, tint: mods.tint, rims: setup.size >= 35 && mods.rims === 'orig' ? 'off' : mods.rims, rimCol: mods.rimCol };
+  disposeModel(game.model);
+  game.model = buildCarModel(spec, mods.paint ?? spec.paint, vis); scene.add(game.model.root);
+  truckGear(game.model, spec, setup);
+  const car = game.car = new Truck4x4(spec);
+  car.model = game.model; car.dmgMode = opt('damage') || 'real'; car.dmg = new CarDamage(game.model, car.dmgMode);
+  const pr = game.model.pr, spot = new THREE.SpotLight(0xfff0d8, 0, 150, 0.42, 0.65, 1.7);
+  spot.position.set(0, pr.P.hoodF, pr.zFront); spot.target.position.set(0, 0, pr.zFront + 30);
+  game.model.body.add(spot, spot.target); game.spot = spot; onTimeChanged();
+  placeTruck(car, track.START_S - 8);
+  car.sync(game.model, 0);
+}
+const medalOf = t => t <= MAP.medals[0] ? 'Oro' : t <= MAP.medals[1] ? 'Plata' : t <= MAP.medals[2] ? 'Bronce' : '';
+function startTrial() {
+  sound.init(); sound.crank(); sound.music.set(MAP_ID);
+  game.mode = 'trial'; game.laps = 1;
+  todKey = TOD[opt('tod')] ? opt('tod') : 'day';
+  applyWeather(opt('weather') || 'clear');
+  applyQuality(opt('quality') || 'med');
+  resetWorldDamage();
+  setupGarage();
+  const car = game.car;
+  car.auto = opt('gearbox') !== 'manual';
+  skids.clear(); smoke.clear(); sparks.clear();
+  car.prog = track.START_S - 8; game.lastS = ((car.prog % track.length) + track.length) % track.length;
+  Object.assign(game, { t: 0, cp: 0, splits: [], pen: 0, rescues: 0, saveS: car.prog, far: car.prog, secRes: 0, resultsT: -1, finishTime: 0, lastK: 9, hintT: 9, hudT: 0, frame: 0, overMsg: false, deadMsg: false, wrongT: 0 });
+  game.best = store.get('best4_' + MAP_ID + '_' + car.spec.id, 0);
+  game.countdown = 3.6; game.state = 'countdown';
+  $('menu').classList.add('hidden'); $('hud').classList.remove('hidden');
+  $('pause').classList.add('hidden'); $('results').classList.add('hidden');
+  $('touch').classList.toggle('hidden', !IS_TOUCH);
+  $('pos').classList.add('hidden'); $('off4').classList.remove('hidden'); $('lap-lbl').textContent = 'Control';
+  $('hint').textContent = IS_TOUCH ? '' : 'F: 2H/4H/4L · L: bloqueos · G: huinche · T: control de tracción · R: rescate (+30 s; el 2º en el mismo tramo es remolque, +60 s) · C: cámara';
+  cam.mode = store.get('cam', 0) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1);
+  cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
+  last = performance.now();
+}
+// rescate: vuelve al último control (+30 s); revive el motor si se ahogó.
+// Si ya te rescataron en este tramo, el tractor te remolca más allá de donde llegaste (+60 s)
+function trialRescue() {
+  const car = game.car; if (!car || game.state === 'countdown') return;
+  const tow = game.state === 'race' && game.secRes >= 1;
+  const s = tow ? Math.min(game.far + 10, track.START_S + track.length - 4) : game.saveS;
+  placeTruck(car, s);
+  car.prog = s; game.lastS = ((s % track.length) + track.length) % track.length;
+  if (car.dmg) car.dmg.tow();
+  if (game.state === 'race') { game.pen += tow ? 60 : 30; game.rescues++; game.secRes++; }
+  game.overMsg = false; game.deadMsg = false;
+  showMsg(tow ? 'Remolque' : 'Rescate', tow ? '+60 s · el tractor te pasó el obstáculo' : game.state === 'race' ? '+30 s · de vuelta en el último control' : 'De vuelta en la ruta', 2.2);
+  cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
+  for (let i = 0; i < 4; i++) skids.add(i, 0, 0, 0, 0, 0, 0);
+}
+function showTrialResults() {
+  const tb = $('results-table').querySelector('tbody'); tb.innerHTML = '';
+  const total = game.finishTime, medal = medalOf(total), setup = game.car.setup;
+  const rows = [['', 'Tiempo en ruta', fmtTime(total - game.pen)], ['', 'Rescates', game.rescues ? `${game.rescues} (+${game.pen} s)` : 'Ninguno'], ['', 'Total', fmtTime(total)],
+    ['', 'Medalla', medal || 'Sin medalla'], ['', 'Para oro', fmtTime(MAP.medals[0])], ['', 'Tu mejor', fmtTime(game.best)]];
+  const miss = MAP.needs.filter(n => !n.t(setup)).sort((a, b) => b.w - a.w)[0];
+  if (medal !== 'Oro' && miss) rows.push(['', 'Consejo', miss.bad]);
+  for (const r of rows) { const tr = document.createElement('tr'); if (r[1] === 'Total') tr.className = 'me'; for (const x of r) { const td = document.createElement('td'); td.textContent = x; tr.append(td); } tb.append(tr); }
+  $('res-title').textContent = medal ? `¡Medalla de ${medal.toLowerCase()}!` : '¡Etapa completada!';
+  $('results').classList.remove('hidden');
+}
+// cable del huinche (línea del paragolpes al anclaje)
+let winchLine = null;
+function updateWinchLine(car) {
+  if (!winchLine) { winchLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0x202020 })); winchLine.frustumCulled = false; scene.add(winchLine); }
+  winchLine.visible = !!(car && car.winch && car.winch.on);
+  if (!winchLine.visible) return;
+  const p = winchLine.geometry.attributes.position, h = car.worldPt(car.hook);
+  p.setXYZ(0, h.x, h.y, h.z); p.setXYZ(1, car.winch.x, car.winch.y + 0.9, car.winch.z); p.needsUpdate = true;
+}
+const ictx = () => $('incl').getContext('2d');
+function drawOff4(car) {
+  const on = (id, v, txt) => { const el = $(id); el.classList.toggle('on', !!v); if (txt != null) el.textContent = txt; };
+  on('o-tr', car.transfer !== '2H', car.transfer); on('o-lr', car.lockR, 'TRAS'); on('o-lf', car.lockF, 'DEL'); on('o-tc', car.tc, 'TC');
+  on('o-w', car.winch.on, car.winch.on ? `HUINCHE ${Math.round(car.winch.tension / 98)} kg` : 'HUINCHE'); on('o-psi', true, car.setup.psi + ' psi');
+  $('o-lf').classList.toggle('hidden', car.setup.lock !== 'ambos'); $('o-lr').classList.toggle('hidden', car.setup.lock === 'no'); $('o-w').classList.toggle('hidden', !car.setup.winch);
+  // inclinómetro: perfil (cabeceo) y vista trasera (inclinación lateral)
+  const g = ictx(), w = 240, h = 110; g.clearRect(0, 0, w, h);
+  const ang = [[car.pitchDeg, 60, 'CABECEO'], [car.rollDeg, 180, 'LATERAL']];
+  for (const [deg, cx, label] of ang) {
+    const bad = Math.abs(deg) > (label === 'LATERAL' ? 30 : 35), warn = Math.abs(deg) > (label === 'LATERAL' ? 20 : 25);
+    g.save(); g.translate(cx, 50); g.rotate(-deg * Math.PI / 180 * (label === 'LATERAL' ? -1 : 1));
+    g.fillStyle = bad ? '#ff5a4a' : warn ? '#f2c21b' : '#f3f5f2';
+    if (label === 'CABECEO') { g.fillRect(-34, -6, 68, 12); g.fillRect(-10, -18, 24, 12); g.beginPath(); g.arc(-22, 8, 7, 0, 7); g.arc(22, 8, 7, 0, 7); g.fill(); }
+    else { g.fillRect(-22, -14, 44, 22); g.fillRect(-14, -24, 28, 10); g.fillRect(-28, 4, 10, 12); g.fillRect(18, 4, 10, 12); }
+    g.restore();
+    g.fillStyle = '#93a19c'; g.font = `600 13px ${FONT}`; g.textAlign = 'center'; g.fillText(label, cx, 98);
+    g.fillStyle = bad ? '#ff5a4a' : '#f3f5f2'; g.font = `800 18px ${FONT}`; g.fillText(Math.round(Math.abs(deg)) + '°', cx + 44, 18);
+  }
+}
+function stepTrial(dt) {
+  const car = game.car, model = game.model, inp = readInput(dt), L = track.length, cps = MAP.cps;
+  const racing = game.state !== 'countdown';
+  if (game.state === 'countdown') {
+    game.countdown -= dt;
+    const k = Math.ceil(game.countdown - 0.6);
+    if (k !== game.lastK && k >= 1 && k <= 3) { game.lastK = k; showMsg(String(k), k === 3 ? `Etapa ${MAP.stage} · ${MAP.name}` : '', 0.9); sound.beep(620); }
+    if (game.countdown <= 0) { game.state = 'race'; showMsg('¡Vamos!', `${cps.length} controles · ${car.transfer}`, 1.4); sound.beep(1240, 0.45, 0.3); }
+  }
+  car.dmg.applyMech(car.mech); if (car.drowned) car.mech.dead = true; car.sagP = car.dmg.sagP; car.sagR = car.dmg.sagR;
+  car.update(dt, racing ? inp : { ...inp, throttle: 0, brake: 1, handbrake: false, hold: true });
+  car.sync(model, dt);
+  if (game.spot) { let ok = 0, all = 0; for (const Lg of model.lights) if (Lg.kind === 'head') { all++; if (!Lg.broken) ok++; } game.spot.intensity = tod.lights ? HEADLIGHT * ok / Math.max(1, all) : 0; }
+  // avance, controles y meta
+  if (track.query(car.x, car.z, Qp)) { let ds = Qp.s - game.lastS; if (ds < -L / 2) ds += L; if (ds > L / 2) ds -= L; if (Math.abs(ds) < 40) car.prog += ds; game.lastS = Qp.s; }
+  const done = car.prog - track.START_S;
+  if (game.state === 'race') {
+    game.t += dt; game.far = Math.max(game.far, car.prog);
+    if (game.cp < cps.length && done >= cps[game.cp] * L) {
+      game.cp++; game.splits.push(game.t); game.saveS = track.START_S + cps[game.cp - 1] * L; game.secRes = 0;
+      showMsg(`Control ${game.cp}/${cps.length}`, fmtTime(game.t + game.pen), 1.6); sound.beep(980, 0.2, 0.2);
+    } else if (game.cp >= cps.length && done >= L) {
+      game.state = 'finished'; game.finishTime = game.t + game.pen; game.resultsT = 2.6;
+      const key = 'best4_' + MAP_ID + '_' + car.spec.id, best = store.get(key, 0);
+      if (!best || game.finishTime < best) { store.set(key, game.finishTime); game.best = game.finishTime; }
+      const md = medalOf(game.finishTime);
+      showMsg('¡Meta!', fmtTime(game.finishTime) + (md ? ' · medalla de ' + md.toLowerCase() : ''), 2.6); sound.beep(880, 0.5, 0.3);
+    }
+  }
+  if (game.resultsT > 0) { game.resultsT -= dt; if (game.resultsT <= 0) showTrialResults(); }
+  // golpes: abolladuras, chispas en la roca, polvo
+  for (const ev of car.events) handleImpact(car, ev);
+  car.events.length = 0;
+  engineSmoke(car);
+  debris.update(dt); loose.update(dt, [car]); updateFallers(dt);
+  if (car.overturned && !game.overMsg) { game.overMsg = true; showMsg('¡Volcaste!', 'R: rescate (+30 s)', 3.5); }
+  if (car.drowned && !game.deadMsg) { game.deadMsg = true; showMsg('¡Motor ahogado!', 'Entró agua por la toma de aire · R: rescate (+30 s)', 3.8); }
+  else if (car.dmg.dead && !game.deadMsg) { game.deadMsg = true; showMsg('Motor destruido', 'R: rescate (+30 s)', 3.5); }
+  // tierra, arena, barro y agua que levantan las ruedas
+  const sp = car.speed, lx = Math.cos(car.psi), lz = -Math.sin(car.psi);
+  for (let i = 0; i < 4; i++) {
+    const wh = car.wheels[i], [x, y, z] = car.contact[i], S = SURF[car.surf[i]] || SURF[0];
+    skids.add(i, x, y, z, lx, lz, wh.contact && car.skid[i] > 0.25 ? car.skid[i] : 0, !!S.loose);
+    if (!wh.contact) continue;
+    const spin = Math.abs(wh.slip), throw_ = Math.min(1, spin / 6);
+    if (S.loose && (sp > 3 || spin > 1.5) && Math.random() < Math.min(1, sp * 0.04 + throw_ * 0.8)) {
+      const c = S.dust || [0.6, 0.5, 0.38], back = -Math.sign(wh.w || 1) * (2 + spin * 0.8);
+      smoke.emit(x, y + 0.3, z, car.vx * 0.3 + Math.sin(car.psi) * back * (S.mud ? 0.6 : 0.3), 0.8 + throw_ * (S.mud ? 3 : 1.2), car.vz * 0.3 + Math.cos(car.psi) * back * (S.mud ? 0.6 : 0.3), 1.2 + Math.random(), S.mud ? 0.5 : 1, S.mud ? 1.2 : 3, S.mud ? 0.6 : 0.32, c[0], c[1], c[2]);
+    }
+    if (y < car.waterY && (sp > 1 || spin > 1) && Math.random() < 0.8) smoke.emit(x, car.waterY + 0.1, z, car.vx * 0.5 + (Math.random() - 0.5) * 3, 1.5 + Math.random() * 2.5, car.vz * 0.5 + (Math.random() - 0.5) * 3, 0.8, 0.5, 2, 0.55, 0.78, 0.74, 0.66);
+  }
+  if (car.scrape > 0.2 && car.scrapePt && Math.random() < car.scrape) sparks.emit(car.scrapePt[0], car.scrapePt[1], car.scrapePt[2], car.vx * 0.5 + (Math.random() - 0.5) * 3, Math.random() * 2, car.vz * 0.5 + (Math.random() - 0.5) * 3, 0.2 + Math.random() * 0.2, 0.12, -0.1, 1, 1, 0.62, 0.22);
+  smoke.update(dt, -0.35, 0.9); sparks.update(dt, 9.8, 0.4);
+  sound.update(car, null, 1e9, { winch: car.winch.on && car.winch.tension > 200 ? 1 : 0 });
+  updateCamera(dt, car, model, false);
+  followSun(car.x, car.y, car.z);
+  updateWinchLine(car);
+  // HUD
+  const fr = game.frame++;
+  if ((fr & 1) === 0) drawGauge(car);
+  if ((fr & 3) === 1) drawMinimap(car, []);
+  game.hudT -= dt;
+  if (game.hudT <= 0) {
+    game.hudT = 0.1;
+    $('lap').textContent = `${game.cp}/${cps.length}`;
+    const shown = game.state === 'finished' ? game.finishTime : game.t + game.pen;
+    $('time').textContent = shown > 0 ? fmtTime(shown) : '0:00.000';
+    $('best').textContent = fmtTime(game.best);
+    $('place').textContent = game.state === 'race' ? (game.pen ? `Penalización +${game.pen} s · ` : '') + `Oro ${fmtTime(MAP.medals[0])}` : '';
+    drawDamage(car.dmg.mode === 'off' ? null : car.dmg);
+    drawOff4(car);
+  }
+  if (car.overturned || car.mech.dead) { $('hint').textContent = 'Presiona R para el rescate (+30 s)'; game.hintT = 0.3; }
+  else if (car.intakeGap < 0.2) { $('hint').textContent = '¡El agua llega a la toma de aire! Avanza despacio y parejo'; game.hintT = 0.3; }
+  game.hintT -= dt; $('hint').style.opacity = game.hintT > 0 ? 1 : 0;
 }
 
 // =====================================================================
@@ -5931,7 +7260,9 @@ function stepGame(dt) {
   if (car.impact > 0.04) { sound.hit(car.impact); cam.shake = Math.max(cam.shake, car.impact); }
   car.impact = 0;
   smoke.update(dt, -0.35, 0.9); sparks.update(dt, 9.8, 0.4);
-  sound.update(car, nearest, nd);
+  let nearT = null, ndT = 1e9;
+  for (const t of game.traffic) { if (!t.model.root.visible) continue; const d = Math.hypot(t.x - car.x, t.z - car.z); if (d < ndT) { ndT = d; nearT = t; } }
+  sound.update(car, nearest, nd, { traffic: nearT });
   updateCamera(dt, car, model, false);
   followSun(car.x, car.y, car.z);
   // HUD
@@ -5993,7 +7324,8 @@ function render() {
   if (gradePass) gradePass.uniforms.uTime.value = t % 100;
   if (smoke) { const sc = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)); smoke.mat.uniforms.scale.value = sc; sparks.mat.uniforms.scale.value = sc; }
   if ((renderFrame++ & 7) === 0) { cullVegetation(QS.veg); cullDetail(); }
-  updateCarLOD(game.model); for (const r of game.rivals) updateCarLOD(r.model);
+  updateCarLOD(game.model); for (const r of game.rivals) updateCarLOD(r.model, true);
+  for (const t of game.traffic) if (t.kind !== 'cow' && t.model.root.visible) updateCarLOD(t.model, true);
   updatePrecip(t);
   if (composer) composer.render(); else renderer.render(scene, camera);
 }
@@ -6011,7 +7343,7 @@ function loop(now) {
   if (game.state === 'taller') {
     const c = game.car; tallerCamera(dt, c.x, c.y, c.z); followSun(c.x, c.y, c.z); render(); return;
   }
-  stepGame(dt);
+  if (TRIAL) stepTrial(dt); else stepGame(dt);
   render();
 }
 
@@ -6073,20 +7405,86 @@ function setMod(key, val) {
   store.set('mods_' + id, m);
   setupGarage(); renderTaller();
 }
+// ---- preparación 4x4 (se guarda por etapa y por camioneta) ----
+const MOD_UI4 = [
+  { tab: 'Neumáticos', items: [
+    { key: 'tire', label: 'Tipo de neumático', opts: [['ht', 'Carretera'], ['at', 'Todo terreno'], ['mt', 'Barro (MT)'], ['roca', 'Competencia']], help: 'MT: tacos grandes que limpian el barro. Competencia: goma blanda que se pega a la roca. Todo terreno: equilibrado y el mejor en arena.' },
+    { key: 'size', label: 'Medida', opts: [[31, '31"'], [33, '33"'], [35, '35"'], [37, '37"']], help: 'Más grande: más despeje y sube escalones más altos, pero pesa más y alarga la relación (conviene acortar la corona).' },
+    { key: 'psi', label: 'Presión', opts: [[35, '35 psi'], [25, '25 psi'], [18, '18 psi'], [12, '12 psi']], help: 'Con poca presión la huella crece: agarra más en arena, barro y roca. En terreno duro rueda peor.' },
+  ] },
+  { tab: 'Tracción', items: [
+    { key: 'lock', label: 'Bloqueos de diferencial', opts: [['no', 'Ninguno'], ['tras', 'Trasero'], ['ambos', 'Trasero y delantero']], help: 'Se activan en la etapa con L. Con el diferencial abierto, una rueda en el aire se lleva todo el torque y te quedas.' },
+    { key: 'tc', label: 'Control de tracción', opts: [[1, 'Activado'], [0, 'Desactivado']], help: 'Frena la rueda que patina para pasar el torque a la otra. Ayuda, pero menos que un bloqueo.' },
+    { key: 'gear', label: 'Relación de corona', opts: [[373, '3,73'], [456, '4,56'], [538, '5,38']], help: 'Más corta (número alto): más fuerza para trepar y para mover neumáticos grandes. Más larga: más velocidad.' },
+  ] },
+  { tab: 'Suspensión', items: [
+    { key: 'susp', label: 'Suspensión', opts: [['orig', 'Original'], ['lev', 'Levantada'], ['larga', 'Recorrido largo']], help: 'El recorrido largo mantiene las cuatro ruedas en el suelo cuando el terreno se tuerce.' },
+    { key: 'sway', label: 'Barra estabilizadora', opts: [['con', 'Conectada'], ['des', 'Desconectada']], help: 'Desconectada, la suspensión se tuerce más y las ruedas no se despegan, pero se inclina más y es más fácil volcar.' },
+  ] },
+  { tab: 'Equipo', items: [
+    { key: 'snorkel', label: 'Snorkel', opts: [[0, 'No'], [1, 'Sí']], help: 'La toma de aire sube al techo: puedes cruzar agua profunda sin que el motor se ahogue.' },
+    { key: 'winch', label: 'Huinche', opts: [[0, 'No'], [1, 'Sí · +45 kg']], help: 'Con G se engancha a un árbol o roca con eslinga amarilla que tengas adelante y tira de la camioneta.' },
+    { key: 'armor', label: 'Protecciones', opts: [[0, 'No'], [1, 'Sí · +60 kg']], help: 'Planchas bajo el chasis y estribos de tubo: resbalan sobre la roca en vez de engancharse.' },
+  ] },
+  { ...MOD_UI[0], src: 'mods' },
+];
+const STAT_ROWS4 = [
+  ['Despeje', s => s.clear, v => v.toFixed(0) + ' cm', 15, 45],
+  ['Ángulo ataque', s => s.approach, v => v.toFixed(0) + '°', 20, 48],
+  ['Articulación', s => s.artic, v => v.toFixed(0) + ' cm', 15, 50],
+  ['Reducción', s => s.crawl, v => v.toFixed(0) + ':1', 30, 80],
+  ['Agarre aquí', s => s.grip, v => v.toFixed(2), 0.2, 1.3],
+  ['Peso', s => s.mass, v => v + ' kg', 2300, 1600],
+];
+function truckStats(spec) {
+  const S = spec.setup, su = SUSP4[S.susp] || SUSP4.orig, sz = SIZE4[S.size] || SIZE4[31], pr = profile(spec), up = spec.lift + spec.dR;
+  return {
+    clear: Math.min(0.27 + up, sz.R - 0.2 + 0.03) * 100, approach: Math.atan2(0.47 + up + 0.1, pr.zFront - pr.zF) * 180 / Math.PI,
+    artic: (su.droop + su.comp) * (S.sway === 'des' ? 1.3 : 1) * 100, crawl: spec.gears[0] * LOW_RANGE * spec.final,
+    grip: offGrip(MAP.mainSurf, S, WEATHER.id === 'rain').mu, mass: spec.mass,
+  };
+}
+// dificultad estimada de la etapa con esta preparación
+function setupDifficulty(setup) {
+  const tot = MAP.needs.reduce((a, n) => a + n.w, 0), miss = MAP.needs.filter(n => !n.t(setup)).reduce((a, n) => a + n.w, 0), r = miss / tot;
+  return { r, label: r === 0 ? 'Fácil' : r <= 0.25 ? 'Media' : r <= 0.5 ? 'Difícil' : 'Muy difícil', col: r === 0 ? '#7fd98f' : r <= 0.25 ? '#f2c21b' : r <= 0.5 ? '#f07a1a' : '#ff5a4a' };
+}
+function setSetup(key, val) {
+  const id = CARS[game.carIdx].id, s = { ...store.get('setup4_' + MAP_ID + '_' + id, {}) };
+  if (val === SETUP4_DEFAULT[key]) delete s[key]; else s[key] = val;
+  store.set('setup4_' + MAP_ID + '_' + id, s);
+  setupGarage(); renderTaller();
+}
 function renderTaller() {
-  const base = CARS[game.carIdx], mods = getMods(base.id), spec = modSpec(base, mods);
-  const b0 = perfStats(modSpec(base, { ...MOD_DEFAULT })), b1 = perfStats(spec);
-  $('t-car').textContent = base.name;
-  $('t-stats').innerHTML = STAT_ROWS.map(([name, f, fmt, lo, hi]) => {
-    const fr = v => clamp((v - lo) / (hi - lo), 0.03, 1) * 100, v0 = f(b0), v1 = f(b1), worse = fr(v1) < fr(v0) - 0.5;
-    return `<div class="st"><span>${name}</span><div class="bar"><i style="width:${fr(v0)}%"></i><i class="now${worse ? ' worse' : ''}" style="width:${fr(v1)}%"></i></div><b>${fmt(v1)}</b></div>`;
-  }).join('');
-  $('t-tabs').innerHTML = MOD_UI.map((t, k) => `<button type="button" role="tab" aria-selected="${k === tallerTab}" data-tab="${k}">${t.tab}</button>`).join('');
+  const base = CARS[game.carIdx], mods = getMods(base.id), setup = TRIAL ? getSetup4(base.id) : null;
+  const UI = TRIAL ? MOD_UI4 : MOD_UI;
+  let rowsHTML;
+  if (TRIAL) {
+    const b0 = truckStats(truckSpec(base, { ...SETUP4_DEFAULT })), b1 = truckStats(truckSpec(base, setup));
+    rowsHTML = STAT_ROWS4.map(([name, f, fmt, lo, hi]) => {
+      const fr = v => clamp((v - lo) / (hi - lo), 0.03, 1) * 100, v0 = f(b0), v1 = f(b1), worse = fr(v1) < fr(v0) - 0.5;
+      return `<div class="st"><span>${name}</span><div class="bar"><i style="width:${fr(v0)}%"></i><i class="now${worse ? ' worse' : ''}" style="width:${fr(v1)}%"></i></div><b>${fmt(v1)}</b></div>`;
+    }).join('');
+    const D = setupDifficulty(setup);
+    rowsHTML += `<div id="t-diff">Dificultad de "${MAP.name}" con esta preparación: <b style="color:${D.col}">${D.label}</b><ul>${MAP.needs.map(n => n.t(setup) ? `<li class="ok">✓ ${n.ok}</li>` : `<li class="bad">✗ ${n.bad}</li>`).join('')}</ul></div>`;
+    $('t-car').textContent = base.name + ' · Etapa ' + MAP.stage;
+  } else {
+    const b0 = perfStats(modSpec(base, { ...MOD_DEFAULT })), b1 = perfStats(modSpec(base, mods));
+    rowsHTML = STAT_ROWS.map(([name, f, fmt, lo, hi]) => {
+      const fr = v => clamp((v - lo) / (hi - lo), 0.03, 1) * 100, v0 = f(b0), v1 = f(b1), worse = fr(v1) < fr(v0) - 0.5;
+      return `<div class="st"><span>${name}</span><div class="bar"><i style="width:${fr(v0)}%"></i><i class="now${worse ? ' worse' : ''}" style="width:${fr(v1)}%"></i></div><b>${fmt(v1)}</b></div>`;
+    }).join('');
+    $('t-car').textContent = base.name;
+  }
+  $('t-stats').innerHTML = rowsHTML;
+  if (tallerTab >= UI.length) tallerTab = 0;
+  $('t-tabs').innerHTML = UI.map((t, k) => `<button type="button" role="tab" aria-selected="${k === tallerTab}" data-tab="${k}">${t.tab}</button>`).join('');
   const body = $('t-body'); body.innerHTML = '';
-  for (const it of MOD_UI[tallerTab].items) {
+  const tab = UI[tallerTab], fromSetup = TRIAL && tab.src !== 'mods';
+  for (const it of tab.items) {
     if (it.hide && it.hide(base)) continue;
     if (it.show && !it.show(mods)) continue;
-    const cur = it.key === 'tires' ? (mods.tires || TIRE_DEFAULT[base.id]) : mods[it.key];
+    const cur = fromSetup ? setup[it.key] : it.key === 'tires' ? (mods.tires || TIRE_DEFAULT[base.id]) : mods[it.key];
     const div = document.createElement('div'); div.className = 't-item';
     let html = `<span>${it.label}</span>`;
     if (it.type === 'color') {
@@ -6099,6 +7497,7 @@ function renderTaller() {
     div.innerHTML = html;
     div.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
       let v = btn.dataset.v === 'null' ? null : JSON.parse(btn.dataset.v);
+      if (fromSetup) { setSetup(it.key, v); return; }
       if (it.key === 'tires' && v === TIRE_DEFAULT[base.id]) v = null;
       setMod(it.key, v);
     }));
@@ -6114,6 +7513,11 @@ function updateCarCards() {
     drawCarPreview(b.querySelector('canvas'), c, mods.paint ?? c.paint);
     b.querySelector('.specs').innerHTML = `<div>${Math.round(s.kw * 1.36)}<small>CV</small></div><div>${s.mass}<small>kg</small></div><div>${Math.round(s.Tmax)}<small>Nm</small></div>`;
   });
+  if (TRIAL) {
+    const c = CARS[game.carIdx], S = getSetup4(c.id), D = setupDifficulty(S);
+    $('mod-summary').innerHTML = `${c.name}: ${S.size}" ${({ ht: 'carretera', at: 'todo terreno', mt: 'barro', roca: 'competencia' })[S.tire]} a ${S.psi} psi · dificultad <b style="color:${D.col}">${D.label}</b>`;
+    return;
+  }
   const n = modCount(CARS[game.carIdx].id);
   $('mod-summary').textContent = n ? `${CARS[game.carIdx].name}: ${n} ${n === 1 ? 'modificación' : 'modificaciones'}` : 'Auto de fábrica';
 }
@@ -6153,18 +7557,34 @@ function buildMenu() {
   $('shield').innerHTML = `<small>${MAP.ui.top}</small>${MAP.ui.shield}`;
   $('dist').innerHTML = MAP.ui.rows.map(([a, b]) => `<span>${a} <b>${b}</b></span>`).join('');
   $('mode-race-label').textContent = `Carrera · ${MAP.laps || 3} vueltas`;
-  const mw = $('maps');
   for (const id of MAP_IDS) {
     const M = MAPS[id], b = document.createElement('button'); b.className = 'map'; b.type = 'button';
     b.setAttribute('aria-pressed', String(id === MAP_ID));
-    b.innerHTML = `<canvas width="400" height="200"></canvas><em>${M.place}</em><b>${M.name}</b><div class="tags">${M.tags.map(t => `<span>${t}</span>`).join('')}</div><p>${M.desc}</p>`;
+    let extra = '';
+    if (M.mode === '4x4') {
+      const best = Math.min(...CARS.filter(isTruck).map(c => store.get('best4_' + id + '_' + c.id, 0) || 1e9)), md = best < 1e9 ? (best <= M.medals[0] ? 'Oro' : best <= M.medals[1] ? 'Plata' : best <= M.medals[2] ? 'Bronce' : '') : '';
+      extra = `<div class="stars" aria-label="Dificultad ${M.stars} de 5">${'★'.repeat(M.stars)}${'☆'.repeat(5 - M.stars)}</div>` + (best < 1e9 ? `<div class="medal">Mejor ${fmtTime(best)}${md ? ' · ' + md : ''}</div>` : '');
+    }
+    b.innerHTML = `<canvas width="400" height="200"></canvas><em>${M.place}</em><b>${M.name}</b>${extra}<div class="tags">${M.tags.map(t => `<span>${t}</span>`).join('')}</div><p>${M.desc}</p>`;
     drawMapPreview(b.querySelector('canvas'), M);
     b.addEventListener('click', () => switchMap(id));
-    mw.appendChild(b);
+    $(M.mode === '4x4' ? 'maps4' : 'maps').appendChild(b);
+  }
+  // en el Desafío 4x4 solo se corre con camioneta y se prepara para la etapa
+  if (TRIAL) {
+    if (!isTruck(CARS[game.carIdx])) game.carIdx = CARS.findIndex(isTruck);
+    $('open-taller').textContent = 'Preparar la camioneta para esta etapa';
+    for (const n of ['mode', 'diff']) { const el = document.querySelector(`input[name="${n}"]`); if (el) el.closest('.opt-group').classList.add('hidden'); }
+    document.body.classList.add('trial');
+    $('t-4x4').addEventListener('click', () => showMsg(game.car.cycleTransfer(), '', 1.4));
+    $('t-lock').addEventListener('click', () => showMsg(game.car.cycleLock(), '', 1.4));
+    $('t-winch').addEventListener('click', () => showMsg(game.car.toggleWinch(OB4.anchors), '', 1.8));
+    $('start').textContent = '¡A la etapa!';
   }
   const wrap = $('cars');
   CARS.forEach((c, i) => {
     const b = document.createElement('button'); b.className = 'car'; b.type = 'button'; b.id = 'car-' + c.id;
+    if (TRIAL && !isTruck(c)) b.classList.add('hidden');
     b.setAttribute('aria-pressed', String(i === game.carIdx));
     b.innerHTML = `<canvas width="400" height="200"></canvas><em>${c.tag}</em><b>${c.name}</b><p>${c.desc}</p><div class="specs"></div>`;
     b.addEventListener('click', () => {
@@ -6177,13 +7597,17 @@ function buildMenu() {
   updateCarCards();
   $('open-taller').addEventListener('click', openTaller);
   $('t-done').addEventListener('click', closeTaller);
-  $('t-reset').addEventListener('click', () => { store.set('mods_' + CARS[game.carIdx].id, {}); setupGarage(); renderTaller(); });
+  $('t-reset').addEventListener('click', () => {
+    const id = CARS[game.carIdx].id;
+    if (TRIAL && MOD_UI4[tallerTab].src !== 'mods') store.set('setup4_' + MAP_ID + '_' + id, {}); else store.set('mods_' + id, {});
+    setupGarage(); renderTaller();
+  });
   // arrastrar para girar el auto en el taller
   let drag = null;
   renderer.domElement.addEventListener('pointerdown', e => { if (game.state === 'taller') drag = e.clientX; });
   addEventListener('pointerup', () => { drag = null; });
   addEventListener('pointermove', e => { if (drag != null && game.state === 'taller') { cam.orbit -= (e.clientX - drag) * 0.008; drag = e.clientX; } });
-  const defWeather = MAP_ID === 'austral' ? 'rain' : 'clear';
+  const defWeather = MAP.defWeather || (MAP_ID === 'austral' ? 'rain' : 'clear');
   for (const [name, def] of [['mode', 'race'], ['tod', 'day'], ['gearbox', 'auto'], ['quality', IS_TOUCH ? 'low' : 'med'], ['damage', 'real'], ['diff', 'normal'], ['weather', defWeather]]) {
     const v = store.get(name === 'weather' ? 'weather_' + MAP_ID : name, def), el = document.querySelector(`input[name="${name}"][value="${v}"]`);
     if (el) el.checked = true;
@@ -6203,6 +7627,7 @@ function buildMenu() {
   $('b-sound').addEventListener('click', toggleMute);
   $('b-music').addEventListener('click', toggleMusic);
   $('b-music-menu').addEventListener('click', toggleMusic);
+  $('b-music-menu').textContent = 'Música: ' + (sound.music.on ? 'sí' : 'no');
   // el navegador solo deja sonar el audio después de un toque o tecla: ahí parte la música del menú
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) addEventListener(ev, () => sound.init(), { passive: true });
   addEventListener('keydown', e => { if (e.code === 'KeyN' && !e.repeat) toggleMusic(); });
@@ -6215,13 +7640,20 @@ function buildMenu() {
 async function init() {
   try { await Promise.race([Promise.all([document.fonts.load(`700 40px "Barlow Condensed"`), document.fonts.load(`800 40px "Barlow Condensed"`), document.fonts.load(`italic 800 40px "Barlow Condensed"`)]), new Promise(r => setTimeout(r, 2500))]); } catch (e) { }
   await new Promise(r => setTimeout(r, 30));
-  WEATHER.id = store.get('weather_' + MAP_ID, MAP_ID === 'austral' ? 'rain' : 'clear');
+  WEATHER.id = store.get('weather_' + MAP_ID, MAP.defWeather || (MAP_ID === 'austral' ? 'rain' : 'clear'));
   setTimeOfDay(TOD[store.get('tod', 'day')] ? store.get('tod', 'day') : 'day');
   world.add(buildTerrain(IS_TOUCH ? 300 : 420));
   world.add(buildRoad());
+  if (TRIAL) OB4 = buildObstacles4();
   buildRoadside(world);
   buildDecor();
   registerDetails();
+  if (TRIAL) {
+    // terreno fino a lo largo de la ruta (para que la física no tenga que calcularlo en carrera)
+    const fr = {};
+    for (let s = 0; s < track.length; s += 8) { track.at(s, fr); for (const d of [-14, 0, 14]) tile4(Math.floor((fr.x + fr.tz * d) / 16), Math.floor((fr.z - fr.tx * d) / 16)); }
+    OB4.on = true;
+  }
   skids = new SkidMarks(); smoke = new Particles(700, false); sparks = new Particles(420, true);
   debris = new Debris(); loose = new LooseParts();
   buildPrecip();

@@ -1,6 +1,6 @@
 # Ruta Andina
 
-Juego de carreras 3D en el navegador, ambientado en Chile: la cordillera de los Andes, la Alameda de Santiago, las curvas de Los Caracoles y la Carretera Austral.
+Juego de carreras 3D en el navegador, ambientado en Chile: la cordillera de los Andes, la Alameda de Santiago, las curvas de Los Caracoles y la Carretera Austral. Además trae un **Desafío 4x4** de cuatro etapas solo para camionetas.
 
 Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que necesita conexión a internet.
 
@@ -8,7 +8,7 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 
 - **En línea:** https://mati47589.github.io/ruta-andina/
 - **En tu computador:** abre `index.html` con Chrome, Edge o Firefox.
-- **Ir directo a un mapa:** agrega `#mapa=alameda`, `#mapa=caracoles`, `#mapa=austral` o `#mapa=cordillera` al final de la dirección.
+- **Ir directo a un mapa:** agrega `#mapa=alameda`, `#mapa=caracoles`, `#mapa=austral` o `#mapa=cordillera` al final de la dirección (o `#mapa=x4_rocas`, `x4_rio`, `x4_dunas`, `x4_barro` para las etapas 4x4).
 
 ## Mapas
 
@@ -18,6 +18,35 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 | La Alameda | Santiago Centro | Carrera callejera entre muros de concreto: La Moneda, la Torre Entel, la Iglesia de San Francisco, el cerro Santa Lucía, el San Cristóbal, la Costanera Center, micros y colectivos. 3 vueltas. |
 | Los Caracoles | Paso Los Libertadores | Horquillas numeradas subiendo hacia Portillo, galerías antinieve, hielo, derrumbes y camiones a Argentina. 2 vueltas. |
 | Carretera Austral | Lago General Carrera | Camino de ripio entre coigües, puentes de madera sobre esteros, barro, pozas, troncos caídos, vacas sueltas y las Capillas de Mármol. 3 vueltas. |
+
+## Desafío 4x4 (solo camionetas)
+
+Etapas contra el reloj con obstáculos de verdad. Antes de cada etapa hay que **preparar la camioneta**, y esa preparación cambia la dificultad: el taller dice si la etapa queda Fácil, Media, Difícil o Muy difícil y qué te falta.
+
+| Etapa | Lugar | El desafío | Qué conviene |
+|---|---|---|---|
+| 1 · Quebrada de Macul | Precordillera de Santiago | Bolones, escalera de roca, laderas inclinadas y "El Escalón" de 50 cm | Bloqueos, neumáticos grandes, presión baja, recorrido largo, protecciones |
+| 2 · Cajón del Maipo | Río Colorado | Un vado de 45 cm y otro de 1 m con corriente, barro en las orillas | **Snorkel** (sin él, el motor se ahoga), neumáticos AT/MT, huinche |
+| 3 · Dunas de Atacama | Desierto de Atacama | Arena blanda entre dunas | **Presión baja** (con 35 psi el neumático se entierra), ir con impulso |
+| 4 · Barro de Nahuelbuta | Cordillera de Nahuelbuta, con lluvia | Pozones de barro profundo, troncos y una cuesta resbaladiza | **Neumáticos de barro (MT)**, bloqueos, huinche |
+
+**Preparación:** tipo de neumático (carretera, todo terreno, barro, competencia), medida (31" a 37"), presión (35 a 12 psi), bloqueos de diferencial, control de tracción, relación de corona, suspensión (original, levantada, recorrido largo), barra estabilizadora, snorkel, huinche y protecciones. Se guarda por etapa y por camioneta.
+
+**Física 4x4:** cada rueda con su suspensión y contacto con el terreno, diferenciales abiertos o bloqueados, caja de transferencia 2H/4H/4L (reductora 2,72:1), convertidor de torque, hundimiento y surco en arena y barro según la presión, neumático que trepa por el canto de los escalones, flotación y corriente en el río, toma de aire que se inunda y huinche que tira más lento mientras más carga.
+
+**Controles 4x4:** `F` 2H/4H/4L (la reductora entra detenido) · `L` bloqueos · `G` huinche al anclaje con eslinga amarilla más cercano · `T` control de tracción · `R` rescate al último control (+30 s; si te repites en el mismo tramo, un tractor te remolca pasado el obstáculo: +60 s).
+
+Hay medallas de oro, plata y bronce por etapa, y al final te da un consejo sobre lo que le faltó a tu preparación.
+
+## Sonido y música
+
+Todo se genera en el momento con Web Audio, sin archivos de audio: el juego sigue siendo un solo `index.html`.
+
+- **Motores de verdad:** cada motor se sintetiza explosión por explosión, con su número de cilindros y su orden de encendido (el V8 cruzado del Cóndor GT suena desparejo, como uno real), escape con resonancia y silenciador, turbo con silbido y descarga ("pssh") al soltar, traqueteo del diésel y petardeos. El escape deportivo y la preparación por etapas se escuchan.
+- **Arranque, cambios y limitador:** marcha y tos antes de la largada, golpe de la caja en cada cambio, petardeo al subir a fondo en el rally y el GT, golpe de acelerador al reducir y corte al llegar al limitador.
+- **Los demás también suenan:** rivales y tránsito (autos, micros y camiones) con efecto Doppler, paneo estéreo y distancia. En el 4x4 se oye el motor del huinche.
+- **Música por mapa:** huayno con quena y charango en la Cordillera, cumbia chilena en La Alameda, tema tenso con arpegios en Los Caracoles y cueca con guitarra en la Carretera Austral; las etapas 4x4 usan el tema andino (roca y río), el tenso (dunas) y la cueca (barro). Hay otro tema tranquilo para el menú. Suma instrumentos a medida que vas más rápido, queda bajo el motor y se apaga suave al pausar.
+- **Controles:** `N` activa o desactiva solo la música (también hay botón en el menú y en la pausa); `M` silencia todo.
 
 ## Peligros del camino
 
@@ -40,18 +69,9 @@ El taller muestra cómo cambian la potencia, el 0–100, la velocidad máxima, e
 |---|---|---|
 | Taxi santiaguino | Delantera | 143 CV |
 | Rally Estrella | 4x4 turbo | 299 CV |
-| Camioneta 4x4 | 4x4 diésel | 204 CV |
+| Camioneta 4x4 (doble cabina) | 4x4 diésel turbo | 204 CV |
+| Camioneta corta (cabina simple) | 4x4 V6 bencina | 245 CV |
 | Cóndor GT | Trasera | 408 CV |
-
-## Sonido y música
-
-Todo se genera en el momento con Web Audio, sin archivos de audio: el juego sigue siendo un solo `index.html`.
-
-- **Motores con carácter propio:** el taxi suena a cuatro cilindros sedán; el Rally Estrella tiene silbido de turbo, descarga ("pssh") al soltar el acelerador y petardeos; la camioneta es un diésel con traqueteo grave; el Cóndor GT es un V8 con su bamboleo y petardeos al subir de marcha. El escape deportivo y la preparación por etapas se escuchan.
-- **Arranque, cambios y limitador:** marcha y tos antes de la largada, golpe de la caja en cada cambio, golpe de acelerador al reducir y corte de combustión al llegar al limitador.
-- **Los demás también suenan:** rivales y tránsito (autos, micros y camiones) con efecto Doppler y paneo estéreo según por dónde pasan. Con el motor dañado falla, y destruido se apaga.
-- **Música por mapa:** huayno con quena y charango en la Cordillera, cumbia chilena en La Alameda, tema tenso con arpegios en Los Caracoles y cueca con guitarra en la Carretera Austral. Hay otro tema tranquilo para el menú. Suma instrumentos a medida que vas más rápido y se apaga suave al pausar.
-- **Controles:** `N` activa o desactiva solo la música (también hay botón en el menú y en la pausa); `M` silencia todo.
 
 ## Controles
 
@@ -78,4 +98,4 @@ También funciona con joystick y con controles táctiles en el celular.
 - **Clima:** despejado, lluvia o nieve.
 - **Hora:** mediodía, tarde dorada o arrebol (en Santiago se encienden las ventanas y los faroles).
 - **Daños:** realistas (abolladuras, vidrios, motor, vuelcos), solo visuales o sin daños.
-- **Calidad gráfica:** Alta, Media o Baja. La resolución se ajusta sola para mantener la fluidez.
+- **Calidad gráfica:** Alta, Media o Baja. La resolución se ajusta sola para mantener la fluidez. El terreno se dibuja por bloques (solo lo que ve la cámara) y los autos lejanos usan una versión simplificada, para que corra bien en computadores con gráfica integrada.
