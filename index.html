@@ -279,12 +279,12 @@ body.touch #minimap{width:110px;height:110px;}
     <div class="go-row">
       <div class="keys">
         <kbd>W</kbd>/<kbd>↑</kbd> acelerar · <kbd>S</kbd>/<kbd>↓</kbd> frenar y reversa · <kbd>A</kbd><kbd>D</kbd> dirección · <kbd>Espacio</kbd> freno de mano ·
-        <kbd>E</kbd>/<kbd>Q</kbd> subir/bajar cambio · <kbd>C</kbd> cámara · <kbd>R</kbd> volver a la ruta · <kbd>1</kbd> ABS · <kbd>2</kbd> control de tracción · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa. También funciona con joystick. Con daños realistas, un choque fuerte abolla la carrocería, revienta vidrios, daña el motor y puede volcarte: <kbd>R</kbd> llama a la grúa (+10 s). Ojo con los baches, las pozas, el aceite, el hielo, las obras y el tránsito que viene de frente.
+        <kbd>E</kbd>/<kbd>Q</kbd> subir/bajar cambio · <kbd>C</kbd> cámara · <kbd>arrastrar</kbd> mirar alrededor (rueda: acercar) · <kbd>V</kbd> centrar · <kbd>R</kbd> volver a la ruta · <kbd>1</kbd> ABS · <kbd>2</kbd> control de tracción · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa. También funciona con joystick. Con daños realistas, un choque fuerte abolla la carrocería, revienta vidrios, daña el motor y puede volcarte: <kbd>R</kbd> llama a la grúa (+10 s). Ojo con los baches, las pozas, el aceite, el hielo, las obras y el tránsito que viene de frente.
       </div>
       <div class="keys keys4">
         <kbd>W</kbd>/<kbd>↑</kbd> acelerar (dosifica: si patinas, cavas) · <kbd>S</kbd>/<kbd>↓</kbd> frenar y reversa · <kbd>A</kbd><kbd>D</kbd> dirección ·
         <kbd>F</kbd> 2H / 4H / 4L (la reductora entra detenido) · <kbd>L</kbd> bloqueos de diferencial · <kbd>G</kbd> huinche al anclaje más cercano (eslinga amarilla) ·
-        <kbd>T</kbd> control de tracción · <kbd>C</kbd> cámara · <kbd>R</kbd> rescate al último control (+30 s; si te repites en el mismo tramo, remolque +60 s) · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa.
+        <kbd>T</kbd> control de tracción · <kbd>C</kbd> cámara · <kbd>arrastrar</kbd> mirar alrededor (rueda: acercar) · <kbd>V</kbd> centrar · <kbd>R</kbd> rescate al último control (+30 s; si te repites en el mismo tramo, remolque +60 s) · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa.
         Despacio y parejo en roca y agua; con impulso en arena y barro.
       </div>
       <button id="start">¡A correr!</button>
@@ -5180,6 +5180,7 @@ class SkidMarks {
   clear() { this.pos.fill(0); this.col.fill(0); this.i = 0; this.last = [null, null, null, null]; this.geo.attributes.position.needsUpdate = true; this.geo.attributes.color.needsUpdate = true; }
 }
 const texSoft = canvasTex(64, 64, (g) => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }, false);
+const DUST = 0.4;   // cantidad de tierra y polvo que levantan las ruedas (1 = como antes, 0 = nada)
 class Particles {
   constructor(max, additive) {
     this.max = max; this.n = 0; this.cur = 0;
@@ -5192,9 +5193,9 @@ class Particles {
     g.setAttribute('aColor', new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
     this.geo = g;
     this.mat = new THREE.ShaderMaterial({
-      uniforms: { map: { value: texSoft }, scale: { value: 600 } },
-      vertexShader: `attribute float aSize; attribute float aAlpha; attribute vec3 aColor; uniform float scale; varying float vA; varying vec3 vC;
-        void main(){ vA=aAlpha; vC=aColor; vec4 mv=modelViewMatrix*vec4(position,1.0); gl_PointSize=aSize*scale/max(-mv.z,0.1); gl_Position=projectionMatrix*mv; }`,
+      uniforms: { map: { value: texSoft }, scale: { value: 600 }, nearFade: { value: additive ? 0.0 : 1.0 } },
+      vertexShader: `attribute float aSize; attribute float aAlpha; attribute vec3 aColor; uniform float scale; uniform float nearFade; varying float vA; varying vec3 vC;
+        void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); vA=aAlpha*mix(1.0,smoothstep(3.0,13.0,-mv.z),nearFade); vC=aColor; gl_PointSize=aSize*scale/max(-mv.z,0.1); gl_Position=projectionMatrix*mv; }`,
       fragmentShader: `uniform sampler2D map; varying float vA; varying vec3 vC; void main(){ float t=texture2D(map,gl_PointCoord).a; if(vA*t<0.004) discard; gl_FragColor=vec4(vC,t*vA);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -5899,7 +5900,7 @@ class Sound {
   // fuente que se mueve respecto a la cámara: volumen, Doppler, paneo y aire que absorbe los agudos
   spatial(src, vx, vz) {
     const dx = src.x - camera.position.x, dz = src.z - camera.position.z, d = Math.hypot(dx, dz) || 1;
-    const rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);     // derecha de la cámara
+    const rx = Math.cos(cam.yaw + cam.fy), rz = -Math.sin(cam.yaw + cam.fy);     // derecha de la cámara
     const lvx = game.car ? game.car.vx : 0, lvz = game.car ? game.car.vz : 0;
     const vr = ((vx - lvx) * dx + (vz - lvz) * dz) / d;         // se aleja (+) o se acerca (−)
     return { d, pitch: 343 / (343 + clamp(vr, -120, 120)), pan: -(dx * rx + dz * rz) / d * 0.85, lpf: 18000 / (1 + d / 35) + 500 };
@@ -6123,6 +6124,7 @@ addEventListener('keydown', e => {
     case 'KeyE': case 'ShiftRight': if (!game.car.auto) game.car.shift(1); break;
     case 'KeyQ': case 'ControlRight': if (!game.car.auto) game.car.shift(-1); break;
     case 'KeyC': cycleCamera(); break;
+    case 'KeyV': centerCamera(); showMsg('Cámara centrada', '', 0.8); break;
     case 'KeyR': if (game.state !== 'paused') resetToTrack(); break;
     case 'KeyF': if (TRIAL && game.state !== 'paused') showMsg(game.car.cycleTransfer(), '', 1.4); break;
     case 'KeyL': if (TRIAL && game.state !== 'paused') showMsg(game.car.cycleLock(), '', 1.4); break;
@@ -6174,8 +6176,9 @@ function readInput(dt) {
 // Cámara
 // =====================================================================
 const CAMS = ['Persecución', 'Lejana', 'Capó'];
-const cam = { mode: 0, yaw: 0, pos: new THREE.Vector3(), look: new THREE.Vector3(), shake: 0, fov: 62, orbit: 0 };
-function cycleCamera() { cam.mode = (cam.mode + 1) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1); store.set('cam', cam.mode); }
+const cam = { mode: 0, yaw: 0, pos: new THREE.Vector3(), look: new THREE.Vector3(), shake: 0, fov: 62, orbit: 0, fy: 0, fp: 0, zoom: 1 };   // fy/fp/zoom: cámara libre (giro, altura y acercamiento que pone el jugador)
+function centerCamera() { cam.fy = 0; cam.fp = 0; cam.zoom = 1; }
+function cycleCamera() { centerCamera(); cam.mode = (cam.mode + 1) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1); store.set('cam', cam.mode); }
 const _v = new THREE.Vector3(), _v2 = new THREE.Vector3();
 function updateCamera(dt, car, model, snap) {
   const s = Math.sin(car.psi), c = Math.cos(car.psi), sp = car.speed;
@@ -6188,16 +6191,23 @@ function updateCamera(dt, car, model, snap) {
     const P = model.pr.P;
     _v.set(0, P.belt + (car.spec.body === 'pickup' ? 0.45 : 0.32), model.pr.zF + P.ws + 0.15);
     model.body.localToWorld(_v); cam.pos.copy(_v);
-    _v2.set(0, P.belt + 0.1, 30); model.body.localToWorld(_v2); cam.look.copy(_v2);
+    if (cam.fy || cam.fp) {   // cámara libre dentro del auto: mira hacia donde la lleves
+      const a = car.psi + cam.fy, cp = Math.cos(cam.fp);
+      cam.look.set(cam.pos.x + Math.sin(a) * 30 * cp, cam.pos.y + Math.sin(cam.fp) * 30, cam.pos.z + Math.cos(a) * 30 * cp);
+    } else { _v2.set(0, P.belt + 0.1, 30); model.body.localToWorld(_v2); cam.look.copy(_v2); }
     fovT += 6;
   } else {
     const far = cam.mode === 1, dist = (far ? 9.5 : 6.2) + car.spec.len * 0.25 + clamp(sp * 0.02, 0, 1.2), hgt = (far ? 3.6 : 2.15) + car.spec.hgt * 0.35;
-    const tx = car.x - ys * dist, tz = car.z - yc * dist;
-    let ty = car.y + hgt;
+    // órbita alrededor del auto: con fy = fp = 0 y zoom = 1 queda igual que antes
+    const ph = 1.05 + car.spec.hgt * 0.15, dy0 = hgt - ph, R0 = Math.hypot(dist, dy0) * cam.zoom, p0 = clamp(Math.atan2(dy0, dist) + cam.fp, -0.12, 1.45);
+    const oa = cam.yaw + cam.fy, hd = R0 * Math.cos(p0);
+    const tx = car.x - Math.sin(oa) * hd, tz = car.z - Math.cos(oa) * hd;
+    let ty = car.y + ph + R0 * Math.sin(p0);
     const gy = groundAt(tx, tz, {}) + 0.6; if (ty < gy) ty = gy;
     _v.set(tx, ty, tz);
     if (snap) cam.pos.copy(_v); else { cam.pos.lerp(_v, Math.min(1, dt * 12)); cam.pos.y += (ty - cam.pos.y) * Math.min(1, dt * 6); }
-    cam.look.set(car.x + s * 3, car.y + 1.05 + car.spec.hgt * 0.15, car.z + c * 3);
+    const ahead = 3 * Math.max(0, Math.cos(cam.fy));   // mirando de frente o de lado, apunta al auto y no a la ruta
+    cam.look.set(car.x + s * ahead, car.y + ph, car.z + c * ahead);
   }
   cam.fov += (fovT - cam.fov) * Math.min(1, dt * 3);
   camera.fov = cam.fov; camera.updateProjectionMatrix();
@@ -6837,9 +6847,9 @@ function startRace() {
   $('pause').classList.add('hidden'); $('results').classList.add('hidden');
   $('touch').classList.toggle('hidden', !IS_TOUCH);
   $('pos').classList.toggle('hidden', game.mode !== 'race');
-  $('hint').textContent = IS_TOUCH ? '' : 'Mantén S detenido para retroceder · Espacio: freno de mano · C: cámara · R: volver a la ruta';
+  $('hint').textContent = IS_TOUCH ? '' : 'Mantén S detenido para retroceder · Espacio: freno de mano · C: cámara · arrastra el mouse: mirar alrededor · V: centrar · R: volver a la ruta';
   cam.mode = store.get('cam', 0) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1);
-  cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
+  centerCamera(); cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
   updatePills();
   last = performance.now();
 }
@@ -6883,7 +6893,7 @@ function resetToTrack() {
     game.overMsg = false; game.deadMsg = false;
     showMsg('Grúa', timed ? '+10 s de penalización' : 'De vuelta en la ruta', 1.6);
   }
-  cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
+  centerCamera(); cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
   for (let i = 0; i < 4; i++) skids.add(i, 0, 0, 0, 0, 0, 0);
 }
 function standings() {
@@ -6972,9 +6982,9 @@ function startTrial() {
   $('pause').classList.add('hidden'); $('results').classList.add('hidden');
   $('touch').classList.toggle('hidden', !IS_TOUCH);
   $('pos').classList.add('hidden'); $('off4').classList.remove('hidden'); $('lap-lbl').textContent = 'Control';
-  $('hint').textContent = IS_TOUCH ? '' : 'F: 2H/4H/4L · L: bloqueos · G: huinche · T: control de tracción · R: rescate (+30 s; el 2º en el mismo tramo es remolque, +60 s) · C: cámara';
+  $('hint').textContent = IS_TOUCH ? '' : 'F: 2H/4H/4L · L: bloqueos · G: huinche · T: control de tracción · R: rescate (+30 s; el 2º en el mismo tramo es remolque, +60 s) · C: cámara · arrastra el mouse: mirar alrededor · V: centrar';
   cam.mode = store.get('cam', 0) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1);
-  cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
+  centerCamera(); cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
   last = performance.now();
 }
 // rescate: vuelve al último control (+30 s); revive el motor si se ahogó.
@@ -6989,7 +6999,7 @@ function trialRescue() {
   if (game.state === 'race') { game.pen += tow ? 60 : 30; game.rescues++; game.secRes++; }
   game.overMsg = false; game.deadMsg = false;
   showMsg(tow ? 'Remolque' : 'Rescate', tow ? '+60 s · el tractor te pasó el obstáculo' : game.state === 'race' ? '+30 s · de vuelta en el último control' : 'De vuelta en la ruta', 2.2);
-  cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
+  centerCamera(); cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
   for (let i = 0; i < 4; i++) skids.add(i, 0, 0, 0, 0, 0, 0);
 }
 function showTrialResults() {
@@ -7077,9 +7087,9 @@ function stepTrial(dt) {
     skids.add(i, x, y, z, lx, lz, wh.contact && car.skid[i] > 0.25 ? car.skid[i] : 0, !!S.loose);
     if (!wh.contact) continue;
     const spin = Math.abs(wh.slip), throw_ = Math.min(1, spin / 6);
-    if (S.loose && (sp > 3 || spin > 1.5) && Math.random() < Math.min(1, sp * 0.04 + throw_ * 0.8)) {
+    if (S.loose && (sp > 3 || spin > 1.5) && Math.random() < Math.min(1, sp * 0.04 + throw_ * 0.8) * DUST) {
       const c = S.dust || [0.6, 0.5, 0.38], back = -Math.sign(wh.w || 1) * (2 + spin * 0.8);
-      smoke.emit(x, y + 0.3, z, car.vx * 0.3 + Math.sin(car.psi) * back * (S.mud ? 0.6 : 0.3), 0.8 + throw_ * (S.mud ? 3 : 1.2), car.vz * 0.3 + Math.cos(car.psi) * back * (S.mud ? 0.6 : 0.3), 1.2 + Math.random(), S.mud ? 0.5 : 1, S.mud ? 1.2 : 3, S.mud ? 0.6 : 0.32, c[0], c[1], c[2]);
+      smoke.emit(x, y + 0.3, z, car.vx * 0.3 + Math.sin(car.psi) * back * (S.mud ? 0.6 : 0.3), 0.8 + throw_ * (S.mud ? 3 : 1.2), car.vz * 0.3 + Math.cos(car.psi) * back * (S.mud ? 0.6 : 0.3), 0.9 + Math.random() * 0.5, S.mud ? 0.4 : 0.7, S.mud ? 0.9 : 1.5, S.mud ? 0.4 : 0.18, c[0], c[1], c[2]);
     }
     if (y < car.waterY && (sp > 1 || spin > 1) && Math.random() < 0.8) smoke.emit(x, car.waterY + 0.1, z, car.vx * 0.5 + (Math.random() - 0.5) * 3, 1.5 + Math.random() * 2.5, car.vz * 0.5 + (Math.random() - 0.5) * 3, 0.8, 0.5, 2, 0.55, 0.78, 0.74, 0.66);
   }
@@ -7249,7 +7259,7 @@ function stepGame(dt) {
     const [x, y, z] = car.contact[i], sk = car.skid[i], S = SURF[car.surf[i]], dirt = !!S.loose, slick = S.cat === 'ice' || S.cat === 'wet' || S.cat === 'oil';
     skids.add(i, x, y, z, lx, lz, car.grounded && sk > 0.3 && !slick ? sk : 0, dirt);
     if (!dirt && !slick && !raining && sk > 0.35 && Math.random() < sk * 0.9) smoke.emit(x + (Math.random() - 0.5) * 0.4, y + 0.25, z + (Math.random() - 0.5) * 0.4, car.vx * 0.15 + (Math.random() - 0.5), 0.5 + Math.random() * 0.6, car.vz * 0.15 + (Math.random() - 0.5), 1.6 + Math.random(), 1.0, 2.6, 0.32 * sk, 0.86, 0.86, 0.88);
-    if (dirt && sp > 4 && i >= 2 && Math.random() < Math.min(1, sp * 0.03 + sk)) { const c = S.dust || [0.62, 0.52, 0.38]; smoke.emit(x, y + 0.3, z, car.vx * 0.25 + (Math.random() - 0.5) * 2, 0.8 + Math.random(), car.vz * 0.25 + (Math.random() - 0.5) * 2, 1.8 + Math.random(), 1.1, 3.2, S.mud ? 0.45 : 0.3, c[0], c[1], c[2]); }
+    if (dirt && sp > 4 && i >= 2 && Math.random() < Math.min(1, sp * 0.03 + sk) * DUST) { const c = S.dust || [0.62, 0.52, 0.38]; smoke.emit(x, y + 0.3, z, car.vx * 0.25 + (Math.random() - 0.5) * 2, 0.8 + Math.random(), car.vz * 0.25 + (Math.random() - 0.5) * 2, 1.2 + Math.random() * 0.7, 0.8, 1.6, S.mud ? 0.3 : 0.18, c[0], c[1], c[2]); }
     // agua levantada por las ruedas: pozas y calzada mojada
     if (car.grounded && S.splash && sp > 5 && Math.random() < 0.9) smoke.emit(x, y + 0.2, z, car.vx * 0.4 + lx * (i % 2 ? -1 : 1) * (1 + Math.random() * 2), 1.2 + Math.random() * 2, car.vz * 0.4 + lz * (i % 2 ? -1 : 1) * (1 + Math.random() * 2), 0.7 + Math.random() * 0.4, 0.5, 1.8, 0.5, 0.82, 0.86, 0.9);
     else if (raining && car.grounded && !dirt && sp > 12 && i >= 2 && Math.random() < 0.55) smoke.emit(x, y + 0.25, z, car.vx * 0.55 + (Math.random() - 0.5), 0.4 + Math.random() * 0.5, car.vz * 0.55 + (Math.random() - 0.5), 0.9 + Math.random() * 0.5, 0.9, 3.2, 0.12 * Math.min(1, sp / 30), 0.8, 0.83, 0.86);
@@ -7602,6 +7612,31 @@ function buildMenu() {
     if (TRIAL && MOD_UI4[tallerTab].src !== 'mods') store.set('setup4_' + MAP_ID + '_' + id, {}); else store.set('mods_' + id, {});
     setupGarage(); renderTaller();
   });
+  // cámara libre: arrastra (mouse o dedo) para mirar el auto desde cualquier lado; rueda o pellizco para acercar; V, C o doble clic para centrar
+  {
+    const cv = renderer.domElement, live = () => ['countdown', 'race', 'finished'].includes(game.state), ptr = new Map();
+    let pinch = 0;
+    cv.addEventListener('pointerdown', e => {
+      if (!live()) return;
+      ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { cv.setPointerCapture(e.pointerId); } catch (err) { }
+      if (ptr.size === 2) { const [a, b] = [...ptr.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+    });
+    cv.addEventListener('pointermove', e => {
+      const p = ptr.get(e.pointerId); if (!p) return;
+      const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+      if (ptr.size >= 2) {
+        const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch > 0) cam.zoom = clamp(cam.zoom * pinch / Math.max(d, 1), 0.4, 3); pinch = d; return;
+      }
+      cam.fy = wrapAngle(cam.fy - dx * 0.0075);
+      cam.fp = clamp(cam.fp + dy * (cam.mode === 2 ? -0.005 : 0.005), cam.mode === 2 ? -0.9 : -1, cam.mode === 2 ? 0.9 : 1.2);
+    });
+    const up = e => { ptr.delete(e.pointerId); pinch = 0; };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    cv.addEventListener('dblclick', () => { if (live()) centerCamera(); });
+    cv.addEventListener('contextmenu', e => { if (live()) e.preventDefault(); });
+    cv.addEventListener('wheel', e => { if (!live()) return; e.preventDefault(); cam.zoom = clamp(cam.zoom * Math.exp(e.deltaY * 0.0012), 0.4, 3); }, { passive: false });
+  }
   // arrastrar para girar el auto en el taller
   let drag = null;
   renderer.domElement.addEventListener('pointerdown', e => { if (game.state === 'taller') drag = e.clientX; });
