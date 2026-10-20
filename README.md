@@ -15,7 +15,7 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 | Mapa | Lugar | Qué tiene |
 |---|---|---|
 | Circuito Cordillera | Valle del Aconcagua | Carretera de montaña con araucarias, palmas chilenas y la Laguna del Inca. 3 vueltas. |
-| La Alameda | Santiago Centro | Carrera callejera entre muros de concreto: La Moneda, la Torre Entel, la Iglesia de San Francisco, el cerro Santa Lucía, el San Cristóbal, la Costanera Center, micros y colectivos. 3 vueltas. |
+| La Alameda | Santiago Centro | Carrera callejera por la calzada sur de la Alameda, de un solo sentido, con su pista "solo bus", y vuelta por la Costanera. Al otro lado del bandejón central (dos hileras de plátanos orientales, paseo de baldosas, bancas, quioscos, accesos a la Línea 1 del Metro y O'Higgins a caballo frente a La Moneda) corre la calzada norte con micros, taxis y colectivos hacia el poniente. Calles que la cruzan con cebras y semáforos, y en su orden real: Torre Entel, La Moneda, Universidad de Chile, San Francisco, Biblioteca Nacional, cerro Santa Lucía, Universidad Católica, GAM y Plaza Baquedano. 3 vueltas. |
 | Los Caracoles | Paso Los Libertadores | Horquillas numeradas subiendo hacia Portillo, galerías antinieve, hielo, derrumbes y camiones a Argentina. 2 vueltas. |
 | Carretera Austral | Lago General Carrera | Camino de ripio entre coigües, puentes de madera sobre esteros, barro, pozas, troncos caídos, vacas sueltas y las Capillas de Mármol. 3 vueltas. |
 
@@ -82,7 +82,9 @@ El taller muestra cómo cambian la potencia, el 0–100, la velocidad máxima, e
 | A / D | Dirección |
 | Espacio | Freno de mano |
 | E / Q | Subir / bajar cambio (caja manual) |
-| C | Cambiar cámara |
+| C | Cambiar cámara: persecución, lejana, capó y **cabina** (al volante, con el tablero y el volante que gira) |
+| Arrastrar el mouse / dedo | Mirar alrededor del auto, o dentro de la cabina (rueda o pellizco: acercar) |
+| V | Centrar la cámara |
 | R | Volver a la ruta (si estás volcado o con el motor destruido, llama a la grúa: +10 s) |
 | 1 / 2 | ABS / control de tracción |
 | M | Sonido (todo) |
@@ -90,6 +92,10 @@ El taller muestra cómo cambian la potencia, el 0–100, la velocidad máxima, e
 | Esc | Pausa |
 
 También funciona con joystick y con controles táctiles en el celular.
+
+## Cabina
+
+Con la cuarta cámara manejas desde el asiento del conductor (a la izquierda, como en Chile): tablero con tacómetro, velocímetro y marcha que funcionan, volante que gira con la dirección, palanca, radio, paneles de puerta, asientos, parasoles y espejo. La cabeza se mece al frenar y en las curvas, y el horizonte se inclina con la carrocería. Funciona también en las camionetas del Desafío 4x4.
 
 ## Opciones
 

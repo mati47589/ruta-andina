@@ -279,12 +279,12 @@ body.touch #minimap{width:110px;height:110px;}
     <div class="go-row">
       <div class="keys">
         <kbd>W</kbd>/<kbd>↑</kbd> acelerar · <kbd>S</kbd>/<kbd>↓</kbd> frenar y reversa · <kbd>A</kbd><kbd>D</kbd> dirección · <kbd>Espacio</kbd> freno de mano ·
-        <kbd>E</kbd>/<kbd>Q</kbd> subir/bajar cambio · <kbd>C</kbd> cámara · <kbd>arrastrar</kbd> mirar alrededor (rueda: acercar) · <kbd>V</kbd> centrar · <kbd>R</kbd> volver a la ruta · <kbd>1</kbd> ABS · <kbd>2</kbd> control de tracción · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa. También funciona con joystick. Con daños realistas, un choque fuerte abolla la carrocería, revienta vidrios, daña el motor y puede volcarte: <kbd>R</kbd> llama a la grúa (+10 s). Ojo con los baches, las pozas, el aceite, el hielo, las obras y el tránsito que viene de frente.
+        <kbd>E</kbd>/<kbd>Q</kbd> subir/bajar cambio · <kbd>C</kbd> cámara (la 4ª es desde la cabina, al volante) · <kbd>arrastrar</kbd> mirar alrededor (rueda: acercar) · <kbd>V</kbd> centrar · <kbd>R</kbd> volver a la ruta · <kbd>1</kbd> ABS · <kbd>2</kbd> control de tracción · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa. También funciona con joystick. Con daños realistas, un choque fuerte abolla la carrocería, revienta vidrios, daña el motor y puede volcarte: <kbd>R</kbd> llama a la grúa (+10 s). Ojo con los baches, las pozas, el aceite, el hielo, las obras y el tránsito que viene de frente.
       </div>
       <div class="keys keys4">
         <kbd>W</kbd>/<kbd>↑</kbd> acelerar (dosifica: si patinas, cavas) · <kbd>S</kbd>/<kbd>↓</kbd> frenar y reversa · <kbd>A</kbd><kbd>D</kbd> dirección ·
         <kbd>F</kbd> 2H / 4H / 4L (la reductora entra detenido) · <kbd>L</kbd> bloqueos de diferencial · <kbd>G</kbd> huinche al anclaje más cercano (eslinga amarilla) ·
-        <kbd>T</kbd> control de tracción · <kbd>C</kbd> cámara · <kbd>arrastrar</kbd> mirar alrededor (rueda: acercar) · <kbd>V</kbd> centrar · <kbd>R</kbd> rescate al último control (+30 s; si te repites en el mismo tramo, remolque +60 s) · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa.
+        <kbd>T</kbd> control de tracción · <kbd>C</kbd> cámara (la 4ª es desde la cabina) · <kbd>arrastrar</kbd> mirar alrededor (rueda: acercar) · <kbd>V</kbd> centrar · <kbd>R</kbd> rescate al último control (+30 s; si te repites en el mismo tramo, remolque +60 s) · <kbd>M</kbd> sonido · <kbd>N</kbd> música · <kbd>Esc</kbd> pausa.
         Despacio y parejo en roca y agua; con impulso en arena y barro.
       </div>
       <button id="start">¡A correr!</button>
@@ -579,7 +579,10 @@ const MAPS = {
   },
   alameda: {
     name: 'La Alameda', place: 'Santiago Centro', tags: ['Ciudad', 'Tránsito', '3,8 km'],
-    desc: 'Carrera callejera por la Alameda y la Costanera: La Moneda, la Torre Entel, el cerro Santa Lucía y micros de verdad.',
+    desc: 'Carrera callejera por la Alameda y la Costanera: la calzada sur de la Alameda con su bandejón de plátanos orientales, La Moneda, la Torre Entel, el cerro Santa Lucía y micros de verdad.',
+    // la Alameda es una avenida partida: la carrera va por la calzada sur (sentido oriente), al otro lado del bandejón central
+    // corre la calzada norte con el tránsito hacia el poniente
+    split: { x0: -630, x1: 630, z: 230, med: 16, opp: 14, walk: 6 },
     pts: [[-640, 230], [-300, 230], [50, 230], [400, 230], [620, 230], [760, 220], [820, 170], [835, 90], [830, 10], [720, -60], [520, -95],
       [300, -150], [80, -180], [-150, -205], [-380, -215], [-580, -200], [-720, -160], [-820, -80], [-860, 30], [-845, 140], [-800, 210]],
     roadHalf: 9, flatExtra: 5, blend: 26, startS: 150, lanes: 3, road: 'ciudad', berm: 'vereda', bermRaise: 0.15, rails: 'todo', railStyle: 'concreto', railGap: 0.5, kerbs: false,
@@ -968,6 +971,15 @@ const track = (() => {
 })();
 
 const RAIL_D = ROAD_HALF + MAP.railGap;
+// avenida partida (la Alameda): tramo de la pista donde la carrera va por una calzada de un sentido y, a la izquierda,
+// vienen el bandejón central (med0–med1), la calzada contraria (opp0–opp1) y su vereda (hasta walk1), en metros del eje
+const SPLIT = (() => {
+  const P = MAP.split; if (!P) return null;
+  const q = {}; track.query(P.x0, P.z, q); const a = q.s; track.query(P.x1, P.z, q); const b = q.s;
+  const med0 = RAIL_D + 0.6, med1 = med0 + P.med, opp1 = med1 + P.opp;
+  return { a, b, med0, med1, opp0: med1, opp1, walk1: opp1 + P.walk };
+})();
+const inSplit = s => { if (!SPLIT) return false; s = ((s % track.length) + track.length) % track.length; return s > SPLIT.a && s < SPLIT.b; };
 // límites del mundo y zona de terreno detallado, según la extensión del trazado
 const WB = (() => {
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
@@ -999,7 +1011,13 @@ function groundAt(x, z, q = Q) {
 function groundBaseAt(x, z, q = Q) {
   const hb = baseH(x, z);
   q.hz = null;
-  if (!track.query(x, z, q) || q.dist > ROAD_HALF + FLAT_EXTRA + BLEND) { q.surf = TERRAIN_SURF; q.ok = false; return hb; }
+  const hit = track.query(x, z, q);
+  // Alameda partida: bandejón, calzada norte y su vereda son planos, a la altura de la pista
+  if (hit && SPLIT && q.d > ROAD_HALF + 0.05 && q.d < SPLIT.walk1 + 1.5 && inSplit(q.s)) {
+    if (q.d > SPLIT.opp0 && q.d < SPLIT.opp1) { q.surf = ROAD_SURF; return q.y; }
+    q.surf = BERM_SURF; return q.y + BERM_RAISE + 0.01;
+  }
+  if (!hit || q.dist > ROAD_HALF + FLAT_EXTRA + BLEND) { q.surf = TERRAIN_SURF; q.ok = false; return hb; }
   const onBridge = track.bridge[q.i];
   // fuera del tablero de un puente no hay suelo: se cae a la quebrada
   if (onBridge && q.dist >= ROAD_HALF + 0.05) { q.surf = 0; return hb; }
@@ -1435,6 +1453,36 @@ function roadTex(style, solid) {
     if (!solid) { busText(16.5, false); busText(1.5, true); }
   });
 }
+// calzada de un solo sentido de la Alameda: pistas de ~3,5 m, línea continua y pista "solo bus" junto a la solera,
+// parches, grietas selladas, huellas oscuras y la canaleta de aguas lluvia en la orilla. Las medidas van desde el
+// bandejón (m = 0) hacia la solera; normal: el bandejón queda en u = 0. flip: espejada (el bandejón en u = 1) y el
+// texto se lee yendo hacia v decreciente, como en la calzada contraria
+function onewayTex(width, flip) {
+  return canvasTex(1024, 1024, (g, w, h) => {
+    const r = mulberry32(flip ? 47 : 31), px = m => m / width * w, X = (m, ww = 0) => flip ? w - px(m + ww) : px(m);
+    noiseFill(g, w, h, 66, 24, flip ? 9 : 7, [0, 0, 2], 0.05);
+    for (let k = 0; k < 90; k++) { const d = r() < 0.5; g.fillStyle = d ? 'rgba(15,15,18,0.08)' : 'rgba(140,140,140,0.05)'; g.beginPath(); g.ellipse(r() * w, r() * h, 10 + r() * 80, 20 + r() * 160, r(), 0, 7); g.fill(); }
+    // parches rectangulares de asfalto nuevo (más oscuros) y grietas selladas con brea
+    for (let k = 0; k < 5; k++) { const x = r() * w * 0.85, y = r() * h, ww = px(1.5 + r() * 3), hh = 40 + r() * 140; g.fillStyle = `rgba(${16 + r() * 10},${16 + r() * 10},${19 + r() * 10},0.55)`; g.fillRect(x, y, ww, hh); g.strokeStyle = 'rgba(8,8,9,0.5)'; g.lineWidth = 2; g.strokeRect(x, y, ww, hh); }
+    g.strokeStyle = 'rgba(12,12,14,0.55)'; g.lineWidth = 3;
+    for (let k = 0; k < 14; k++) { let x = r() * w, y = r() * h; g.beginPath(); g.moveTo(x, y); for (let s = 0; s < 6; s++) { x += (r() - 0.5) * 60; y += (r() - 0.3) * 70; g.lineTo(x, y); } g.stroke(); }
+    const bus0 = width - 3.5, lanes = Math.max(1, Math.round(bus0 / 3.55)), lw = bus0 / lanes;
+    for (let k = 0; k <= lanes; k++) for (const o of [-0.8, 0.8]) {
+      const c = k < lanes ? (k + 0.5) * lw : bus0 + 1.75, x0 = X(c + o - 0.45, 0.9), gr = g.createLinearGradient(x0, 0, x0 + px(0.9), 0);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, `rgba(10,10,12,${k < lanes ? 0.18 : 0.26})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(x0, 0, px(0.9), h);
+    }
+    // canaleta junto a la solera: más oscura y con manchas de humedad
+    { const x0 = X(width - 0.7, 0.7), gu = g.createLinearGradient(flip ? x0 + px(0.7) : x0, 0, flip ? x0 : x0 + px(0.7), 0); gu.addColorStop(0, 'rgba(20,20,22,0)'); gu.addColorStop(1, 'rgba(20,20,22,0.5)'); g.fillStyle = gu; g.fillRect(x0, 0, px(0.7), h); }
+    const paint = (x, y, ww, hh, worn = 0.35) => { g.fillStyle = '#e9e9e2'; g.fillRect(x, y, ww, hh); g.fillStyle = `rgba(60,60,60,${worn})`; for (let k = 0; k < hh * ww / 40; k++) g.fillRect(x + r() * ww, y + r() * hh, 2, 2); };
+    paint(X(0.3, 0.15), 0, px(0.15), h); paint(X(width - 0.45, 0.15), 0, px(0.15), h);
+    for (let k = 1; k < lanes; k++) for (let j = 0; j < 2; j++) paint(X(k * lw - 0.06, 0.12), j * h / 2, px(0.12), h / 8);
+    paint(X(bus0 - 0.1, 0.2), 0, px(0.2), h);
+    g.save(); g.translate(X(bus0 + 1.75), h * 0.62); if (flip) g.rotate(Math.PI);
+    g.scale(1, 2.6); g.fillStyle = 'rgba(233,233,226,0.88)'; g.font = `800 ${Math.round(px(0.9))}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('BUS', 0, -px(0.55)); g.fillText('SOLO', 0, px(0.55)); g.restore();
+  });
+}
 // (se crean en buildRoad, cuando la tipografía ya cargó)
 let texRoadDash = null, texRoadSolid = null;
 // bermas: ripio, vereda de baldosas, nieve acumulada o tierra con pasto
@@ -1521,6 +1569,7 @@ function buildTerrain(N) {
     // bajo el tablero de los puentes el terreno sigue la quebrada
     if (q.ok && track.bridge[q.i] && d < ROAD_HALF + 0.05) h = baseH(x, z);
     else h -= 0.35 * smooth(ROAD_HALF + FLAT_EXTRA + 0.5, ROAD_HALF, d);
+    if (SPLIT && q.ok && q.d > ROAD_HALF && q.d < SPLIT.walk1 + 1.5 && inSplit(q.s)) h -= 0.4;   // bajo el bandejón y la calzada norte
     const k = j * V + i;
     pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z;
     uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7; roadD[k] = d;
@@ -1602,7 +1651,7 @@ function colorTerrain(snowW) {
 function leftOf(i) { return [track.TZ[i], -track.TX[i]]; }
 function buildRoad() {
   const n = track.n, H = ROAD_HALF;
-  const pos = [], uv = [], idxDash = [], idxSolid = [], idxSkirt = [];
+  const pos = [], uv = [], idxDash = [], idxSolid = [], idxSkirt = [], idxOne = [];
   for (let k = 0; k <= n; k++) {
     const i = k % n, [lx, lz] = leftOf(i), x = track.X[i], z = track.Z[i], y = track.Y[i];
     const v = k * track.ds / ROAD_REPEAT;
@@ -1613,23 +1662,25 @@ function buildRoad() {
   }
   for (let k = 0; k < n; k++) {
     const a = k * 4, b = a + 4;
-    const solid = Math.abs(track.K[k]) > 1 / 320;
-    (solid ? idxSolid : idxDash).push(a + 1, a + 2, b + 1, a + 2, b + 2, b + 1);
+    const solid = Math.abs(track.K[k]) > 1 / 320, one = inSplit((k + 0.5) * track.ds);
+    (one ? idxOne : solid ? idxSolid : idxDash).push(a + 1, a + 2, b + 1, a + 2, b + 2, b + 1);
     idxSkirt.push(a, a + 1, b, a + 1, b + 1, b, a + 2, a + 3, b + 2, a + 3, b + 3, b + 2);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  const all = [...idxDash, ...idxSolid, ...idxSkirt];
+  const all = [...idxDash, ...idxSolid, ...idxSkirt, ...idxOne];
   geo.setIndex(all);
   geo.addGroup(0, idxDash.length, 0);
   geo.addGroup(idxDash.length, idxSolid.length, 1);
   geo.addGroup(idxDash.length + idxSolid.length, idxSkirt.length, 0);
+  if (idxOne.length) geo.addGroup(idxDash.length + idxSolid.length + idxSkirt.length, idxOne.length, 2);
   geo.computeVertexNormals();
   const gravel = MAP.road === 'ripio' || MAP.road === 'huella';
   texRoadDash = roadTex(MAP.road, false); texRoadSolid = gravel ? texRoadDash : roadTex(MAP.road, true);
   const mk = t => new THREE.MeshStandardMaterial({ map: t, bumpMap: t, bumpScale: gravel ? 1.2 : 0.5, roughness: gravel ? 0.97 : 0.8, metalness: 0 });
   const mats = [mk(texRoadDash), mk(texRoadSolid)];
+  if (idxOne.length) mats.push(mk(onewayTex(2 * ROAD_HALF, false)));
   WET.road.push(...mats.map(m => ({ m, r: m.roughness, wr: gravel ? 0.66 : 0.32, wc: gravel ? 0.55 : 0.66 })));
   const mesh = new THREE.Mesh(geo, mats);
   mesh.receiveShadow = true;
@@ -1678,7 +1729,8 @@ function buildRoadside(group) {
     const r0 = [], r1 = [], c0 = [], c1 = [];
     for (let k = run[0]; k <= run[1]; k++) {
       const i = k % n, [lx, lz] = leftOf(i), x = track.X[i], z = track.Z[i], y0 = track.Y[i], y = y0 + 0.012 + BERM_RAISE, v = k * track.ds / 6;
-      r0.push([x + lx * (H + FLAT_EXTRA + 0.4), y, z + lz * (H + FLAT_EXTRA + 0.4), x + lx * inner, y, z + lz * inner, v]);
+      const outL = inSplit(k * track.ds) ? SPLIT.med0 : H + FLAT_EXTRA + 0.4;   // en la Alameda, a la izquierda empieza el bandejón
+      r0.push([x + lx * outL, y, z + lz * outL, x + lx * inner, y, z + lz * inner, v]);
       r1.push([x - lx * inner, y, z - lz * inner, x - lx * (H + FLAT_EXTRA + 0.4), y, z - lz * (H + FLAT_EXTRA + 0.4), v]);
       if (raised) { c0.push([x + lx * H, y, z + lz * H, x + lx * H, y0, z + lz * H, v]); c1.push([x - lx * H, y0, z - lz * H, x - lx * H, y, z - lz * H, v]); }
     }
@@ -2479,8 +2531,10 @@ function decorAlameda() {
     return true;
   };
   const mark = (x, z, rot, w, d) => rectPts(x, z, rot, w + 3, d + 3, (px, pz) => { occ.add(key(px, pz)); });
+  // la franja norte de la Alameda (bandejón, calzada norte y su vereda): ahí no va nada más
+  const inBand = (px, pz) => SPLIT && track.query(px, pz, q) && q.d > ROAD_HALF && q.d < SPLIT.walk1 + 0.5 && inSplit(q.s);
   const free = (x, z, rot, w, d) => rectPts(x, z, rot, w, d, (px, pz) => {
-    if (occ.has(key(px, pz))) return false;
+    if (occ.has(key(px, pz)) || inBand(px, pz)) return false;
     if (track.query(px, pz, q) && q.dist < ROAD_HALF + FLAT_EXTRA + 0.8) return false;
     if (polyDist(ALAMEDA_RIVER, px, pz) < 34) return false;
     if (Math.hypot(px - 230, pz - 90) < 98 || Math.hypot(px - 260, pz + 760) < 400) return false;
@@ -2496,9 +2550,9 @@ function decorAlameda() {
   const dark = new THREE.MeshStandardMaterial({ color: 0x2a2d31, roughness: 0.6, metalness: 0.3 });
   const add = (geo, mat, x, y, z, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.castShadow = true; m.receiveShadow = true; world.add(m); return m; };
 
-  // La Moneda y la Plaza de la Ciudadanía con la bandera bicentenario
+  // La Moneda y la Plaza de la Ciudadanía con la bandera bicentenario (al norte, frente a la calzada norte)
   {
-    const x = -250, z = 148, w = 110, d = 68, h = 15, gy = minGround(x, z, 0, w, d) - 0.3;
+    const x = -250, z = 116, w = 110, d = 68, h = 15, gy = minGround(x, z, 0, w, d) - 0.3;
     pushBox(S, 'moneda', x, z, 0, w, d, gy, gy + h, 36, h); mark(x, z, 0, w, d);
     for (const cx of [-9, -3, 3, 9]) add(new THREE.CylinderGeometry(0.55, 0.62, 11, 14), white, x + cx, gy + 5.5, z + d / 2 + 2);
     add(new THREE.BoxGeometry(24, 2.2, 4.5), white, x, gy + 12, z + d / 2 + 1.6);
@@ -2511,7 +2565,7 @@ function decorAlameda() {
   }
   // Torre Entel
   {
-    const x = -470, z = 160, gy = groundAt(x, z, q) - 0.5;
+    const x = -470, z = 150, gy = groundAt(x, z, q) - 0.5;
     pushBox(S, 'moderno', x, z, 0, 32, 32, gy, gy + 10); mark(x, z, 0, 34, 34);
     add(new THREE.CylinderGeometry(4.2, 5.2, 96, 24), concrete, x, gy + 58, z);
     add(new THREE.CylinderGeometry(8.5, 5.5, 12, 24), concrete, x, gy + 112, z);
@@ -2555,12 +2609,33 @@ function decorAlameda() {
     add(new THREE.CylinderGeometry(3, 3.4, 12, 14), stone, x + 9, gy + 6, z - 6);
     chileanFlag(x + 9, gy + 12, z - 6, 6, 1);
   }
-  // GAM (Centro Cultural Gabriela Mistral): acero corten bajo una gran cubierta
+  // Biblioteca Nacional: el gran edificio neoclásico al pie del Santa Lucía, con mansarda y columnas
   {
-    const x = 400, z = 268, gy = minGround(x, z, 0, 86, 32) - 0.3;
+    const x = 128, z = 160, w = 78, d = 40, h = 21, gy = minGround(x, z, 0, w, d) - 0.3;
+    S.mats.biblio = facadeMat('clasico').clone(); S.mats.biblio.color.setHex(0xe9dcc0); CITY_EMI.push({ mat: S.mats.biblio, k: 1 });
+    pushBox(S, 'biblio', x, z, 0, w, d, gy, gy + h); mark(x, z, 0, w + 4, d + 4);
+    const roofM = new THREE.MeshStandardMaterial({ color: 0x52575a, roughness: 0.7, metalness: 0.3 });
+    add(gableGeo(d + 1, w + 1, 5.5), roofM, x, gy + h, z, Math.PI / 2);   // mansarda a lo largo de la fachada
+    for (let k = 0; k < 8; k++) add(new THREE.CylinderGeometry(0.55, 0.62, 13, 14), white, x - 12.25 + k * 3.5, gy + 7.5, z + d / 2 + 1.8);
+    add(new THREE.BoxGeometry(30, 2.4, 4.2), white, x, gy + 15, z + d / 2 + 1.6);
+    add(gableGeo(30, 4.4, 3.2), white, x, gy + 16.2, z + d / 2 + 1.6);
+    add(new THREE.BoxGeometry(34, 1.4, 9), white, x, gy + 0.7, z + d / 2 + 4);   // escalinata
+  }
+  // Universidad Católica (Casa Central), frente al cerro, con su portada y la estatua en lo alto
+  {
+    const x = 330, z = 266, w = 70, d = 32, gy = minGround(x, z, 0, w, d) - 0.3;
+    S.mats.uc = facadeMat('clasico').clone(); S.mats.uc.color.setHex(0xd9d2c2); CITY_EMI.push({ mat: S.mats.uc, k: 1 });
+    pushBox(S, 'uc', x, z, 0, w, d, gy, gy + 18); mark(x, z, 0, w + 2, d + 2);
+    add(new THREE.BoxGeometry(16, 24, 3), white, x, gy + 12, z - d / 2 - 1.2);
+    for (let k = 0; k < 4; k++) add(new THREE.CylinderGeometry(0.5, 0.56, 11, 12), white, x - 5.25 + k * 3.5, gy + 5.5, z - d / 2 - 3);
+    add(new THREE.CylinderGeometry(0.6, 0.9, 3.2, 10), white, x, gy + 25.6, z - d / 2 - 1.2);
+  }
+  // GAM (Centro Cultural Gabriela Mistral): acero corten bajo una gran cubierta (al norte, junto al barrio Lastarria)
+  {
+    const x = 400, z = 160, gy = minGround(x, z, 0, 86, 32) - 0.3;
     add(new THREE.BoxGeometry(86, 14, 32), new THREE.MeshStandardMaterial({ color: 0x7a3f22, roughness: 0.82, metalness: 0.2 }), x, gy + 7, z);
     add(new THREE.BoxGeometry(98, 2.6, 42), dark, x, gy + 17, z);
-    for (const s of [-1, 1]) add(new THREE.BoxGeometry(1.2, 3, 1.2), dark, x + s * 44, gy + 15.5, z - 19);
+    for (const s of [-1, 1]) add(new THREE.BoxGeometry(1.2, 3, 1.2), dark, x + s * 44, gy + 15.5, z + 19);
     mark(x, z, 0, 100, 44);
   }
   // Plaza Baquedano (Plaza Italia): rotonda con el monumento ecuestre
@@ -2620,7 +2695,8 @@ function decorAlameda() {
       const w = 16 + r() * 24, d = 16 + r() * 18, sc = s + w / 2;
       if (streets.some(t => Math.abs(wrapGap(t - sc)) < w / 2 + 7)) { s += 5; continue; }
       track.at(sc, tmpP);
-      const lx = tmpP.tz, lz = -tmpP.tx, off = ROAD_HALF + FLAT_EXTRA + 1.4 + d / 2;
+      // al norte de la Alameda los edificios dan a la calzada norte, detrás de su vereda
+      const lx = tmpP.tz, lz = -tmpP.tx, off = (side > 0 && inSplit(sc) ? SPLIT.walk1 + 0.8 : ROAD_HALF + FLAT_EXTRA + 1.4) + d / 2;
       const x = tmpP.x + lx * side * off, z = tmpP.z + lz * side * off, rot = Math.atan2(-tmpP.tz, tmpP.tx);
       if (free(x, z, rot, w, d)) {
         const hh = Math.round(floorsAt(x, z)) * 3.4, gy = minGround(x, z, rot, w, d) - 0.5;
@@ -2662,7 +2738,12 @@ function decorAlameda() {
   for (const side of [1, -1]) for (let s = 10; s < L; s += 36) {
     lamps.push([roadFrame(s, side, RAIL_D + 0.9), side]);
     const ft = roadFrame(s + 18, side, ROAD_HALF + FLAT_EXTRA - 1.2);
-    if (Math.abs(wrapGap(s + 18 - track.START_S)) > 25 && !streets.some(t => Math.abs(wrapGap(t - s - 18)) < 8)) trees.push([ft.x, ft.y, ft.z, r(), r(), r()]);
+    if (Math.abs(wrapGap(s + 18 - track.START_S)) > 25 && !streets.some(t => Math.abs(wrapGap(t - s - 18)) < 8) && !(side > 0 && inSplit(s + 18))) trees.push([ft.x, ft.y, ft.z, r(), r(), r()]);
+  }
+  // en el bandejón, faroles que alumbran la calzada norte; y los de su vereda
+  if (SPLIT) for (let s = SPLIT.a + 8; s < SPLIT.b - 8; s += 36) {
+    lamps.push([roadFrame(s, 1, SPLIT.med1 - 0.8), -1]);
+    lamps.push([roadFrame(s + 18, 1, SPLIT.opp1 + 0.9), 1]);
   }
   // cada farol con el brazo hacia la calzada
   const poles = new THREE.InstancedMesh(poleGeo, new THREE.MeshStandardMaterial({ color: 0x4a4f54, metalness: 0.6, roughness: 0.5 }), lamps.length);
@@ -2718,13 +2799,132 @@ function decorAlameda() {
     g.fillStyle = '#0d2a5c'; g.fillRect(0, h * 0.7, w, h * 0.3); g.fillStyle = '#fff'; g.font = `700 ${name.length > 12 ? 30 : 36}px ${FONT}`; g.fillText(name, w / 2, h * 0.88);
   });
   [['Los Héroes', -520], ['La Moneda', -250], ['U. de Chile', -80], ['Santa Lucía', 175], ['U. Católica', 455]].forEach(([name, x], k) => {
-    const s = x + 640, side = k % 2 ? 1 : -1, f = roadFrame(s, side, RAIL_D + 2.0);
-    const b = board(1.3, 1.3, metroTex(name), 2.6, 1); b.position.set(f.x, f.y, f.z); faceTraffic(b, f); world.add(b);
-    const ent = roadFrame(s + 6, side, RAIL_D + 3.4), e = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.0, 5), M.concrete);
+    // la Línea 1 corre bajo la Alameda: los accesos están en el bandejón central
+    const s = x + 640, mid = inSplit(s), side = mid ? 1 : k % 2 ? 1 : -1, f = roadFrame(s, side, mid ? SPLIT.med0 + 2.2 : RAIL_D + 2.0);
+    const b = board(1.3, 1.3, metroTex(name), 2.6, 1); b.position.set(f.x, f.y + (mid ? 0.16 : 0), f.z); faceTraffic(b, f); world.add(b);
+    const ent = roadFrame(s + 6, side, mid ? (SPLIT.med0 + SPLIT.med1) / 2 : RAIL_D + 3.4), e = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.0, 5), M.concrete);
     e.position.set(ent.x, ent.y + 0.5, ent.z); e.rotation.y = ent.heading; e.castShadow = true; world.add(e);
     const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 4.6), new THREE.MeshBasicMaterial({ color: 0x0c0c0e })); hole.rotation.x = -Math.PI / 2; hole.position.set(ent.x, ent.y + 1.01, ent.z); hole.rotation.z = -ent.heading; world.add(hole);
   });
-  return { blocked: (x, z) => occ.has(key(x, z)), extra: { tree: trees } };
+  if (SPLIT) alamedaAvenue(r, streets, trees);
+  return { blocked: (x, z) => occ.has(key(x, z)) || inBand(x, z), extra: { tree: trees } };
+}
+
+// ---------- la Alameda partida: bandejón central, calzada norte, veredas y calles que la cruzan ----------
+function alamedaAvenue(r, streets, trees) {
+  const A = SPLIT, P = MAP.split, ys = BERM_RAISE + 0.012, q = {};
+  const nearStreet = (s, m) => streets.some(t => Math.abs(wrapGap(t - s)) < m);
+  const startZone = s => wrapGap(s - track.START_S) > -90 && wrapGap(s - track.START_S) < 210;
+  // paraderos del bandejón (los pone decorAlameda en el lado izquierdo), el monumento y los accesos al Metro
+  const stops = [1, 3, 5].map(k => track.START_S + 300 + k * 470), nearStop = s => stops.some(t => Math.abs(wrapGap(t - s)) < 6) || Math.abs(s - 390) < 10;
+  // pasto con el paseo de baldosas al centro y solera de granito a cada lado (16 m de ancho, 8 m de largo)
+  const medTex = canvasTex(512, 256, (g, w, h) => {
+    const pxm = w / P.med, rr = mulberry32(61);
+    noiseFill(g, w, h, 70, 26, 13, [-14, 6, -20], 0.1);
+    for (let k = 0; k < 900; k++) { const v = rr(); g.fillStyle = v < 0.5 ? 'rgba(40,70,20,0.35)' : 'rgba(110,130,60,0.25)'; g.fillRect(rr() * w, rr() * h, 2, 3 + rr() * 4); }
+    const p0 = 4.4 * pxm, p1 = (P.med - 4.4) * pxm;
+    g.fillStyle = '#b7ad9c'; g.fillRect(p0, 0, p1 - p0, h);
+    g.strokeStyle = 'rgba(90,84,74,0.5)'; g.lineWidth = 1.5;
+    for (let x = p0; x <= p1; x += 0.5 * pxm) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for (let y = 0; y <= h; y += 0.5 * pxm) { g.beginPath(); g.moveTo(p0, y); g.lineTo(p1, y); g.stroke(); }
+    for (let k = 0; k < 60; k++) { g.fillStyle = 'rgba(60,54,44,0.12)'; g.beginPath(); g.ellipse(p0 + rr() * (p1 - p0), rr() * h, 4 + rr() * 16, 3 + rr() * 10, rr(), 0, 7); g.fill(); }
+    g.fillStyle = '#9d9a94'; g.fillRect(0, 0, 0.35 * pxm, h); g.fillRect(w - 0.35 * pxm, 0, 0.35 * pxm, h);
+    // tierra alrededor de cada plátano
+    for (const c of [2.6, P.med - 2.6]) for (let y = 0; y < h; y += 5 * pxm) { g.fillStyle = 'rgba(84,62,40,0.85)'; g.beginPath(); g.ellipse(c * pxm, y + 2.5 * pxm, 0.7 * pxm, 0.7 * pxm, 0, 0, 7); g.fill(); }
+  });
+  const medMat = new THREE.MeshStandardMaterial({ map: medTex, roughness: 0.95 });
+  const oppMat = new THREE.MeshStandardMaterial({ map: onewayTex(P.opp, true), roughness: 0.8 }); oppMat.bumpMap = oppMat.map; oppMat.bumpScale = 0.5;
+  const walkTex = texSidewalk.clone(); walkTex.needsUpdate = true; walkTex.repeat.set(P.walk / (FLAT_EXTRA + 0.4), 1);
+  const walkMat = new THREE.MeshStandardMaterial({ map: walkTex, roughness: 1 });
+  WET.road.push({ m: oppMat, r: 0.8, wr: 0.32, wc: 0.66 }, { m: walkMat, r: 1 }, { m: medMat, r: 0.95, wr: 0.7, wc: 0.8 });
+  const med = [], opp = [], walk = [], curb = [];
+  const step = 4, s0 = A.a, s1 = A.b;
+  for (let s = s0; s <= s1 + 0.01; s += step) {
+    track.at(s, tmpP); const lx = tmpP.tz, lz = -tmpP.tx, x = tmpP.x, z = tmpP.z, y = tmpP.y;
+    const pt = (d, yy) => [x + lx * d, yy, z + lz * d];
+    med.push([...pt(A.med1, y + ys), ...pt(A.med0, y + ys), s / 8]);
+    opp.push([...pt(A.opp1, y + 0.03), ...pt(A.opp0, y + 0.03), s / ROAD_REPEAT]);
+    walk.push([...pt(A.walk1, y + ys), ...pt(A.opp1, y + ys), s / 6]);
+  }
+  // soleras: cara vertical del bandejón (hacia la calzada norte) y de la vereda norte
+  for (const d of [A.med1, A.opp1]) { const run = []; for (let s = s0; s <= s1 + 0.01; s += step) { track.at(s, tmpP); const lx = tmpP.tz, lz = -tmpP.tx; run.push([tmpP.x + lx * d, tmpP.y + ys, tmpP.z + lz * d, tmpP.x + lx * d, tmpP.y - 0.05, tmpP.z + lz * d, s / 4]); } curb.push(run); }
+  // y las puntas del bandejón
+  for (const s of [s0, s1]) { track.at(s, tmpP); const lx = tmpP.tz, lz = -tmpP.tx; curb.push([[tmpP.x + lx * A.med0, tmpP.y + ys, tmpP.z + lz * A.med0, tmpP.x + lx * A.med0, tmpP.y - 0.05, tmpP.z + lz * A.med0, 0], [tmpP.x + lx * A.med1, tmpP.y + ys, tmpP.z + lz * A.med1, tmpP.x + lx * A.med1, tmpP.y - 0.05, tmpP.z + lz * A.med1, 4]]); }
+  world.add(stripMesh([med], medMat), stripMesh([opp], oppMat), stripMesh([walk], walkMat));
+  world.add(stripMesh(curb, new THREE.MeshStandardMaterial({ map: texConcrete, roughness: 0.9, side: THREE.DoubleSide })));
+  // dos hileras de plátanos orientales, bancas en el paseo y pasos peatonales que cruzan el bandejón
+  const benchPos = [];
+  for (let s = s0 + 6; s < s1 - 6; s += 10) {
+    if (startZone(s) || nearStreet(s, 9)) continue;
+    // plátanos orientales viejos: tronco alto y copa ancha que da sombra al paseo
+    for (const d of [A.med0 + 2.6, A.med1 - 2.6]) { if (d < 15 && nearStop(s)) continue; const f = roadFrame(s + (r() - 0.5) * 2, 1, d); trees.push([f.x, f.y + ys, f.z, 1.5 + r() * 0.8, 0.9 + r() * 0.6, r()]); }
+    if (Math.round((s - s0) / 10) % 3 === 1) for (const [d, face] of [[A.med0 + 4.9, 1], [A.med1 - 4.9, -1]]) benchPos.push([roadFrame(s + 5, 1, d), face]);
+  }
+  const benchGeo = mergeGeometries([new THREE.BoxGeometry(1.8, 0.07, 0.45).translate(0, 0.45, 0), new THREE.BoxGeometry(1.8, 0.4, 0.06).translate(0, 0.72, -0.22), new THREE.BoxGeometry(0.08, 0.45, 0.4).translate(-0.8, 0.22, 0), new THREE.BoxGeometry(0.08, 0.45, 0.4).translate(0.8, 0.22, 0)]);
+  const benches = new THREE.InstancedMesh(benchGeo, new THREE.MeshStandardMaterial({ color: 0x5b4a36, roughness: 0.85 }), Math.max(1, benchPos.length));
+  const m4 = new THREE.Matrix4(), qq = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), pv = new THREE.Vector3();
+  benchPos.forEach(([f, face], k) => benches.setMatrixAt(k, m4.compose(pv.set(f.x, f.y + ys, f.z), qq.setFromAxisAngle(up, Math.atan2(face * f.tz, -face * f.tx)), one)));   // miran al paseo
+  benches.count = benchPos.length; benches.castShadow = true; benches.receiveShadow = true; world.add(benches);
+  // calles que cruzan: asfalto con su línea, paso peatonal por el bandejón y cebra en la calzada norte
+  const calle = canvasTex(256, 256, (g, w, h) => {
+    noiseFill(g, w, h, 64, 22, 19, [0, 0, 2], 0.05);
+    g.fillStyle = 'rgba(15,15,18,0.25)'; g.fillRect(0, 0, w * 0.05, h); g.fillRect(w * 0.95, 0, w * 0.05, h);
+    g.fillStyle = '#e4e4dc'; for (let y = 0; y < h; y += h / 2) g.fillRect(w / 2 - 3, y, 6, h / 4);
+    g.fillRect(w * 0.06, 0, 4, h); g.fillRect(w * 0.94 - 4, 0, 4, h);
+  });
+  const calleMat = (len) => { const t = calle.clone(); t.needsUpdate = true; t.repeat.set(1, len / 10); return new THREE.MeshStandardMaterial({ map: t, roughness: 0.85 }); };
+  const zebra = canvasTex(64, 16, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = '#ecece6'; g.fillRect(0, 0, w / 2, h); }, true);
+  zebra.repeat.set(P.opp, 1);
+  const zMat = new THREE.MeshStandardMaterial({ map: zebra, transparent: true, alphaTest: 0.4, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 });
+  const crossMat = new THREE.MeshStandardMaterial({ map: texSidewalk, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+  const zs = [], tls = [];
+  const southLen = 70, northLen = 70, sMat = calleMat(southLen), nMat = calleMat(northLen);
+  for (const s of streets) {
+    const f = roadFrame(s, 1, 0), rot = Math.atan2(f.tz, -f.tx), lx = f.tz, lz = -f.tx, split = inSplit(s);
+    const n0 = split ? A.walk1 : ROAD_HALF + FLAT_EXTRA + 0.4, s0b = ROAD_HALF + FLAT_EXTRA + 0.4;
+    groundPatch(f.x - lx * (s0b + southLen / 2), f.z - lz * (s0b + southLen / 2), 10, southLen, sMat, rot, 0.05, 6);
+    groundPatch(f.x + lx * (n0 + northLen / 2), f.z + lz * (n0 + northLen / 2), 10, northLen, nMat, rot, 0.05, 6);
+    if (!split) continue;
+    groundPatch(f.x + lx * (A.med0 + A.med1) / 2, f.z + lz * (A.med0 + A.med1) / 2, 4, A.med1 - A.med0 - 0.6, crossMat, rot, 0.02, 2);
+    const run = [];
+    for (let k = 0; k <= 4; k++) { track.at(s - 2 + k, tmpP); const plx = tmpP.tz, plz = -tmpP.tx, y = tmpP.y + 0.05; run.push([tmpP.x + plx * (A.opp1 - 0.6), y, tmpP.z + plz * (A.opp1 - 0.6), tmpP.x + plx * (A.opp0 + 0.6), y, tmpP.z + plz * (A.opp0 + 0.6), k / 4]); }
+    zs.push(run);
+    // semáforos de la calzada norte (miran al tránsito que viene hacia el poniente)
+    for (const d of [A.med1 - 0.6, A.opp1 + 0.6]) tls.push(roadFrame(s - 4, 1, d));
+  }
+  if (zs.length) world.add(stripMesh(zs, zMat));
+  if (tls.length) {
+    const housing = mergeGeometries([new THREE.CylinderGeometry(0.08, 0.1, 4.4, 8).translate(0, 2.2, 0), new THREE.BoxGeometry(0.36, 1.05, 0.3).translate(0, 4.6, 0.12), new THREE.BoxGeometry(0.62, 1.3, 0.04).translate(0, 4.6, -0.04)]);
+    const hm = new THREE.InstancedMesh(housing, new THREE.MeshStandardMaterial({ color: 0x24272a, roughness: 0.6, metalness: 0.3 }), tls.length);
+    const lit = new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.3, 0.29), new THREE.MeshStandardMaterial({ color: 0x0a3010, emissive: 0x30ff60, emissiveIntensity: 2.2 }), tls.length);
+    const off = new THREE.InstancedMesh(mergeGeometries([new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.95, 0.29), new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.62, 0.29)]), new THREE.MeshStandardMaterial({ color: 0x2a0a06, roughness: 0.4 }), tls.length);
+    tls.forEach((f, k) => { m4.compose(pv.set(f.x, f.y + ys, f.z), qq.setFromAxisAngle(up, Math.atan2(f.tx, f.tz)), one); hm.setMatrixAt(k, m4); lit.setMatrixAt(k, m4); off.setMatrixAt(k, m4); });
+    hm.castShadow = true; world.add(hm, lit, off);
+  }
+  // O'Higgins a caballo en el bandejón, frente a La Moneda
+  { const s = -250 + 640, f = roadFrame(s, 1, (A.med0 + A.med1) / 2); if (inSplit(s)) equestrian(f.x, f.y + ys, f.z, Math.atan2(-f.tx, -f.tz), 1.6); }
+  // quioscos de diarios en la vereda sur y en el bandejón
+  const kioskGeo = mergeGeometries([new THREE.BoxGeometry(2.2, 2.3, 1.6).translate(0, 1.15, 0), new THREE.BoxGeometry(2.7, 0.12, 2.1).translate(0, 2.4, 0)]);
+  const kPos = [];
+  for (let s = s0 + 70; s < s1 - 40; s += 150 + r() * 80) { if (nearStreet(s, 12) || startZone(s) || nearStop(s)) continue; const onMed = r() < 0.5; kPos.push(roadFrame(s, onMed ? 1 : -1, onMed ? A.med1 - 3.6 : ROAD_HALF + 3.4)); }
+  const kiosks = new THREE.InstancedMesh(kioskGeo, new THREE.MeshStandardMaterial({ color: 0x2e5a3c, roughness: 0.6, metalness: 0.2 }), Math.max(1, kPos.length));
+  kPos.forEach((f, k) => kiosks.setMatrixAt(k, m4.compose(pv.set(f.x, f.y + ys, f.z), qq.setFromAxisAngle(up, Math.atan2(f.tx, f.tz)), one)));
+  kiosks.count = kPos.length; kiosks.castShadow = true; world.add(kiosks);
+  for (const f of kPos) addObstacle(f.x, f.z, 1.2, null, 'metal');
+}
+// monumento ecuestre (Baquedano, O'Higgins): pedestal de piedra y jinete de bronce
+function equestrian(x, gy, z, rot, sc = 1.5) {
+  const bronze = new THREE.MeshStandardMaterial({ color: 0x4f4030, metalness: 0.7, roughness: 0.45 }), stone = new THREE.MeshStandardMaterial({ color: 0x8f8a80, roughness: 0.9 });
+  const add = (geo, mat, px, py, pz, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(px, py, pz); m.rotation.y = ry; m.castShadow = true; m.receiveShadow = true; world.add(m); return m; };
+  add(new THREE.BoxGeometry(8, 1.2, 6), stone, x, gy + 0.6, z, rot); add(new THREE.BoxGeometry(6, 7, 3.6), stone, x, gy + 4.5, z, rot);
+  const parts = [];
+  parts.push(new THREE.CapsuleGeometry(0.85, 2.2, 6, 10).rotateX(Math.PI / 2).translate(0, 2.4, 0));
+  for (const [lx, lz] of [[-0.45, 1.1], [0.45, 1.1], [-0.45, -1.1], [0.45, -1.1]]) parts.push(new THREE.CylinderGeometry(0.14, 0.12, 2.1, 6).translate(lx, 1.05, lz));
+  parts.push(new THREE.CylinderGeometry(0.35, 0.5, 1.6, 8).rotateX(-0.6).translate(0, 3.3, 1.75), new THREE.BoxGeometry(0.45, 0.5, 1.1).rotateX(0.5).translate(0, 3.95, 2.35));
+  parts.push(new THREE.CapsuleGeometry(0.38, 1.0, 4, 8).translate(0, 3.9, 0.1), new THREE.SphereGeometry(0.3, 8, 6).translate(0, 4.85, 0.15));
+  const statue = add(mergeGeometries(parts.map(p => p.index ? p.toNonIndexed() : p)), bronze, x, gy + 8, z, rot + Math.PI / 2); statue.scale.setScalar(sc);
+  addObstacle(x, z, 4.2, null, 'concrete');
+  return statue;
 }
 
 // ---------- Desafío 4x4: obstáculos (datos para la física) ----------
@@ -3360,6 +3560,98 @@ function buildCarModel(spec, paintHex, mods = null, opts = {}) {
     piece(IN, rbox(hwI * 2 - 0.1, 0.55, 0.13, 0.05), seatCol, 0, P.belt - 0.04, zSeat - 1.1, -0.2);
   }
   piece(IN, rbox(0.22, 0.06, 0.03, 0.01), 0x111111, 0, lerp(P.belt, P.roof, 0.8), lerp(zWsBase, zWsTop, 0.85));
+  // ---- cabina para manejar desde adentro: solo se arma para el auto del jugador cuando usa esa cámara ----
+  const eye = new THREE.Vector3(0.37, P.belt + 0.3 - sink * 2, zSeat - 0.13);
+  const makeCockpit = () => {
+    const g = new THREE.Group(), lift = 0x0b0b0c;
+    const M = (color, rough = 0.8, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: rough, emissive: lift, ...extra });
+    const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.receiveShadow = true; parent.add(m); return m; };
+    const shellM = M(0x26262a, 0.9, { side: THREE.BackSide }), dashM = M(0x161618, 0.6), softM = M(0x222225, 0.85), trimM = M(0x303034, 0.5), seatM = M(seatCol, 0.95), metal = M(0x9a9ca0, 0.3, { metalness: 0.8 });
+    // puertas, piso, mamparo y respaldo trasero: una caja vista desde adentro (sin tapa, desde arriba no se ve)
+    const floorY = P.belt - 0.62, zB = zC(P.belt) + 0.04, zF = zWsBase + 0.02, hw = hwI + 0.05;
+    add(new THREE.BoxGeometry(hw * 2, P.belt - floorY, zF - zB), shellM, 0, (P.belt + floorY) / 2 - 0.012, (zF + zB) / 2);
+    for (const s of [-1, 1]) {
+      add(rbox(0.07, 0.035, zF - zB - 0.3, 0.012), trimM, s * (hw - 0.035), P.belt - 0.005, (zF + zB) / 2);              // borde de la ventana
+      add(rbox(0.09, 0.05, 0.42, 0.02), softM, s * (hw - 0.05), P.belt - 0.24, zSeat + 0.1);                               // apoyabrazos
+      add(rbox(0.02, 0.03, 0.1, 0.008), metal, s * (hw - 0.02), P.belt - 0.12, zSeat + 0.42);                               // manilla
+    }
+    // tablero: cubierta, parte baja, nicho de instrumentos y consola central
+    add(rbox(hw * 2 - 0.04, 0.16, 0.5, 0.06), dashM, 0, P.belt + 0.0, zWsBase - 0.22);
+    add(rbox(hw * 2 - 0.08, 0.3, 0.22, 0.05), softM, 0, P.belt - 0.24, zWsBase - 0.4);
+    add(rbox(0.46, 0.11, 0.2, 0.045), dashM, eye.x, P.belt + 0.1, zWsBase - 0.44);
+    add(rbox(0.26, 0.3, 0.14, 0.03), softM, 0, P.belt - 0.13, zWsBase - 0.5);
+    add(rbox(0.22, 0.2, 0.8, 0.04), softM, 0, floorY + 0.24, zSeat + 0.1);
+    add(new THREE.CylinderGeometry(0.012, 0.016, 0.2, 8), metal, 0, floorY + 0.42, zSeat + 0.38, -0.25);
+    add(new THREE.SphereGeometry(0.035, 12, 8), dashM, 0, floorY + 0.52, zSeat + 0.35);
+    // pantalla de la radio en la consola
+    const radio = canvasTex(128, 64, (c, w, h) => { c.fillStyle = '#061016'; c.fillRect(0, 0, w, h); c.fillStyle = '#2fd6c4'; c.font = `700 22px ${FONT}`; c.textAlign = 'center'; c.fillText('FM 101.3', w / 2, 30); c.font = `600 13px ${FONT}`; c.fillText('Radio Andina', w / 2, 50); });
+    add(new THREE.PlaneGeometry(0.16, 0.08), new THREE.MeshBasicMaterial({ map: radio }), 0, P.belt - 0.06, zWsBase - 0.575, 0.2, Math.PI);
+    // instrumentos: tacómetro y velocímetro de verdad (se dibujan con las vueltas y la velocidad del auto)
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 200;
+    const gt = new THREE.CanvasTexture(cv); gt.colorSpace = THREE.SRGBColorSpace; gt.anisotropy = 4;
+    add(new THREE.PlaneGeometry(0.4, 0.156), new THREE.MeshBasicMaterial({ map: gt }), eye.x, P.belt + 0.06, zWsBase - 0.535, 0.32, Math.PI);
+    const red = spec.redline || 6500, vmax = spec.id === 'gt' ? 300 : spec.body === 'pickup' ? 200 : 240;
+    const dial = (c, cx, cy, r, frac, ticks, labels, redFrom) => {
+      c.fillStyle = '#0a0a0b'; c.beginPath(); c.arc(cx, cy, r + 6, 0, Math.PI * 2); c.fill();
+      const a0 = Math.PI * 0.75, span = Math.PI * 1.5;
+      c.lineWidth = 3;
+      for (let k = 0; k <= ticks; k++) {
+        const a = a0 + span * k / ticks, big = k % 2 === 0, rr = big ? r - 14 : r - 8;
+        c.strokeStyle = k / ticks >= redFrom ? '#e8402c' : '#e9ecef'; c.beginPath(); c.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); c.lineTo(cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2)); c.stroke();
+        if (big && labels) { c.fillStyle = '#d9dde1'; c.font = `600 15px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(labels(k), cx + Math.cos(a) * (r - 28), cy + Math.sin(a) * (r - 28)); }
+      }
+      const a = a0 + span * clamp(frac, 0, 1.05);
+      c.strokeStyle = '#ff6a1a'; c.lineWidth = 5; c.beginPath(); c.moveTo(cx - Math.cos(a) * 12, cy - Math.sin(a) * 12); c.lineTo(cx + Math.cos(a) * (r - 10), cy + Math.sin(a) * (r - 10)); c.stroke();
+      c.fillStyle = '#26282b'; c.beginPath(); c.arc(cx, cy, 9, 0, Math.PI * 2); c.fill();
+    };
+    const draw = car => {
+      const c = cv.getContext('2d'), kmh = Math.abs(car.speed) * 3.6;
+      c.fillStyle = '#050506'; c.fillRect(0, 0, 512, 200);
+      const nT = Math.ceil(red / 1000);
+      dial(c, 128, 104, 90, car.rpm / (nT * 1000), nT * 2, k => k / 2, red / (nT * 1000));
+      dial(c, 384, 104, 90, kmh / vmax, 12, k => Math.round(vmax * k / 12), 2);
+      const gr = car.gear === -1 ? 'R' : car.gear === 0 ? 'N' : String(car.gear);
+      c.fillStyle = '#f2c21b'; c.font = `800 34px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(gr, 256, 70);
+      c.fillStyle = '#e9ecef'; c.font = `700 26px ${FONT}`; c.fillText(Math.round(kmh) + '', 256, 128); c.font = `600 13px ${FONT}`; c.fillStyle = '#9aa3a8'; c.fillText('km/h', 256, 152);
+      if (car.dmg && car.dmg.engine > 0.5) { c.fillStyle = '#e8402c'; c.fillText('MOTOR', 256, 30); }
+      gt.needsUpdate = true;
+    };
+    // volante: aro, centro y tres rayos; gira sobre su eje con la dirección
+    const wheel = new THREE.Group(), spin = new THREE.Group(); wheel.add(spin);
+    wheel.position.set(eye.x, P.belt - 0.04, zWsBase - 0.68); wheel.rotation.x = 0.4; g.add(wheel);   // la parte de arriba más cerca del tablero, ~15 cm bajo los ojos
+    const wM = M(0x121214, 0.55);
+    add(new THREE.TorusGeometry(0.185, 0.024, 10, 32), wM, 0, 0, 0, 0, 0, 0, spin);
+    add(new THREE.CylinderGeometry(0.06, 0.07, 0.05, 16), wM, 0, 0, 0.01, Math.PI / 2, 0, 0, spin);
+    for (const a of [0, Math.PI, -Math.PI / 2]) add(new THREE.BoxGeometry(0.13, 0.032, 0.02), wM, Math.cos(a) * 0.11, Math.sin(a) * 0.11, 0.005, 0, 0, a, spin);
+    add(new THREE.CircleGeometry(0.022, 16), metal, 0, 0, -0.017, 0, Math.PI, 0, spin);
+    add(new THREE.CylinderGeometry(0.03, 0.04, 0.32, 10), dashM, 0, -0.02, 0.17, Math.PI / 2, 0, 0, wheel);       // columna
+    // asientos (el del conductor queda detrás de la cámara), espejo y parasoles
+    for (const s of [-1, 1]) {
+      add(rbox(0.5, 0.14, 0.52, 0.05), seatM, s * 0.37, P.belt - 0.33 - sink, zSeat);
+      add(rbox(0.5, 0.64 - sink, 0.14, 0.06), seatM, s * 0.37, P.belt - 0.02 - sink * 1.5, zSeat - 0.28, -0.18);
+      add(rbox(0.26, 0.2, 0.11, 0.05), seatM, s * 0.37, P.belt + 0.38 - sink * 2.2, zSeat - 0.35, -0.18);
+      add(rbox(0.36, 0.02, 0.17, 0.01), softM, s * 0.36, lerp(P.belt, P.roof, 0.93), lerp(zWsBase, zWsTop, 0.93) - 0.06, 0.25);
+    }
+    add(rbox(0.25, 0.075, 0.03, 0.012), dashM, 0, lerp(P.belt, P.roof, 0.82), lerp(zWsBase, zWsTop, 0.86) - 0.05);
+    add(new THREE.PlaneGeometry(0.23, 0.058), M(0x5d666e, 0.08, { metalness: 0.9 }), 0, lerp(P.belt, P.roof, 0.82), lerp(zWsBase, zWsTop, 0.86) - 0.067, 0, Math.PI);
+    // vidrios vistos desde adentro: casi transparentes
+    const glassIn = CM.glass.clone(); glassIn.opacity = 0.1; glassIn.clearcoat = 0; glassIn.envMapIntensity = 0.12;   // desde adentro no refleja el cielo
+    // la carrocería baja es un casco cerrado: su tapa cruza la cabina a la altura de las ventanas (desde afuera no se
+    // nota). Para manejar desde adentro se usa una copia sin esas caras, con los mismos vértices (las abolladuras siguen)
+    const lg = lowerM.geometry, ix = lg.index.array, pa = lg.attributes.position.array, keep = [], groups = [];
+    const zA0 = zC(P.belt) + 0.02, zA1 = zWsBase - 0.02;
+    const inCab = v => Math.abs(pa[v * 3]) < hwI + 0.1 && pa[v * 3 + 1] > P.belt - 0.15 && pa[v * 3 + 2] > zA0 && pa[v * 3 + 2] < zA1;
+    for (const gr of lg.groups) {
+      const s0 = keep.length;
+      for (let i = gr.start; i < gr.start + gr.count; i += 3) { const a = ix[i], b = ix[i + 1], c = ix[i + 2]; if (!(inCab(a) && inCab(b) && inCab(c))) keep.push(a, b, c); }
+      groups.push([s0, keep.length - s0, gr.materialIndex]);
+    }
+    const cutGeo = new THREE.BufferGeometry();
+    for (const k of Object.keys(lg.attributes)) cutGeo.setAttribute(k, lg.attributes[k]);
+    cutGeo.setIndex(keep); for (const [a, b, c] of groups) cutGeo.addGroup(a, b, c);
+    g.visible = false;
+    return { group: g, spin, draw, glass: glassIn, frame: 0, cutGeo, fullGeo: lg };
+  };
 
   // ---- ópticas: carcasa cromada + mica (cada una es independiente para poder romperse) ----
   const head = new THREE.MeshStandardMaterial({ color: 0xaab4bc, emissive: 0xfff4e0, emissiveIntensity: 0.04, roughness: 0.05, metalness: 0.6 });
@@ -3534,8 +3826,10 @@ function buildCarModel(spec, paintHex, mods = null, opts = {}) {
     parts.push({ mesh: wg, zone: onRoof ? 'roof' : 'rear', hp: 0.35 });
   }
   // mallas fusionadas: interior, molduras negras y cromadas (se ocultan de lejos)
+  let inMesh = null;
   for (const [list, mat] of [[DK, CM.trimDark], [CH, CM.trimChrome], [IN, CM.interior]]) {
     const m = mergedMesh(list, mat); if (!m) continue; body.add(m); lod.push(m);
+    if (list === IN) inMesh = m;
   }
   // ruedas
   const wheels = [];
@@ -3547,7 +3841,21 @@ function buildCarModel(spec, paintHex, mods = null, opts = {}) {
   for (const p of parts) { p.attached = true; p.center = p.mesh.position.clone(); }
   for (const L of lights) L.center = L.mesh.position.clone();
   const rideH = spec.rideH || 0; body.position.y = rideH;
-  return { root, body, wheels, pr, paint, lowerM, cab, glass, lights, parts, spec, lod, rideH, extraDef };
+  return { root, body, wheels, pr, paint, lowerM, cab, glass, lights, parts, spec, lod, rideH, extraDef, eye, makeCockpit, inMesh };
+}
+// cámara de cabina: muestra el interior detallado, esconde la "tina" que se ve desde afuera y aclara los vidrios
+function setCockpit(m, on) {
+  if (!m || !m.makeCockpit || !!m.cockOn === on) return;
+  if (on && !m.cock) { m.cock = m.makeCockpit(); m.body.add(m.cock.group); }
+  m.cockOn = on;
+  if (!m.cock) return;
+  m.cock.group.visible = on;
+  if (m.inMesh) m.inMesh.visible = !on;
+  if (m.lowerM) m.lowerM.geometry = on ? m.cock.cutGeo : m.cock.fullGeo;
+  for (const gl of m.glass) {
+    if (on) { if (gl.mesh.material !== m.cock.glass) { gl.cockMat = gl.mesh.material; gl.mesh.material = m.cock.glass; } }
+    else if (gl.cockMat) { if (gl.mesh.material === m.cock.glass) gl.mesh.material = gl.cockMat; gl.cockMat = null; }
+  }
 }
 // de lejos se ocultan interior, molduras y calipers (no se notan y ahorran dibujo)
 // y más lejos todavía (rivales y tránsito a más de ~55 m) se dibuja una copia fusionada del auto: un dibujo por
@@ -4919,6 +5227,8 @@ function simplifyModel(model) {
   model.lod = []; model.parts = []; model.glass = [];
 }
 const TRAFFIC_LANE = ROAD_HALF > 7 ? [1.5, 4.5, 7.5] : [ROAD_HALF * 0.48];
+// pistas de la calzada de un sentido (mismas medidas que onewayTex): autos en cualquiera, micros en la "solo bus"
+const ONE_LANES = (() => { const W = 2 * ROAD_HALF, bus0 = W - 3.5, n = Math.max(1, Math.round(bus0 / 3.55)), lw = bus0 / n; return { cars: Array.from({ length: n }, (_, k) => ROAD_HALF - (k + 0.5) * lw), bus: ROAD_HALF - bus0 - 1.75 }; })();
 class Traffic {
   constructor(kind) {
     const { spec, model } = trafficVehicle(kind);
@@ -4928,10 +5238,13 @@ class Traffic {
     this.wid = spec.wid; this.hornT = 0; this.name = kind;
   }
   get speed() { return Math.hypot(this.vx, this.vz); }
+  // en la calzada de un sentido (Alameda) va por su pista de esa calzada; en el resto, por su lado del camino
+  laneAt() { return this.dir > 0 && inSplit(this.dist) ? this.base1 : this.base; }
   spawn(dist, dir) {
     const lanes = this.kind === 'bus' && TRAFFIC_LANE.length > 1 ? [7.5] : TRAFFIC_LANE;
     this.dist = dist; this.dir = dir; this.base = -dir * lanes[Math.floor(Math.random() * lanes.length)];
-    this.off = this.base; this.offT = this.base; this.offVel = 0;
+    this.base1 = this.kind === 'bus' ? ONE_LANES.bus : ONE_LANES.cars[Math.floor(Math.random() * ONE_LANES.cars.length)];
+    this.off = this.laneAt(); this.offT = this.off; this.offVel = 0;
     const sp = MAP.traffic.speed, slow = this.kind === 'truck' || this.kind === 'bus' ? 0.85 : 1;
     this.cruise = (sp[0] + Math.random() * (sp[1] - sp[0])) * slow;
     this.v = this.kind === 'cow' ? 0 : this.cruise * 0.85;
@@ -4976,12 +5289,13 @@ class Traffic {
       if (gap <= 0 || gap > 70 || Math.abs(o.off - this.off) > (o.wid ? (o.wid + this.wid) / 2 + 0.4 : 2.4)) continue;
       if (gap < gapMin) { gapMin = gap; const od = o.dir || 1; aheadV = od === dir ? (o.v ?? 0) : -(o.v ?? 0); threat = o; }
     }
-    this.offT = this.base;
+    const lane = this.laneAt();
+    this.offT = lane;
     if (threat) {
       if (aheadV < -1) {
         // alguien viene de frente por su pista: frena, se tira a la orilla y toca la bocina
         if (gapMin < 45) target = Math.min(target, gapMin < 20 ? 0 : 4);
-        this.offT = clamp(this.base - dir * 1.6, -ROAD_HALF + 1.3, ROAD_HALF - 1.3);
+        this.offT = clamp(lane - dir * 1.6, -ROAD_HALF + 1.3, ROAD_HALF - 1.3);
         if (threat === player && this.hornT <= 0 && gapMin < 60) { this.hornT = 3.5; sound.horn(Math.hypot(this.x - camera.position.x, this.z - camera.position.z), this.kind === 'truck' || this.kind === 'bus'); }
       } else if (gapMin < 10 + this.v * 1.3) target = Math.min(target, Math.max(0, aheadV - 0.5 + (gapMin - 9) * 0.35));
     }
@@ -5949,7 +6263,7 @@ class Sound {
       // en la cámara del capó se oye más la admisión y menos el escape (filtrado por la carrocería)
       let load = car.mech && car.mech.dead ? 0 : (car.load ?? car.throttleIn) * shiftCut;
       if (t < this.blipT) load = Math.max(load, 0.7);   // golpe de acelerador al reducir
-      const inside = cam.mode === 2;
+      const inside = cam.mode >= 2;
       this.voice(this.wEng, car.spec, car.mech && car.mech.dead ? 0 : car.rpm, load, run * (inside ? 0.75 : 1) * (0.55 + 0.45 * load) * 0.62, 1, 0, inside ? 2400 : 18000);
       if (rival) {
         const S = this.spatial(rival, rival.vx || 0, rival.vz || 0), vol = clamp(1 - S.d / 120, 0, 1) ** 2 * 0.7;
@@ -6175,11 +6489,11 @@ function readInput(dt) {
 // =====================================================================
 // Cámara
 // =====================================================================
-const CAMS = ['Persecución', 'Lejana', 'Capó'];
-const cam = { mode: 0, yaw: 0, pos: new THREE.Vector3(), look: new THREE.Vector3(), shake: 0, fov: 62, orbit: 0, fy: 0, fp: 0, zoom: 1 };   // fy/fp/zoom: cámara libre (giro, altura y acercamiento que pone el jugador)
+const CAMS = ['Persecución', 'Lejana', 'Capó', 'Cabina'];
+const cam = { mode: 0, yaw: 0, pos: new THREE.Vector3(), look: new THREE.Vector3(), shake: 0, fov: 62, orbit: 0, fy: 0, fp: 0, zoom: 1, hx: 0, hz: 0 };   // fy/fp/zoom: cámara libre (giro, altura y acercamiento que pone el jugador); hx/hz: la cabeza del conductor se mece
 function centerCamera() { cam.fy = 0; cam.fp = 0; cam.zoom = 1; }
-function cycleCamera() { centerCamera(); cam.mode = (cam.mode + 1) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1); store.set('cam', cam.mode); }
-const _v = new THREE.Vector3(), _v2 = new THREE.Vector3();
+function cycleCamera() { centerCamera(); cam.mode = (cam.mode + 1) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1); store.set('cam', cam.mode); if (game.state !== 'menu' && game.state !== 'taller') showMsg(CAMS[cam.mode], '', 0.8); }
+const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _camQ = new THREE.Quaternion(), _Y = new THREE.Vector3(0, 1, 0);
 function updateCamera(dt, car, model, snap) {
   const s = Math.sin(car.psi), c = Math.cos(car.psi), sp = car.speed;
   const velYaw = sp > 4 ? Math.atan2(car.vx, car.vz) : car.psi;
@@ -6187,7 +6501,25 @@ function updateCamera(dt, car, model, snap) {
   cam.yaw += wrapAngle(targetYaw - cam.yaw) * (snap ? 1 : Math.min(1, dt * 4.5));
   const ys = Math.sin(cam.yaw), yc = Math.cos(cam.yaw);
   let fovT = 60 + clamp(sp * 0.33, 0, 20);
-  if (cam.mode === 2) {
+  const inCab = cam.mode === 3 && !!model.makeCockpit;
+  setCockpit(model, inCab);
+  camera.up.copy(_Y);
+  if (inCab) {
+    // ojos del conductor: la cabeza se mece al revés de la aceleración (frenar la tira adelante, la curva hacia afuera)
+    const E = model.eye, idt = 1 / Math.max(dt, 1e-3);
+    const ax = (car.vx - (cam.pvx ?? car.vx)) * idt, az = (car.vz - (cam.pvz ?? car.vz)) * idt; cam.pvx = car.vx; cam.pvz = car.vz;
+    const lat = ax * Math.cos(car.psi) - az * Math.sin(car.psi), lon = ax * Math.sin(car.psi) + az * Math.cos(car.psi), k = Math.min(1, dt * 5);
+    cam.hx += (clamp(-lat * 0.004, -0.05, 0.05) - cam.hx) * k; cam.hz += (clamp(-lon * 0.004, -0.06, 0.06) - cam.hz) * k;
+    if (snap) cam.hx = cam.hz = 0;
+    const cp = Math.cos(cam.fp), hx = E.x + cam.hx, hz = E.z + cam.hz;
+    _v.set(hx, E.y, hz); model.body.localToWorld(_v); cam.pos.copy(_v);
+    _v2.set(hx + Math.sin(cam.fy) * cp * 10, E.y - 0.7 + Math.sin(cam.fp) * 10, hz + Math.cos(cam.fy) * cp * 10); model.body.localToWorld(_v2); cam.look.copy(_v2);
+    // el horizonte se inclina con la carrocería, pero a medias (el cuello compensa)
+    camera.up.set(0, 1, 0).applyQuaternion(model.body.getWorldQuaternion(_camQ)).lerp(_Y, 0.45).normalize();
+    fovT = 72 + clamp(sp * 0.12, 0, 6);
+    model.cock.spin.rotation.z = -(car.steer || 0) * 9;
+    if (model.cock.frame++ % 3 === 0) model.cock.draw(car);
+  } else if (cam.mode === 2) {
     const P = model.pr.P;
     _v.set(0, P.belt + (car.spec.body === 'pickup' ? 0.45 : 0.32), model.pr.zF + P.ws + 0.15);
     model.body.localToWorld(_v); cam.pos.copy(_v);
@@ -6210,16 +6542,16 @@ function updateCamera(dt, car, model, snap) {
     cam.look.set(car.x + s * ahead, car.y + ph, car.z + c * ahead);
   }
   cam.fov += (fovT - cam.fov) * Math.min(1, dt * 3);
-  camera.fov = cam.fov; camera.updateProjectionMatrix();
+  camera.fov = cam.fov; camera.near = inCab ? 0.08 : 0.3; camera.updateProjectionMatrix();
   camera.position.copy(cam.pos);
   cam.shake = Math.max(0, cam.shake - dt * 2.5);
-  const sh = cam.shake * 0.35 + car.rumble * sp * 0.0016 + car.offroad * sp * 0.0009;
+  const sh = (cam.shake * 0.35 + car.rumble * sp * 0.0016 + car.offroad * sp * 0.0009) * (inCab ? 0.2 : 1);   // adentro el golpe se siente sin sacar la cabeza por el techo
   if (sh > 0) camera.position.add(_v2.set((Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh));
   camera.lookAt(cam.look);
 }
 // taller: cámara cercana que gira sola (o arrastrando); el auto queda al lado del panel
 function tallerCamera(dt, x, y, z) {
-  cam.orbit += dt * 0.1;
+  cam.orbit += dt * 0.1; camera.up.copy(_Y); camera.near = 0.3;
   const pr = document.querySelector('.t-panel').getBoundingClientRect();
   const r = innerWidth > 760 ? clamp(7.2 * 760 / Math.max(300, pr.left), 7.2, 11.5) : 13.5, a = cam.orbit;
   camera.position.set(x + Math.sin(a) * r, y + 1.9 + Math.sin(a * 0.7) * 0.4, z + Math.cos(a) * r);
@@ -6228,7 +6560,7 @@ function tallerCamera(dt, x, y, z) {
   else camera.setViewOffset(innerWidth, innerHeight, 0, (innerHeight - pr.top) / 2, innerWidth, innerHeight);
 }
 function orbitCamera(dt, x, y, z) {
-  cam.orbit += dt * 0.08;
+  cam.orbit += dt * 0.08; camera.up.copy(_Y); camera.near = 0.3;
   const r = 13, a = cam.orbit;
   camera.position.set(x + Math.sin(a) * r, y + 3.2 + Math.sin(a * 0.7) * 0.8, z + Math.cos(a) * r);
   camera.fov = 50; camera.updateProjectionMatrix();
@@ -6655,7 +6987,7 @@ function spawnTraffic(k) {
   for (let i = 0; i < n; i++) {
     const t = new Traffic(T.kinds[i % T.kinds.length]); let d;
     do { d = Math.random() * L; } while (Math.abs(wrapGap(d - track.START_S)) < 170);
-    t.spawn(d, Math.random() < 0.5 ? 1 : -1); game.traffic.push(t);
+    t.spawn(d, inSplit(d) || Math.random() < 0.5 ? 1 : -1); game.traffic.push(t);
   }
   for (let i = 0; i < Math.round((MAP.cows || 0) * Math.max(0.6, k)); i++) {
     const c = new Traffic('cow'); let d;
@@ -6664,14 +6996,60 @@ function spawnTraffic(k) {
   }
 }
 function respawnTraffic(t, car) {
-  const ahead = Math.random() < 0.72 ? 1 : -1;
-  t.spawn(car.prog + ahead * (330 + Math.random() * 300), Math.random() < 0.5 ? 1 : -1);
+  const ahead = Math.random() < 0.72 ? 1 : -1, s = car.prog + ahead * (330 + Math.random() * 300);
+  t.spawn(s, inSplit(s) || Math.random() < 0.5 ? 1 : -1);   // en la Alameda solo hay tránsito en el sentido de la calzada
+}
+// ---- tránsito de la calzada norte de la Alameda (hacia el poniente), al otro lado del bandejón ----
+// solo se ve: no choca con la carrera porque lo separan el muro y el bandejón
+function clearMovers() { for (const m of game.movers || []) disposeModel(m.model); game.movers = []; }
+function spawnMovers() {
+  clearMovers();
+  if (!SPLIT) return;
+  const A = SPLIT, kinds = ['bus', 'car', 'taxi', 'colectivo', 'car', 'bus', 'pickup', 'car', 'taxi', 'colectivo'];
+  const lanesCar = [A.opp0 + 1.75, A.opp0 + 5.25, A.opp0 + 8.75], laneBus = A.opp1 - 1.75;
+  game.movers = kinds.map((kind, i) => {
+    const { spec, model } = trafficVehicle(kind); scene.add(model.root);
+    const m = { kind, spec, model, lane: kind === 'bus' ? laneBus : lanesCar[i % 3], s: A.a + (A.b - A.a) * (i + Math.random() * 0.6) / kinds.length, cruise: (kind === 'bus' ? 9 : 11) + Math.random() * 4, v: 0, wheelA: 0, p: {}, wait: false };
+    m.v = m.cruise; poseMover(m); return m;
+  });
+}
+function poseMover(m) {
+  const p = track.at(m.s, m.p), lx = p.tz, lz = -p.tx;
+  m.x = p.x + lx * m.lane; m.z = p.z + lz * m.lane; m.y = p.y + 0.03;
+  m.model.root.position.set(m.x, m.y, m.z); m.model.root.rotation.set(0, Math.atan2(p.tx, p.tz) + Math.PI, 0);
+}
+function updateMovers(dt) {
+  const A = SPLIT, list = game.movers; if (!A || !list || !list.length) return;
+  for (const m of list) {
+    // sigue al de adelante en su pista (adelante = hacia el poniente, s menor)
+    let gap = 1e9; for (const o of list) if (o !== m && !o.wait && Math.abs(o.lane - m.lane) < 1 && o.s < m.s) gap = Math.min(gap, m.s - o.s);
+    const target = gap < 13 ? 0 : gap < 32 ? m.cruise * (gap - 13) / 19 : m.cruise;
+    m.v += clamp(target - m.v, -6 * dt, 2 * dt);
+    m.s -= m.v * dt;
+    if (m.s < A.a + 6) {
+      // al llegar a la punta poniente reaparece en la oriente, pero solo cuando eso no se ve
+      const s = A.b - 6; track.at(s, m.p); const lx = m.p.tz, lz = -m.p.tx;
+      const ok = !seenByCamera(m.p.x + lx * m.lane, m.p.y, m.p.z + lz * m.lane) && !list.some(o => o !== m && Math.abs(o.lane - m.lane) < 1 && Math.abs(o.s - s) < 20);
+      if (ok) { m.s = s; m.v = m.cruise * 0.8; m.wait = false; }
+      else { m.s = A.a + 6; m.v = 0; m.wait = true; }
+    }
+    m.model.root.visible = !m.wait;
+    m.wheelA += m.v / m.spec.R * dt; m.model.wheels.forEach(w => { w.spin.rotation.x = m.wheelA; });
+    poseMover(m); setLights(m.model, m.v > target + 0.4, false);
+  }
+}
+// ¿se ve desde la cámara? (para cambiar de lugar un vehículo sin que desaparezca frente al jugador)
+const _frus = new THREE.Frustum(), _frusM = new THREE.Matrix4(), _frusP = new THREE.Vector3();
+function seenByCamera(x, y, z, far = 220) {
+  if (camera.position.distanceToSquared(_frusP.set(x, y + 1, z)) > far * far) return false;
+  _frus.setFromProjectionMatrix(_frusM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+  return _frus.containsPoint(_frusP);
 }
 
 // =====================================================================
 // Estado del juego
 // =====================================================================
-const game = { state: 'loading', mode: 'race', laps: MAP.laps || 3, carIdx: clamp(store.get('car', 0) | 0, 0, CARS.length - 1), t: 0, rivals: [], traffic: [], car: null, model: null, spot: null };
+const game = { state: 'loading', mode: 'race', laps: MAP.laps || 3, carIdx: clamp(store.get('car', 0) | 0, 0, CARS.length - 1), t: 0, rivals: [], traffic: [], movers: [], car: null, model: null, spot: null };
 const bestKey = id => MAP_ID === 'cordillera' ? 'best_' + id : 'best_' + id + '_' + MAP_ID;
 let composer = null, bloomPass = null, gradePass = null, fxaaPass = null, postQ = 'med', skids, smoke, sparks, debris, loose;
 // alta: MSAA + bloom + sombras suaves · media: FXAA y sombras normales · baja: render directo sin postprocesado.
@@ -6823,6 +7201,7 @@ function startRace() {
   clearHazards(); genHazards(D.hz);
   setupGarage();
   spawnTraffic(D.tr);
+  spawnMovers();
   const car = game.car;
   car.auto = opt('gearbox') !== 'manual';
   if (game.mode === 'race') {
@@ -6861,6 +7240,7 @@ function showMenu() {
   document.body.classList.remove('racing');
   for (const r of game.rivals) disposeModel(r.model); game.rivals = [];
   for (const t of game.traffic) disposeModel(t.model); game.traffic = [];
+  clearMovers();
   resetWorldDamage(); clearHazards();
   game.mode = opt('mode') || 'race';
   setupGarage();
@@ -7210,12 +7590,15 @@ function stepGame(dt) {
     t.update(dt, others, proxy);
     const gap = wrapGap(t.dist - car.prog);
     if (t.kind !== 'cow' && (Math.abs(gap) > Math.min(720, L * 0.42) || (t.crashed && Math.abs(gap) > 260))) respawnTraffic(t, car);
+    // en contra del sentido de la calzada de la Alameda no se entra: se lo cambia de lugar apenas no se ve
+    else if (t.dir < 0 && t.kind !== 'cow' && !t.crashed && (inSplit(t.dist) || inSplit(t.dist - 120)) && !seenByCamera(t.x, t.y, t.z)) respawnTraffic(t, car);
     t.model.root.visible = Math.abs(gap) < 380;
     if (!t.model.root.visible) continue;
     carCarCollide(car, t, car.tumble);
     for (const r of RV) carCarCollide(r, t);
   }
   for (const t of game.traffic) { for (const ev of t.events) handleImpact(t, ev); t.events.length = 0; }
+  updateMovers(dt);
   for (let a = 0; a < RV.length; a++) for (let b = 0; b < RV.length; b++) {
     if (a === b) continue; const A = RV[a], B = RV[b];
     if (b > a) carCarCollide(A, B);
@@ -7336,6 +7719,7 @@ function render() {
   if ((renderFrame++ & 7) === 0) { cullVegetation(QS.veg); cullDetail(); }
   updateCarLOD(game.model); for (const r of game.rivals) updateCarLOD(r.model, true);
   for (const t of game.traffic) if (t.kind !== 'cow' && t.model.root.visible) updateCarLOD(t.model, true);
+  for (const t of game.movers) if (t.model.root.visible) updateCarLOD(t.model, true);
   updatePrecip(t);
   if (composer) composer.render(); else renderer.render(scene, camera);
 }
@@ -7629,7 +8013,8 @@ function buildMenu() {
         if (pinch > 0) cam.zoom = clamp(cam.zoom * pinch / Math.max(d, 1), 0.4, 3); pinch = d; return;
       }
       cam.fy = wrapAngle(cam.fy - dx * 0.0075);
-      cam.fp = clamp(cam.fp + dy * (cam.mode === 2 ? -0.005 : 0.005), cam.mode === 2 ? -0.9 : -1, cam.mode === 2 ? 0.9 : 1.2);
+      const ins = cam.mode >= 2;   // capó y cabina: arrastrar hacia abajo mira hacia abajo
+      cam.fp = clamp(cam.fp + dy * (ins ? -0.005 : 0.005), ins ? -0.9 : -1, ins ? 0.9 : 1.2);
     });
     const up = e => { ptr.delete(e.pointerId); pinch = 0; };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
