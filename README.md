@@ -15,9 +15,18 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 | Mapa | Lugar | Qué tiene |
 |---|---|---|
 | Circuito Cordillera | Valle del Aconcagua | Carretera de montaña con araucarias, palmas chilenas y la Laguna del Inca. 3 vueltas. |
-| La Alameda | Santiago Centro | Carrera callejera por la calzada sur de la Alameda, de un solo sentido, con su pista "solo bus", y vuelta por la Costanera. Al otro lado del bandejón central (dos hileras de plátanos orientales, paseo de baldosas, bancas, quioscos, accesos a la Línea 1 del Metro y O'Higgins a caballo frente a La Moneda) corre la calzada norte con micros, taxis y colectivos hacia el poniente. Calles que la cruzan con cebras y semáforos, y en su orden real: Torre Entel, La Moneda, Universidad de Chile, San Francisco, Biblioteca Nacional, cerro Santa Lucía, Universidad Católica, GAM y Plaza Baquedano. 3 vueltas. |
+| La Alameda | Santiago Centro | Carrera callejera por la calzada sur de la Alameda, de un solo sentido, con su pista "solo bus", y vuelta por la Costanera. Al otro lado del bandejón central (dos hileras de plátanos orientales, paseo de baldosas, bancas, quioscos, accesos a la Línea 1 del Metro y O'Higgins a caballo frente a La Moneda) corre la calzada norte con micros, taxis y colectivos hacia el poniente. Calles que la cruzan con cebras y semáforos, y en su orden real: Torre Entel, La Moneda, Universidad de Chile, San Francisco, Biblioteca Nacional, cerro Santa Lucía, Universidad Católica, GAM y Plaza Baquedano. La vuelta va por Cardenal Caro, junto al Mapocho: paseo de ladrillo con balaustrada, muros de piedra del río, puentes de arco, el Parque Forestal con el Museo de Bellas Artes y la Fuente Alemana, la Estación Mapocho, y al otro lado Av. Santa María con su tránsito y las casas de colores de Bellavista. 3 vueltas. |
 | Los Caracoles | Paso Los Libertadores | Horquillas numeradas subiendo hacia Portillo, galerías antinieve, hielo, derrumbes y camiones a Argentina. 2 vueltas. |
 | Carretera Austral | Lago General Carrera | Camino de ripio entre coigües, puentes de madera sobre esteros, barro, pozas, troncos caídos, vacas sueltas y las Capillas de Mármol. 3 vueltas. |
+
+## Una ciudad viva
+
+- **Gente:** santiaguinos que caminan por las veredas, el paseo del bandejón, la orilla del Mapocho y los senderos del Parque Forestal, cada uno con su ropa, su paso y su ritmo.
+- **Comercio:** locales a nivel de calle con letrero, vitrina y toldo (farmacia, botillería, fuente de soda, salón de té, empanadas, casa de cambio, peluquería, óptica, librería, quiosco de diarios y más, y alguna cortina metálica cerrada). Al atardecer se encienden.
+- **Semáforos que cambian:** los del otro lado de la Alameda pasan de verde a amarillo y rojo, y las micros y autos se detienen en fila y arrancan con el verde. Los de la carrera parpadean en amarillo (calle cortada).
+- **Árboles con hojas:** las copas están hechas de hojas sueltas que dejan pasar la luz y se mecen con el viento, en todos los mapas.
+- **Aire de Santiago:** una capa de esmog café-grisácea sobre el horizonte, más espesa con cielo despejado.
+- **Sonido ambiente:** rumor del tránsito y bocinas lejanas en la ciudad, el Mapocho corriendo, pájaros en los parques y bosques, el chucao en el sur y el viento en la montaña.
 
 ## Desafío 4x4 (solo camionetas)
 

@@ -583,13 +583,16 @@ const MAPS = {
     // la Alameda es una avenida partida: la carrera va por la calzada sur (sentido oriente), al otro lado del bandejón central
     // corre la calzada norte con el tránsito hacia el poniente
     split: { x0: -630, x1: 630, z: 230, med: 16, opp: 14, walk: 6 },
+    // la vuelta por la Costanera es la Av. Cardenal José María Caro: a la derecha el Mapocho encajonado (y en la otra
+    // ribera la Av. Santa María y Bellavista), a la izquierda el Parque Forestal hasta la Estación Mapocho
+    riverside: { x0: 720, x1: -720, zMax: -20, off: 37, east: [[1300, -40], [950, -75]], west: [[-950, -175], [-1400, -120]], parkEndX: -470 },
     pts: [[-640, 230], [-300, 230], [50, 230], [400, 230], [620, 230], [760, 220], [820, 170], [835, 90], [830, 10], [720, -60], [520, -95],
       [300, -150], [80, -180], [-150, -205], [-380, -215], [-580, -200], [-720, -160], [-820, -80], [-860, 30], [-845, 140], [-800, 210]],
     roadHalf: 9, flatExtra: 5, blend: 26, startS: 150, lanes: 3, road: 'ciudad', berm: 'vereda', bermRaise: 0.15, rails: 'todo', railStyle: 'concreto', railGap: 0.5, kerbs: false,
     water: { type: 'river', pts: ALAMEDA_RIVER, width: 30, name: 'río Mapocho' },
     baseH(x, z) {
       let h = x * 0.012 + fbm(x / 400, z / 400, 2) * 1.2;
-      h -= 7 * smooth(24, 11, polyDist(ALAMEDA_RIVER, x, z));
+      h -= 7 * smooth(16.2, 15.0, polyDist(ALAMEDA_RIVER, x, z));   // el canal del Mapocho: muros casi verticales
       h += hill(x, z, 230, 90, 80, 46) * (0.85 + 0.3 * vnoise(x / 18, z / 18));
       h += hill(x, z, 260, -760, 380, 250) * (0.8 + 0.25 * fbm(x / 90, z / 90, 3));
       h += smooth(2200, 5200, x) * 2300 * (0.55 + 0.45 * ridged(x / 1500, z / 1500, 4));
@@ -600,13 +603,11 @@ const MAPS = {
     // ciudad (gris) que se funde con cerros secos afuera; parques verdes en el río y los cerros
     urbanAt(x, z) { return smooth(2100, 1500, Math.abs(x - 100)) * smooth(1250, 850, Math.abs(z - 150)); },
     parkAt(x, z) {
-      const dr = polyDist(ALAMEDA_RIVER, x, z);
-      let p = smooth(95, 45, dr) * smooth(13, 22, dr);
-      p = Math.max(p, smooth(105, 75, Math.hypot(x - 230, z - 90)), smooth(430, 330, Math.hypot(x - 260, z + 760)), smooth(34, 26, Math.hypot(x - 735, z - 125)));
-      return p;
+      const p = Math.max(smooth(105, 75, Math.hypot(x - 230, z - 90)), smooth(430, 330, Math.hypot(x - 260, z + 760)), smooth(34, 26, Math.hypot(x - 735, z - 125)));
+      return RIVER ? Math.max(p, RIVER.parkAt(x, z)) : p;   // + el Parque Forestal
     },
     pal: { dry: 0x8a7a50, dry2: 0x6f6440, green: 0x50692c, dirt: 0x6a5a48, rock: 0x6a6052, rock2: 0x7a6e60, snow: 0xeef2f6, gravel: 0x8f8c86, lake: 0x50692c, urban: 0x7a7a7b, urban2: 0x616163, snowLine: 2300, greenH: 400, rockH: [160, 520] },
-    veg: [{ type: 'tree', n: 700 }, { type: 'bush', n: 260 }],
+    veg: [{ type: 'tree', n: 420 }, { type: 'bush', n: 260 }],   // + los plátanos ya ubicados en el bandejón y el Parque Forestal
     hazards: { pothole: 10, manhole: 14, puddle: 4, oil: 4, works: 3, bump: 4 },
     traffic: { n: 12, kinds: ['bus', 'bus', 'taxi', 'colectivo', 'car', 'car', 'pickup', 'car'], speed: [10, 15] },
     arch: 'GRAN PREMIO ALAMEDA', aiMu: 1, city: true,
@@ -842,6 +843,20 @@ const MAP_ID = (() => {
 const MAP = MAPS[MAP_ID];
 { const el = document.querySelector('#loading div'); if (el) el.innerHTML = '<b>Ruta Andina</b>' + MAP.name + ' · ' + MAP.loading; }
 const TRACK_PTS = MAP.pts;
+// el Mapocho corre junto a la Costanera: su eje va a MAP.riverside.off metros a la derecha de la pista, así que se arma
+// siguiendo el trazado (solo en planta: las alturas de la pista se calculan después y ya ven el cauce)
+if (MAP.riverside) {
+  const R = MAP.riverside, P = new THREE.CatmullRomCurve3(TRACK_PTS.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, 'centripetal').getSpacedPoints(900);
+  P.pop();
+  const n = P.length, leg = [];
+  for (let i = 0; i < n; i++) if (P[i].z < R.zMax && P[i].x < R.x0 && P[i].x > R.x1) leg.push(i);
+  for (let k = 0; k < leg.length; k += 3) {
+    const i = leg[k], a = P[(i - 2 + n) % n], b = P[(i + 2) % n], tx = b.x - a.x, tz = b.z - a.z, l = Math.hypot(tx, tz);
+    leg[k] = [P[i].x - tz / l * R.off, P[i].z + tx / l * R.off];
+  }
+  ALAMEDA_RIVER.length = 0;
+  ALAMEDA_RIVER.push(...R.east, ...leg.filter((_, k) => k % 3 === 0), ...R.west);
+}
 const ROAD_HALF = MAP.roadHalf;       // media calzada
 const FLAT_EXTRA = MAP.flatExtra;     // berma o vereda plana
 const BLEND = MAP.blend;              // transición al terreno
@@ -980,6 +995,20 @@ const SPLIT = (() => {
   return { a, b, med0, med1, opp0: med1, opp1, walk1: opp1 + P.walk };
 })();
 const inSplit = s => { if (!SPLIT) return false; s = ((s % track.length) + track.length) % track.length; return s > SPLIT.a && s < SPLIT.b; };
+// Costanera (Av. Cardenal José María Caro): tramo de la pista junto al Mapocho. A la derecha (d < 0): vereda, paseo con
+// balaustrada hasta el muro sur (wallS), el río (eje en c), el muro norte (wallN), la Av. Santa María (sm0–sm1) y su vereda
+// (hasta smw). A la izquierda (d > 0): el Parque Forestal entre park0 y park1, desde a hasta parkEnd (la Estación Mapocho)
+const RIVER = (() => {
+  const R = MAP.riverside; if (!R) return null;
+  let i0 = -1, i1 = -1;
+  for (let i = 0; i < track.n; i++) if (track.Z[i] < R.zMax && track.X[i] < R.x0 - 15 && track.X[i] > R.x1 + 15) { if (i0 < 0) i0 = i; i1 = i; }
+  const a = i0 * track.ds, b = i1 * track.ds;
+  let parkEnd = b; for (let i = i0; i <= i1; i++) if (track.X[i] < R.parkEndX) { parkEnd = i * track.ds; break; }
+  const c = R.off, wallS = c - 15.6, wallN = c + 15.6, sm0 = wallN + 1, sm1 = sm0 + 14, smw = sm1 + 6, park0 = ROAD_HALF + FLAT_EXTRA + 0.4, park1 = 72, q = {};
+  return { a, b, parkEnd, c, wallS, wallN, sm0, sm1, smw, park0, park1,
+    parkAt(x, z) { if (!track.query(x, z, q) || !(q.s > a && q.s < parkEnd) || q.d < park0 - 2 || q.d > park1 + 4) return 0; return smooth(park0 - 2, park0, q.d) * smooth(park1 + 4, park1, q.d); } };
+})();
+const inRiver = s => { if (!RIVER) return false; s = ((s % track.length) + track.length) % track.length; return s > RIVER.a && s < RIVER.b; };
 // límites del mundo y zona de terreno detallado, según la extensión del trazado
 const WB = (() => {
   let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
@@ -1016,6 +1045,11 @@ function groundBaseAt(x, z, q = Q) {
   if (hit && SPLIT && q.d > ROAD_HALF + 0.05 && q.d < SPLIT.walk1 + 1.5 && inSplit(q.s)) {
     if (q.d > SPLIT.opp0 && q.d < SPLIT.opp1) { q.surf = ROAD_SURF; return q.y; }
     q.surf = BERM_SURF; return q.y + BERM_RAISE + 0.01;
+  }
+  // Costanera: el paseo junto al río es plano hasta el muro; después vienen el cauce y la otra ribera tal como son
+  if (hit && RIVER && q.d < -ROAD_HALF - 0.05 && q.d > -(RIVER.smw + 2) && inRiver(q.s)) {
+    if (q.d > -(RIVER.wallS + 0.3)) { q.surf = BERM_SURF; return q.y + BERM_RAISE + 0.01; }
+    q.surf = q.d < -RIVER.sm0 && q.d > -RIVER.sm1 ? ROAD_SURF : BERM_SURF; return hb;
   }
   if (!hit || q.dist > ROAD_HALF + FLAT_EXTRA + BLEND) { q.surf = TERRAIN_SURF; q.ok = false; return hb; }
   const onBridge = track.bridge[q.i];
@@ -1307,9 +1341,18 @@ function weatherTod(base) {
     cLit: mixc(base.cLit, W.lit, 0.85), cShade: mixc(base.cShade, W.shade, 0.85), ground: base.ground.map(v => v * 0.8), exp: base.exp * W.expK,
     grade: { ...base.grade, sat: base.grade.sat * W.sat, con: base.grade.con * 0.97 } };
 }
+// Santiago: capa de esmog café-grisácea sobre el horizonte (más espesa con cielo despejado)
+function smogTod(t) {
+  if (!MAP.city) return t;
+  const k = WEATHER.id === 'clear' ? 1 : 0.35;
+  const lum = 0.3 * t.hor[0] + 0.55 * t.hor[1] + 0.15 * t.hor[2];
+  const haze = [0.62, 0.56, 0.47].map(v => v * lum / 0.55);
+  return { ...t, hor: t.hor.map((v, i) => lerp(v, haze[i], 0.42 * k)), sunHaze: t.sunHaze.map((v, i) => v * [1.06, 0.98, 0.86][i]),
+    fogA: t.fogA * (1 + 0.7 * k), grade: { ...t.grade, sat: t.grade.sat * (1 - 0.06 * k) } };
+}
 function setTimeOfDay(key) {
   todKey = TOD[key] ? key : 'day';
-  tod = weatherTod(TOD[todKey]);
+  tod = smogTod(weatherTod(TOD[todKey]));
   sunDir.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - tod.elev), THREE.MathUtils.degToRad(tod.azim));
   sun.color.setHex(tod.sun); sun.intensity = tod.sunI;
   hemi.intensity = tod.hemiI;
@@ -1570,6 +1613,12 @@ function buildTerrain(N) {
     if (q.ok && track.bridge[q.i] && d < ROAD_HALF + 0.05) h = baseH(x, z);
     else h -= 0.35 * smooth(ROAD_HALF + FLAT_EXTRA + 0.5, ROAD_HALF, d);
     if (SPLIT && q.ok && q.d > ROAD_HALF && q.d < SPLIT.walk1 + 1.5 && inSplit(q.s)) h -= 0.4;   // bajo el bandejón y la calzada norte
+    if (RIVER && q.ok && q.d < -ROAD_HALF && q.d > -(RIVER.wallS + 0.3) && inRiver(q.s)) h -= 0.4;   // bajo el paseo de la Costanera
+    // el canal: el terreno queda bajo el agua hasta debajo del paseo y de Santa María (los muros de piedra tapan los costados)
+    if (RIVER && q.ok && q.d < -ROAD_HALF && q.d > -(RIVER.sm0 + 3) && inRiver(q.s)) {
+      const c = polyNearest(ALAMEDA_RIVER, x, z);
+      if (c.d < 21) h = Math.min(h, baseH(c.x, c.z) + 2.2 - 2.5);
+    }
     const k = j * V + i;
     pos[k * 3] = x; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z;
     uv[k * 2] = x / 7; uv[k * 2 + 1] = z / 7; roadD[k] = d;
@@ -1980,7 +2029,7 @@ function waterRibbon(pts, width, mat) {
     const nx = dz / l, nz = -dx / l, [x, y, z] = pts[k];
     if (k) acc += Math.hypot(x - pts[k - 1][0], z - pts[k - 1][2]);
     pos.push(x + nx * width / 2, y, z + nz * width / 2, x - nx * width / 2, y, z - nz * width / 2); uv.push(0, acc / width, 1, acc / width);
-    if (k) { const p = (k - 1) * 2; idx.push(p, p + 2, p + 1, p + 1, p + 2, p + 3); }
+    if (k) { const p = (k - 1) * 2; idx.push(p, p + 1, p + 2, p + 1, p + 3, p + 2); }   // caras hacia arriba (antes miraban abajo y no se veían)
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
@@ -2049,6 +2098,68 @@ function rockGeo() {
   return ROCK_GEO;
 }
 // opts.extra: árboles ya ubicados (p. ej. en las veredas) · opts.blocked(x,z): terreno ocupado por edificios
+// ---- follaje: copas de árbol hechas de un núcleo suave y "tarjetas" con racimos de hojas ----
+// textura de hojas en grises (la tiñe el color de cada árbol) con huecos transparentes entre racimos
+let LEAF_TEX = null;
+function leafTex() {
+  if (LEAF_TEX) return LEAF_TEX;
+  LEAF_TEX = canvasTex(256, 256, (g, w, h) => {
+    g.clearRect(0, 0, w, h); const rr = mulberry32(808);
+    for (let k = 0; k < 340; k++) {
+      // racimos densos al centro, ralos en los bordes: la silueta de la tarjeta se ve irregular
+      const a = rr() * Math.PI * 2, rad = Math.pow(rr(), 0.7) * w * 0.47, x = w / 2 + Math.cos(a) * rad, y = h / 2 + Math.sin(a) * rad;
+      const L = 9 + rr() * 11, v = 140 + rr() * 110, rot = rr() * Math.PI * 2;
+      g.save(); g.translate(x, y); g.rotate(rot);
+      g.fillStyle = `rgb(${v * 0.92 | 0},${v | 0},${v * 0.86 | 0})`;
+      g.beginPath(); g.ellipse(0, 0, L, L * 0.5, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = `rgba(40,50,30,0.35)`; g.lineWidth = 1; g.beginPath(); g.moveTo(-L, 0); g.lineTo(L, 0); g.stroke();
+      g.restore();
+    }
+  });
+  return LEAF_TEX;
+}
+// blobs: [x, y, z, r] (masas de la copa) · cards: tarjetas por masa · size: tamaño de cada tarjeta (relativo a r)
+function leafyGeo(blobs, cards, size, seed) {
+  const rr = mulberry32(seed), cores = [], quads = [];
+  let cy = 0; for (const b of blobs) cy += b[1]; cy /= blobs.length;
+  const n = new THREE.Vector3(), up = new THREE.Vector3(0, 0, 1), q = new THREE.Quaternion(), qr = new THREE.Quaternion(), m = new THREE.Matrix4(), s = new THREE.Vector3(), p = new THREE.Vector3(), v = new THREE.Vector3();
+  for (const [bx, by, bz, r] of blobs) {
+    const core = new THREE.SphereGeometry(r * 0.7, 6, 4), cn = core.attributes.normal;   // núcleo simple: lo que se ve son las hojas
+    // la luz se cuela entre las hojas: las normales miran algo más hacia arriba (la copa no queda negra por debajo)
+    for (let i = 0; i < cn.count; i++) { v.set(cn.getX(i), cn.getY(i) + 0.6, cn.getZ(i)).normalize(); cn.setXYZ(i, v.x, v.y, v.z); }
+    core.translate(bx, by, bz); cores.push(core.toNonIndexed());
+    for (let k = 0; k < cards; k++) {
+      // punto en la superficie de la masa (también por debajo, para que la copa vista desde la calle sea hojas y no un globo)
+      n.set(rr() * 2 - 1, rr() * 1.9 - 0.95, rr() * 2 - 1).normalize();
+      const pl = new THREE.PlaneGeometry(1, 1);
+      q.setFromUnitVectors(up, v.copy(n).add(new THREE.Vector3(rr() - 0.5, rr() - 0.5, rr() - 0.5).multiplyScalar(0.9)).normalize());
+      qr.setFromAxisAngle(up, rr() * Math.PI * 2); q.multiply(qr);
+      p.set(bx + n.x * r * 0.86, by + n.y * r * 0.8, bz + n.z * r * 0.86); s.setScalar(r * size * (0.75 + rr() * 0.5));
+      pl.applyMatrix4(m.compose(p, q, s));
+      // normales "infladas" desde el centro de la copa: luz suave y redonda en vez de tarjetas planas
+      const pa = pl.attributes.position, na = pl.attributes.normal;
+      for (let i = 0; i < pa.count; i++) { v.set(pa.getX(i), pa.getY(i) - cy, pa.getZ(i)).normalize(); v.y += 0.55; v.normalize(); na.setXYZ(i, v.x, v.y, v.z); }
+      quads.push(pl.toNonIndexed());
+    }
+  }
+  return mergeGeometries([mergeGeometries(cores), mergeGeometries(quads)], true);
+}
+// el viento mece las hojas (vértices del follaje, según la posición de cada árbol)
+function windify(mat, amp) {
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uTime = ATM.uTime;
+    sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      #ifdef USE_INSTANCING
+        float wph = instanceMatrix[3].x * 0.21 + instanceMatrix[3].z * 0.17;
+      #else
+        float wph = 0.0;
+      #endif
+      float wv = sin(uTime * 1.5 + wph + position.y * 1.1) + 0.5 * sin(uTime * 3.7 + wph * 2.0 + position.x * 2.0);
+      transformed.xz += wv * ${amp.toFixed(3)} * vec2(1.0, 0.6) * max(0.0, position.y);`);
+  };
+  mat.customProgramCacheKey = () => 'wind' + amp;
+  return mat;
+}
 function buildVegetation(opts = {}) {
   const rv = mulberry32(99 + MAP_IDS.indexOf(MAP_ID) * 17), q = {};
   const araTrunk = new THREE.CylinderGeometry(0.3, 0.5, 1, 7); araTrunk.translate(0, 0.5, 0);
@@ -2060,15 +2171,14 @@ function buildVegetation(opts = {}) {
   const araCrown = jitterGeo(mergeGeometries(tiers), 0.12, 3);
   const palmTrunk = new THREE.CylinderGeometry(0.55, 0.78, 1, 10); palmTrunk.translate(0, 0.5, 0);
   const fronds = frondsGeo();
-  const bushGeo = jitterGeo(new THREE.IcosahedronGeometry(1, 1), 0.25, 7); bushGeo.scale(1, 0.72, 1); bushGeo.translate(0, 0.45, 0);
+  // arbustos, plátanos y coigües: núcleo suave + tarjetas de hojas (ver leafyGeo)
+  const bushGeo = leafyGeo([[0, 0, 0, 1], [0.5, -0.1, 0.3, 0.6]], 9, 0.95, 7); bushGeo.scale(1, 0.72, 1); bushGeo.translate(0, 0.45, 0);
   const rockG = rockGeo();
   // plátano oriental (las avenidas de Santiago): copa redonda de varias masas
-  const treeCrown = jitterGeo(mergeGeometries([[0, 0, 0, 1], [0.62, 0.25, 0.2, 0.74], [-0.55, 0.18, -0.35, 0.78], [0.1, 0.55, -0.5, 0.66], [-0.2, 0.42, 0.55, 0.7]]
-    .map(([x, y, z, r]) => new THREE.IcosahedronGeometry(r, 1).translate(x, y, z))), 0.16, 21);
+  const treeCrown = leafyGeo([[0, 0, 0, 1], [0.62, 0.25, 0.2, 0.74], [-0.55, 0.18, -0.35, 0.78], [0.1, 0.55, -0.5, 0.66], [-0.2, 0.42, 0.55, 0.7]], 15, 0.85, 21);
   const treeTrunk = new THREE.CylinderGeometry(0.2, 0.32, 1, 7); treeTrunk.translate(0, 0.5, 0);
   // coigüe: tronco alto y copa en capas
-  const conCrown = jitterGeo(mergeGeometries([[1, 0, 1], [0.82, 0.95, 0.85], [0.62, 1.8, 0.7], [0.4, 2.5, 0.55]]
-    .map(([r, y, s]) => new THREE.IcosahedronGeometry(1, 1).scale(r * 2.4, 1.24 * s, r * 2.4).translate(0, y * 1.7, 0))), 0.2, 33);
+  const conCrown = leafyGeo([[0, 0, 0, 2.4], [0, 1.6, 0, 1.97], [0, 3.06, 0, 1.49], [0, 4.25, 0, 0.96]], 12, 0.62, 33);
   const conTrunk = new THREE.CylinderGeometry(0.22, 0.4, 1, 7); conTrunk.translate(0, 0.5, 0);
   // nalca: hojas enormes sobre tallos
   const nalcaGeo = (() => {
@@ -2133,6 +2243,8 @@ function buildVegetation(opts = {}) {
   const leafM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, flatShading: true });
   const frondM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, side: THREE.DoubleSide });
   const rockM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, flatShading: true });
+  // follaje: el núcleo un poco más oscuro (la sombra interior de la copa) y las hojas con huecos; ambos se mecen
+  const foliage = [windify(new THREE.MeshStandardMaterial({ color: 0xa8a8a8, roughness: 0.92 }), 0.03), windify(new THREE.MeshStandardMaterial({ map: leafTex(), alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.8 }), 0.05)];
   // Araucarias
   inst(araTrunk, barkM, out.ara, ([x, y, z, a, b]) => { const H = 11 + a * 9; ps.set(x, y - 0.3, z); qq.identity(); sc.set(1 + b * 0.5, H, 1 + b * 0.5); col.setHex(0x6a5444); });
   inst(araCrown, leafM, out.ara, ([x, y, z, a, b, c]) => { const H = 11 + a * 9, s = 0.75 + b * 0.5; ps.set(x, y + H - 1.2, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, s * (0.9 + a * 0.4), s); col.setHex(0x223619).lerp(new THREE.Color(0x30481f), c); });
@@ -2143,17 +2255,17 @@ function buildVegetation(opts = {}) {
   out.palm.forEach(([x, y, z, a, b]) => addObstacle(x, z, 0.75 + b * 0.25));
   // Plátanos orientales
   inst(treeTrunk, barkM, out.tree, ([x, y, z, a, b]) => { const H = 3.2 + a * 2.2; ps.set(x, y - 0.2, z); qq.identity(); sc.set(1 + b * 0.4, H + 0.8, 1 + b * 0.4); col.setHex(0x8a8070); });
-  inst(treeCrown, leafM, out.tree, ([x, y, z, a, b, c]) => { const H = 3.2 + a * 2.2, s = 3.0 + b * 1.8; ps.set(x, y + H + s * 0.5, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, s * 0.85, s); col.setHex(0x3c5c24).lerp(new THREE.Color(0x5b7a2d), c); });
+  inst(treeCrown, foliage, out.tree, ([x, y, z, a, b, c]) => { const H = 3.2 + a * 2.2, s = 3.0 + b * 1.8; ps.set(x, y + H + s * 0.5, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, s * 0.85, s); col.setHex(0x4f7230).lerp(new THREE.Color(0x7a9a3c), c); });
   out.tree.forEach(([x, y, z, a, b]) => addObstacle(x, z, 0.32 + b * 0.12));
   // Coigües
   inst(conTrunk, barkM, out.conifer, ([x, y, z, a, b]) => { const H = 9 + a * 10; ps.set(x, y - 0.3, z); qq.identity(); sc.set(1 + b * 0.5, H, 1 + b * 0.5); col.setHex(0x4a3b30); });
-  inst(conCrown, leafM, out.conifer, ([x, y, z, a, b, c]) => { const H = 9 + a * 10, s = 0.9 + b * 0.6; ps.set(x, y + H * 0.55, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, H * 0.1 * (0.9 + c * 0.3), s); col.setHex(0x1c3418).lerp(new THREE.Color(0x2e4c21), c); });
+  inst(conCrown, foliage, out.conifer, ([x, y, z, a, b, c]) => { const H = 9 + a * 10, s = 0.9 + b * 0.6; ps.set(x, y + H * 0.55, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, H * 0.1 * (0.9 + c * 0.3), s); col.setHex(0x1c3418).lerp(new THREE.Color(0x2e4c21), c); });
   out.conifer.forEach(([x, y, z, a, b]) => addObstacle(x, z, 0.42 + b * 0.2));
   // Nalcas
   inst(nalcaGeo, frondM, out.nalca, ([x, y, z, a, b, c]) => { const s = 0.9 + a * 1.1; ps.set(x, y - 0.1, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, s, s); col.setHex(0x37661f).lerp(new THREE.Color(0x56832b), b); }, false);
   // Espinos y arbustos
   const bushCol = MAP_ID === 'austral' ? [0x2a4a1c, 0x45622a] : MAP_ID === 'caracoles' ? [0x5a5a38, 0x75704a] : [0x394220, 0x626030];
-  inst(bushGeo, leafM, out.bush, ([x, y, z, a, b, c]) => { const s = 0.8 + a * 2.0; ps.set(x, y - 0.25, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s * (0.8 + b * 0.5), s * (0.7 + c * 0.6), s); col.setHex(bushCol[0]).lerp(new THREE.Color(bushCol[1]), b); }, false);
+  inst(bushGeo, foliage, out.bush, ([x, y, z, a, b, c]) => { const s = 0.8 + a * 2.0; ps.set(x, y - 0.25, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s * (0.8 + b * 0.5), s * (0.7 + c * 0.6), s); col.setHex(bushCol[0]).lerp(new THREE.Color(bushCol[1]), b); }, false);
   // Rocas
   inst(rockG, rockM, out.rock, ([x, y, z, a, b, c]) => { const s = 0.4 + a * a * 2.6; ps.set(x, y - s * 0.2, z); qq.setFromEuler(e.set(b, c * 6, a)); sc.set(s, s, s * (0.7 + b * 0.6)); col.setHex(0x7c766f).lerp(new THREE.Color(0x9a8e80), c); }, false);
   out.rock.forEach(([x, y, z, a]) => { const s = 0.4 + a * a * 2.6; if (s > 0.7) addObstacle(x, z, s * 0.85, null, 'rock'); });
@@ -2522,8 +2634,13 @@ function redBeacon(x, y, z, r = 0.6) {
 }
 
 // ---------- Santiago: la Alameda y sus alrededores ----------
+// colores de las casas de Bellavista (fachadas pintadas)
+const BV_COLS = [0xe2a83f, 0x3f86c8, 0xd1495b, 0x5fa86f, 0xe8743b, 0xa04aa8, 0xf0d24a, 0x2fa0a0];
 function decorAlameda() {
   const r = mulberry32(2024), q = {}, S = newBuildings(), L = track.length;
+  // el Mapocho a la altura x (el cauce va de oriente a poniente) y si un punto queda en la ribera norte (Bellavista)
+  const riverZ = x => { const P = ALAMEDA_RIVER; for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; if ((x <= ax && x >= bx) || (x >= ax && x <= bx)) return lerp(az, bz, (x - ax) / ((bx - ax) || 1)); } return -1e9; };
+  const northBank = (x, z) => x < 1250 && x > -1300 && z < riverZ(x) - 14;
   const OC = 6, occ = new Set(), key = (x, z) => Math.floor(x / OC) + ',' + Math.floor(z / OC);
   const rectPts = (x, z, rot, w, d, fn) => {
     const c = Math.cos(rot), s = Math.sin(rot), sa = Math.min(OC * 0.8, w / 2), sb = Math.min(OC * 0.8, d / 2);
@@ -2533,8 +2650,11 @@ function decorAlameda() {
   const mark = (x, z, rot, w, d) => rectPts(x, z, rot, w + 3, d + 3, (px, pz) => { occ.add(key(px, pz)); });
   // la franja norte de la Alameda (bandejón, calzada norte y su vereda): ahí no va nada más
   const inBand = (px, pz) => SPLIT && track.query(px, pz, q) && q.d > ROAD_HALF && q.d < SPLIT.walk1 + 0.5 && inSplit(q.s);
+  // Costanera: paseo, río, Av. Santa María y su vereda (derecha) · Parque Forestal (izquierda)
+  const inRiverBand = (px, pz) => RIVER && track.query(px, pz, q) && inRiver(q.s) && q.d < -ROAD_HALF && q.d > -(RIVER.smw + 1);
+  const inPark = (px, pz) => RIVER && track.query(px, pz, q) && q.s > RIVER.a && q.s < RIVER.parkEnd && q.d > ROAD_HALF && q.d < RIVER.park1 + 1;
   const free = (x, z, rot, w, d) => rectPts(x, z, rot, w, d, (px, pz) => {
-    if (occ.has(key(px, pz)) || inBand(px, pz)) return false;
+    if (occ.has(key(px, pz)) || inBand(px, pz) || inRiverBand(px, pz) || inPark(px, pz)) return false;
     if (track.query(px, pz, q) && q.dist < ROAD_HALF + FLAT_EXTRA + 0.8) return false;
     if (polyDist(ALAMEDA_RIVER, px, pz) < 34) return false;
     if (Math.hypot(px - 230, pz - 90) < 98 || Math.hypot(px - 260, pz + 760) < 400) return false;
@@ -2638,6 +2758,56 @@ function decorAlameda() {
     for (const s of [-1, 1]) add(new THREE.BoxGeometry(1.2, 3, 1.2), dark, x + s * 44, gy + 15.5, z + 19);
     mark(x, z, 0, 100, 44);
   }
+  // ---- la Costanera: Bellavista de colores al otro lado del río y los edificios del Parque Forestal ----
+  for (let k = 0; k < BV_COLS.length; k++) { S.mats['bv' + k] = facadeMat('clasico').clone(); S.mats['bv' + k].color.setHex(BV_COLS[k]); CITY_EMI.push({ mat: S.mats['bv' + k], k: 1 }); }
+  if (RIVER) {
+    // punto de la Costanera a la altura x (con la orientación de la pista para alinear los edificios)
+    const sAt = x => { let best = RIVER.a, bd = 1e9; for (let s = RIVER.a; s <= RIVER.b; s += 2) { track.at(s, tmpP); const d = Math.abs(tmpP.x - x); if (d < bd) { bd = d; best = s; } } return best; };
+    const place = (x, d, w, dd) => { const s = sAt(x), f = roadFrame(s, 1, d), rot = Math.atan2(-f.tz, f.tx), g = new THREE.Group(); g.position.set(f.x, minGround(f.x, f.z, rot, w, dd) - 0.3, f.z); g.rotation.y = rot; world.add(g); mark(f.x, f.z, rot, w + 4, dd + 4); return { f, rot, g, gy: g.position.y }; };
+    const gAdd = (g, geo, mat, x, y, z, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = ry; m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+    // Museo Nacional de Bellas Artes: palacio blanco en el Parque Forestal con su cúpula de fierro y vidrio
+    {
+      const { f, rot, g, gy } = place(270, 44, 74, 36);
+      S.mats.mnba = facadeMat('clasico').clone(); S.mats.mnba.color.setHex(0xefe8da); CITY_EMI.push({ mat: S.mats.mnba, k: 0.8 });
+      pushBox(S, 'mnba', f.x, f.z, rot, 74, 36, gy, gy + 15);
+      gAdd(g, new THREE.BoxGeometry(76, 1.2, 38), white, 0, 15.6, 0);
+      gAdd(g, new THREE.CylinderGeometry(10, 10.5, 4.5, 24), white, 0, 18.2, 0);
+      gAdd(g, new THREE.SphereGeometry(10, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshPhysicalMaterial({ color: 0x9fb2b8, metalness: 0.5, roughness: 0.15, transparent: true, opacity: 0.85, clearcoat: 1 }), 0, 20.4, 0);
+      gAdd(g, new THREE.CylinderGeometry(0.6, 1, 3, 10), dark, 0, 31.5, 0);
+      gAdd(g, new THREE.BoxGeometry(22, 13, 3), white, 0, 6.5, 19);                       // portada hacia el río
+      for (let k = 0; k < 6; k++) gAdd(g, new THREE.CylinderGeometry(0.55, 0.62, 11, 14), white, -8.75 + k * 3.5, 5.5, 21);
+      gAdd(g, gableGeo(23, 3.4, 3.2), white, 0, 13, 20.2);
+    }
+    // Fuente Alemana: regalo de la colonia alemana, con su barco de bronce, junto a Plaza Italia
+    {
+      const { g } = place(655, 26, 16, 16);
+      const stone = new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.9 }), bronze = new THREE.MeshStandardMaterial({ color: 0x4f4636, metalness: 0.7, roughness: 0.45 });
+      gAdd(g, new THREE.CylinderGeometry(7, 7.4, 0.9, 32), stone, 0, 0.45, 0);
+      const w = new THREE.Mesh(new THREE.CircleGeometry(6.5, 32), new THREE.MeshStandardMaterial({ color: 0x3f6f7a, roughness: 0.08, metalness: 0.3 })); w.rotation.x = -Math.PI / 2; w.position.y = 0.82; g.add(w);
+      gAdd(g, new THREE.BoxGeometry(3.4, 4.5, 2.4), stone, 0, 2.6, 0);
+      gAdd(g, new THREE.BoxGeometry(5.5, 1.2, 1.8), bronze, 0, 5.4, 0);
+      gAdd(g, new THREE.ConeGeometry(0.9, 3.4, 4), bronze, 2.2, 7.4, 0);
+      for (const [x, h] of [[-1.6, 2.2], [-0.4, 2.6], [0.9, 2.3]]) gAdd(g, new THREE.CapsuleGeometry(0.35, h - 0.7, 4, 8), bronze, x, 6.2 + h / 2, 0);
+    }
+    // Estación Mapocho: la gran estación de 1912 (hoy centro cultural), con su arco central, mansardas y la nave de fierro
+    {
+      const { f, rot, g, gy } = place(-600, 50, 118, 46);
+      S.mats.mapocho = facadeMat('clasico').clone(); S.mats.mapocho.color.setHex(0xd9b28c); CITY_EMI.push({ mat: S.mats.mapocho, k: 0.9 });
+      pushBox(S, 'mapocho', f.x, f.z, rot, 118, 46, gy, gy + 17);
+      const roofM = new THREE.MeshStandardMaterial({ color: 0x4a5258, roughness: 0.6, metalness: 0.4 });
+      for (const x of [-52, 52]) { gAdd(g, new THREE.BoxGeometry(14, 22, 46), S.mats.mapocho, x, 11, 0); gAdd(g, new THREE.ConeGeometry(10.5, 7, 4), roofM, x, 25.5, 0, Math.PI / 4); }
+      gAdd(g, new THREE.BoxGeometry(34, 26, 8), S.mats.mapocho, 0, 13, 20);
+      const arch = new THREE.Shape(); arch.moveTo(-11, 0); arch.lineTo(-11, 12); arch.absarc(0, 12, 11, Math.PI, 0, true); arch.lineTo(11, 0); arch.lineTo(-11, 0);
+      const win = new THREE.Mesh(new THREE.ShapeGeometry(arch, 16), new THREE.MeshStandardMaterial({ color: 0x3a4a52, metalness: 0.4, roughness: 0.2 })); win.position.set(0, 1.5, 24.05); g.add(win);
+      // la nave de fierro y vidrio detrás: medio cilindro tendido hacia el sur
+      const hall = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 50, 24, 1, true, -Math.PI / 2, Math.PI), new THREE.MeshStandardMaterial({ color: 0x6d7a80, metalness: 0.6, roughness: 0.35, side: THREE.DoubleSide }));
+      hall.rotation.x = -Math.PI / 2; hall.position.set(0, 4, -48); hall.castShadow = true; g.add(hall);
+      mark(f.x + 48 * f.tz, f.z - 48 * f.tx, rot, 60, 56);
+      // la explanada de adoquines frente a la estación
+      const pz = roadFrame(sAt(-600), 1, (RIVER.park0 + 27) / 2);
+      groundPatch(pz.x, pz.z, 120, 27 - RIVER.park0, new THREE.MeshStandardMaterial({ map: texSidewalk, roughness: 1 }), rot, 0.05, 8);
+    }
+  }
   // Plaza Baquedano (Plaza Italia): rotonda con el monumento ecuestre
   {
     const x = 735, z = 125, gy = groundAt(x, z, q);
@@ -2688,7 +2858,8 @@ function decorAlameda() {
   // calles transversales (cruces con paso de cebra y semáforos)
   const streets = [];
   for (let s = 70; s < L - 40; s += 95 + r() * 45) { const d = wrapGap(s - track.START_S); if (d > -40 && d < 60) continue; streets.push(s); }
-  // edificios que dan a la ruta (orientados según el camino)
+  // edificios que dan a la ruta (orientados según el camino); casi todos con locales en el primer piso
+  const fronts = [];
   for (const side of [1, -1]) {
     let s = 4;
     while (s < L - 4) {
@@ -2696,23 +2867,26 @@ function decorAlameda() {
       if (streets.some(t => Math.abs(wrapGap(t - sc)) < w / 2 + 7)) { s += 5; continue; }
       track.at(sc, tmpP);
       // al norte de la Alameda los edificios dan a la calzada norte, detrás de su vereda
-      const lx = tmpP.tz, lz = -tmpP.tx, off = (side > 0 && inSplit(sc) ? SPLIT.walk1 + 0.8 : ROAD_HALF + FLAT_EXTRA + 1.4) + d / 2;
+      const parkSide = side > 0 && RIVER && sc > RIVER.a && sc < RIVER.parkEnd;   // detrás del Parque Forestal (calle Merced / Ismael Valdés Vergara)
+      const lx = tmpP.tz, lz = -tmpP.tx, off = (side > 0 && inSplit(sc) ? SPLIT.walk1 + 0.8 : parkSide ? RIVER.park1 + 3 : ROAD_HALF + FLAT_EXTRA + 1.4) + d / 2;
       const x = tmpP.x + lx * side * off, z = tmpP.z + lz * side * off, rot = Math.atan2(-tmpP.tz, tmpP.tx);
       if (free(x, z, rot, w, d)) {
         const hh = Math.round(floorsAt(x, z)) * 3.4, gy = minGround(x, z, rot, w, d) - 0.5;
-        pushBox(S, pickFac(hh), x, z, rot, w, d, gy, gy + hh, 24, 27.2, Math.floor(r() * 8) / 8); mark(x, z, rot, w, d);
+        pushBox(S, pickFac(hh, x, z), x, z, rot, w, d, gy, gy + hh, 24, 27.2, Math.floor(r() * 8) / 8); mark(x, z, rot, w, d);
+        if (r() < 0.85) fronts.push({ x, z, rot, w, d, face: side > 0 ? 1 : -1 });
       }
       s += w + 1 + r() * 3;
     }
   }
   function floorsAt(x, z) {
     if (x > 950) return 8 + r() * 24;              // Providencia
-    if (z < -280) return 2 + r() * 3;              // Bellavista
+    if (northBank(x, z)) return 2 + r() * 2.5;     // Bellavista: casas bajas al otro lado del Mapocho
     if (x < -760) return 2 + r() * 6;              // Estación Central hacia el poniente
     const centro = smooth(820, 300, Math.abs(x - 50)) * smooth(-330, -200, z) * smooth(720, 420, z);
     return 3 + r() * (4 + centro * 15) + (r() < 0.12 * centro ? 9 : 0);
   }
-  function pickFac(h) {
+  function pickFac(h, x, z) {
+    if (x !== undefined && h < 18 && northBank(x, z)) return 'bv' + Math.floor(r() * BV_COLS.length);   // fachadas pintadas de colores
     const t = r();
     if (h > 45) return t < 0.55 ? 'vidrio' : t < 0.82 ? 'moderno' : 'clasico';
     if (h > 20) return t < 0.35 ? 'clasico' : t < 0.65 ? 'moderno' : t < 0.83 ? 'ladrillo' : 'vidrio';
@@ -2726,9 +2900,10 @@ function decorAlameda() {
     if (track.query(x, z, q) && q.dist < 44) continue;
     if (!free(x, z, rot, w, d)) continue;
     const hh = Math.round(floorsAt(x, z)) * 3.4, gy = minGround(x, z, rot, w, d) - (Math.abs(x) > 900 ? 3 : 0.6);
-    pushBox(S, pickFac(hh), x, z, rot, w, d, gy, gy + hh, 24, 27.2, Math.floor(r() * 8) / 8); mark(x, z, rot, w, d);
+    pushBox(S, pickFac(hh, x, z), x, z, rot, w, d, gy, gy + hh, 24, 27.2, Math.floor(r() * 8) / 8); mark(x, z, rot, w, d);
   }
   flushBuildings(S);
+  shopFronts(fronts, r);
 
   // faroles a ambos lados (se encienden al atardecer) y plátanos orientales en las veredas
   const poleGeo = mergeGeometries([new THREE.CylinderGeometry(0.09, 0.14, 9, 8).translate(0, 4.5, 0), new THREE.BoxGeometry(0.08, 0.08, 2.3).translate(0, 8.9, 1.1), new THREE.BoxGeometry(0.36, 0.16, 0.75).translate(0, 8.86, 2.15)]);
@@ -2767,10 +2942,12 @@ function decorAlameda() {
     world.add(stripMesh(zseg, new THREE.MeshStandardMaterial({ map: zebra, transparent: true, alphaTest: 0.4, roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -6 })));
   }
   const tlGeo = mergeGeometries([new THREE.CylinderGeometry(0.08, 0.1, 4.4, 8).translate(0, 2.2, 0), new THREE.BoxGeometry(0.36, 1.05, 0.3).translate(0, 4.6, 0.12)]);
-  const tlLit = new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.3, 0.29);
+  const tlLit = new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.62, 0.29);   // la luz del medio (amarilla)
   const tls = [];
   for (const s of streets) for (const side of [1, -1]) { const f = roadFrame(s + side * 3, side, RAIL_D + 0.5); tls.push([f, side]); }
-  const tlm = new THREE.InstancedMesh(tlGeo, dark, tls.length), tll = new THREE.InstancedMesh(tlLit, new THREE.MeshStandardMaterial({ color: 0x0a3010, emissive: 0x30ff60, emissiveIntensity: 2.2 }), tls.length);
+  // la calzada de la carrera está cerrada para el Gran Premio: sus semáforos destellan en amarillo
+  const tlm = new THREE.InstancedMesh(tlGeo, dark, tls.length), tll = new THREE.InstancedMesh(tlLit, new THREE.MeshStandardMaterial({ color: 0x302006, emissive: 0xffb020, emissiveIntensity: 2.2 }), tls.length);
+  SIGNAL.race = tll.material;
   tls.forEach(([f, side], k) => { m4.compose(pv.set(f.x, f.y, f.z), qq.setFromAxisAngle(up, Math.atan2(-f.tx, -f.tz) + (side > 0 ? 0 : 0)), one); tlm.setMatrixAt(k, m4); tll.setMatrixAt(k, m4); });
   world.add(tlm, tll);
   // paraderos de micro
@@ -2807,9 +2984,21 @@ function decorAlameda() {
     const hole = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 4.6), new THREE.MeshBasicMaterial({ color: 0x0c0c0e })); hole.rotation.x = -Math.PI / 2; hole.position.set(ent.x, ent.y + 1.01, ent.z); hole.rotation.z = -ent.heading; world.add(hole);
   });
   if (SPLIT) alamedaAvenue(r, streets, trees);
-  return { blocked: (x, z) => occ.has(key(x, z)) || inBand(x, z), extra: { tree: trees } };
+  if (RIVER) costaneraDecor(r, streets, trees);
+  buildPeople();
+  return { blocked: (x, z) => occ.has(key(x, z)) || inBand(x, z) || inRiverBand(x, z), extra: { tree: trees } };
 }
 
+// ---------- semáforos: la calzada norte cicla (verde 30 s, amarillo 3, rojo 9) y el tránsito para en rojo;
+// los de la calzada de la carrera destellan en amarillo (calle cerrada para el Gran Premio) ----------
+const SIGNAL = { t: 7, phase: 'g', mats: null, race: null, stops: [] };
+function updateSignals(dt) {
+  SIGNAL.t = (SIGNAL.t + dt) % 42;
+  const t = SIGNAL.t, ph = t < 30 ? 'g' : t < 33 ? 'y' : 'r'; SIGNAL.phase = ph;
+  const M = SIGNAL.mats;
+  if (M) { M.g.emissiveIntensity = ph === 'g' ? 2.4 : 0.04; M.y.emissiveIntensity = ph === 'y' ? 2.6 : 0.04; M.r.emissiveIntensity = ph === 'r' ? 2.6 : 0.04; }
+  if (SIGNAL.race) SIGNAL.race.emissiveIntensity = (performance.now() % 1100) < 550 ? 2.4 : 0.08;
+}
 // ---------- la Alameda partida: bandejón central, calzada norte, veredas y calles que la cruzan ----------
 function alamedaAvenue(r, streets, trees) {
   const A = SPLIT, P = MAP.split, ys = BERM_RAISE + 0.012, q = {};
@@ -2882,8 +3071,10 @@ function alamedaAvenue(r, streets, trees) {
   for (const s of streets) {
     const f = roadFrame(s, 1, 0), rot = Math.atan2(f.tz, -f.tx), lx = f.tz, lz = -f.tx, split = inSplit(s);
     const n0 = split ? A.walk1 : ROAD_HALF + FLAT_EXTRA + 0.4, s0b = ROAD_HALF + FLAT_EXTRA + 0.4;
-    groundPatch(f.x - lx * (s0b + southLen / 2), f.z - lz * (s0b + southLen / 2), 10, southLen, sMat, rot, 0.05, 6);
-    groundPatch(f.x + lx * (n0 + northLen / 2), f.z + lz * (n0 + northLen / 2), 10, northLen, nMat, rot, 0.05, 6);
+    // en la Costanera: a la izquierda está el Parque Forestal (senderos) y a la derecha el río (puentes): ver costaneraDecor
+    const riv = inRiver(s);
+    if (!riv) groundPatch(f.x - lx * (s0b + southLen / 2), f.z - lz * (s0b + southLen / 2), 10, southLen, sMat, rot, 0.05, 6);
+    if (!riv) groundPatch(f.x + lx * (n0 + northLen / 2), f.z + lz * (n0 + northLen / 2), 10, northLen, nMat, rot, 0.05, 6);
     if (!split) continue;
     groundPatch(f.x + lx * (A.med0 + A.med1) / 2, f.z + lz * (A.med0 + A.med1) / 2, 4, A.med1 - A.med0 - 0.6, crossMat, rot, 0.02, 2);
     const run = [];
@@ -2896,10 +3087,13 @@ function alamedaAvenue(r, streets, trees) {
   if (tls.length) {
     const housing = mergeGeometries([new THREE.CylinderGeometry(0.08, 0.1, 4.4, 8).translate(0, 2.2, 0), new THREE.BoxGeometry(0.36, 1.05, 0.3).translate(0, 4.6, 0.12), new THREE.BoxGeometry(0.62, 1.3, 0.04).translate(0, 4.6, -0.04)]);
     const hm = new THREE.InstancedMesh(housing, new THREE.MeshStandardMaterial({ color: 0x24272a, roughness: 0.6, metalness: 0.3 }), tls.length);
-    const lit = new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.3, 0.29), new THREE.MeshStandardMaterial({ color: 0x0a3010, emissive: 0x30ff60, emissiveIntensity: 2.2 }), tls.length);
-    const off = new THREE.InstancedMesh(mergeGeometries([new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.95, 0.29), new THREE.SphereGeometry(0.1, 8, 6).translate(0, 4.62, 0.29)]), new THREE.MeshStandardMaterial({ color: 0x2a0a06, roughness: 0.4 }), tls.length);
-    tls.forEach((f, k) => { m4.compose(pv.set(f.x, f.y + ys, f.z), qq.setFromAxisAngle(up, Math.atan2(f.tx, f.tz)), one); hm.setMatrixAt(k, m4); lit.setMatrixAt(k, m4); off.setMatrixAt(k, m4); });
-    hm.castShadow = true; world.add(hm, lit, off);
+    // tres luces de verdad (rojo arriba, amarillo, verde abajo) que cambian según el ciclo (ver updateSignals)
+    const lamp = (y, col, emi) => new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 8, 6).translate(0, y, 0.29), new THREE.MeshStandardMaterial({ color: col, emissive: emi, emissiveIntensity: 0.05 }), tls.length);
+    const lr = lamp(4.95, 0x300806, 0xff2a18), ly = lamp(4.62, 0x302006, 0xffb020), lg = lamp(4.3, 0x0a3010, 0x30ff60);
+    SIGNAL.mats = { r: lr.material, y: ly.material, g: lg.material };
+    SIGNAL.stops = streets.filter(s => inSplit(s));
+    tls.forEach((f, k) => { m4.compose(pv.set(f.x, f.y + ys, f.z), qq.setFromAxisAngle(up, Math.atan2(f.tx, f.tz)), one); for (const im of [hm, lr, ly, lg]) im.setMatrixAt(k, m4); });
+    hm.castShadow = true; world.add(hm, lr, ly, lg);
   }
   // O'Higgins a caballo en el bandejón, frente a La Moneda
   { const s = -250 + 640, f = roadFrame(s, 1, (A.med0 + A.med1) / 2); if (inSplit(s)) equestrian(f.x, f.y + ys, f.z, Math.atan2(-f.tx, -f.tz), 1.6); }
@@ -2911,6 +3105,272 @@ function alamedaAvenue(r, streets, trees) {
   kPos.forEach((f, k) => kiosks.setMatrixAt(k, m4.compose(pv.set(f.x, f.y + ys, f.z), qq.setFromAxisAngle(up, Math.atan2(f.tx, f.tz)), one)));
   kiosks.count = kPos.length; kiosks.castShadow = true; world.add(kiosks);
   for (const f of kPos) addObstacle(f.x, f.z, 1.2, null, 'metal');
+}
+// ---------- la Costanera: paseo y balaustrada junto al Mapocho, muros del canal, Av. Santa María, Parque Forestal y puentes ----------
+function costaneraDecor(r, streets, trees) {
+  const R = RIVER, ys = BERM_RAISE + 0.012, step = 4, s0 = R.a, s1 = R.b;
+  const nearStreet = (s, m) => streets.some(t => Math.abs(wrapGap(t - s)) < m);
+  // texturas: ladrillo del paseo, piedra del canal (manchada de humedad abajo), balaustrada y maicillo de los senderos
+  const brick = canvasTex(256, 256, (g, w, h) => {
+    noiseFill(g, w, h, 120, 18, 71, [40, -2, -22], 0.05);
+    g.strokeStyle = 'rgba(70,52,40,0.6)'; g.lineWidth = 2;
+    for (let j = 0; j <= 16; j++) { g.beginPath(); g.moveTo(0, j * 16); g.lineTo(w, j * 16); g.stroke(); for (let i = 0; i <= 8; i++) { const x = i * 32 + (j % 2) * 16; g.beginPath(); g.moveTo(x, j * 16); g.lineTo(x, j * 16 + 16); g.stroke(); } }
+  });
+  const stoneTex = canvasTex(256, 256, (g, w, h) => {
+    noiseFill(g, w, h, 118, 22, 73, [6, 2, -6], 0.08);
+    const rr = mulberry32(5);
+    g.strokeStyle = 'rgba(55,50,44,0.7)'; g.lineWidth = 2.5;
+    for (let j = 0; j < 8; j++) { g.beginPath(); g.moveTo(0, j * 32); g.lineTo(w, j * 32); g.stroke(); for (let x = (j % 2) * 30 + rr() * 20; x < w; x += 48 + rr() * 26) { g.beginPath(); g.moveTo(x, j * 32); g.lineTo(x, j * 32 + 32); g.stroke(); } }
+    const gr = g.createLinearGradient(0, h * 0.55, 0, h); gr.addColorStop(0, 'rgba(40,46,38,0)'); gr.addColorStop(1, 'rgba(40,46,38,0.6)'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  });
+  const balus = canvasTex(256, 64, (g, w, h) => {
+    g.clearRect(0, 0, w, h); g.fillStyle = '#c9c2b2';
+    g.fillRect(0, 0, w, 10); g.fillRect(0, h - 8, w, 8);
+    for (let k = 0; k < 8; k++) { const cx = 16 + k * 32; g.beginPath(); g.moveTo(cx - 5, 10); g.quadraticCurveTo(cx - 11, 30, cx - 6, 50); g.lineTo(cx - 8, h - 8); g.lineTo(cx + 8, h - 8); g.lineTo(cx + 6, 50); g.quadraticCurveTo(cx + 11, 30, cx + 5, 10); g.fill(); }
+    for (const x of [0, w - 12]) g.fillRect(x, 0, 12, h);
+  }, true);
+  const maicillo = canvasTex(128, 128, (g, w, h) => { noiseFill(g, w, h, 168, 26, 77, [26, 8, -24], 0.15); });
+  brick.repeat.set(1, 1); stoneTex.repeat.set(1, 1); balus.repeat.set(1, 1); maicillo.repeat.set(1, 1);
+  const promMat = new THREE.MeshStandardMaterial({ map: brick, roughness: 0.95 });
+  const wallMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.95, side: THREE.DoubleSide });
+  const balMat = new THREE.MeshStandardMaterial({ map: balus, alphaTest: 0.5, roughness: 0.9, side: THREE.DoubleSide });
+  const pathMat = new THREE.MeshStandardMaterial({ map: maicillo, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
+  const smMat = new THREE.MeshStandardMaterial({ map: onewayTex(14, true), roughness: 0.8 }); smMat.bumpMap = smMat.map; smMat.bumpScale = 0.5;
+  const walkMat = new THREE.MeshStandardMaterial({ map: texSidewalk, roughness: 1 });
+  WET.road.push({ m: promMat, r: 0.95 }, { m: smMat, r: 0.8, wr: 0.32, wc: 0.66 }, { m: walkMat, r: 1 });
+  const prom = [], wallS = [], wallN = [], balS = [], balN = [], sm = [], smW = [], smW2 = [], path = [];
+  for (let s = s0; s <= s1 + 0.01; s += step) {
+    track.at(s, tmpP); const lx = tmpP.tz, lz = -tmpP.tx, x = tmpP.x, z = tmpP.z, y = tmpP.y;
+    const P = (d, yy) => [x + lx * d, yy, z + lz * d], G = (d, lift = 0.03) => { const px = x + lx * d, pz = z + lz * d; return [px, groundAt(px, pz, {}) + lift, pz]; };
+    const c = P(-R.c, 0), wy = waterAt(c[0], c[2]), wb = (wy > -1e8 ? wy : y - 5) - 0.6, nTop = G(-(R.wallN + 0.9), 0)[1];
+    prom.push([...P(-R.park0, y + ys), ...P(-R.wallS, y + ys), s / 4]);
+    wallS.push([...P(-R.wallS, y + ys), ...P(-R.wallS, wb), s / 4]);
+    wallN.push([...P(-R.wallN, wb), ...P(-R.wallN, nTop), s / 4]);
+    balS.push([...P(-R.wallS + 0.15, y + ys + 0.95), ...P(-R.wallS + 0.15, y + ys), s / 2]);
+    balN.push([...P(-R.wallN - 0.15, nTop), ...P(-R.wallN - 0.15, nTop + 0.95), s / 2]);
+    smW2.push([...G(-R.wallN), ...G(-R.sm0), s / 6]);
+    sm.push([...G(-R.sm0), ...G(-R.sm1), s / ROAD_REPEAT]);
+    smW.push([...G(-R.sm1, 0.06), ...G(-R.smw, 0.06), s / 6]);
+    if (s < R.parkEnd) path.push([...G(42, 0.05), ...G(38, 0.05), s / 4]);
+  }
+  // la textura del paseo y de la piedra se repite cada 4 m (v) y a lo ancho según el largo de cada franja
+  const wid = (m, w) => { m.map = m.map.clone(); m.map.needsUpdate = true; m.map.repeat.set(w, 1); return m; };
+  world.add(stripMesh([prom], wid(promMat, (R.wallS - R.park0) / 4)), stripMesh([wallS, wallN], wid(wallMat, 1.5)), stripMesh([balS, balN], balMat));
+  world.add(stripMesh([sm], smMat), stripMesh([smW, smW2], walkMat), stripMesh([path], wid(pathMat, 1)));
+  // árboles: cuatro hileras de plátanos en el parque y una en la vereda de Santa María
+  const avoid = [[270, 44, 44], [655, 26, 12]];   // museo y fuente (x, d, radio)
+  for (let s = s0 + 6; s < R.parkEnd - 6; s += 13) {
+    if (nearStreet(s, 7)) continue;
+    for (const d of [R.park0 + 4, R.park0 + 13, 48, 61]) {
+      const f = roadFrame(s + (r() - 0.5) * 5, 1, d + (r() - 0.5) * 3);
+      if (avoid.some(([ax, ad, rad]) => Math.hypot(f.x - ax, 0) < rad && Math.abs(d - ad) < rad)) continue;
+      trees.push([f.x, groundAt(f.x, f.z, {}), f.z, 1.3 + r() * 0.8, 0.8 + r() * 0.6, r()]);
+    }
+  }
+  for (let s = s0 + 8; s < s1 - 8; s += 16) { const f = roadFrame(s, -1, R.sm1 + 3); trees.push([f.x, groundAt(f.x, f.z, {}), f.z, 1 + r() * 0.6, 0.6 + r() * 0.5, r()]); }
+  // bancas mirando al río y a lo largo del sendero del parque
+  const benchPos = [];
+  for (let s = s0 + 10; s < s1 - 10; s += 24) {
+    if (nearStreet(s, 8)) continue;
+    benchPos.push([roadFrame(s, -1, R.wallS - 1.6), -1, true]);
+    if (s < R.parkEnd) { benchPos.push([roadFrame(s + 12, 1, 37.4), 1, false]); benchPos.push([roadFrame(s + 12, 1, 42.6), -1, false]); }
+  }
+  const benchGeo = mergeGeometries([new THREE.BoxGeometry(1.8, 0.07, 0.45).translate(0, 0.45, 0), new THREE.BoxGeometry(1.8, 0.4, 0.06).translate(0, 0.72, -0.22), new THREE.BoxGeometry(0.08, 0.45, 0.4).translate(-0.8, 0.22, 0), new THREE.BoxGeometry(0.08, 0.45, 0.4).translate(0.8, 0.22, 0)]);
+  const benches = new THREE.InstancedMesh(benchGeo, new THREE.MeshStandardMaterial({ color: 0x4d5a3a, roughness: 0.8 }), Math.max(1, benchPos.length));
+  const m4 = new THREE.Matrix4(), qq = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1), pv = new THREE.Vector3();
+  // face = +1: mira hacia la izquierda de la pista (el parque); −1: hacia la derecha (el río)
+  benchPos.forEach(([f, face, prm], k) => benches.setMatrixAt(k, m4.compose(pv.set(f.x, prm ? f.y + ys : groundAt(f.x, f.z, {}), f.z), qq.setFromAxisAngle(up, Math.atan2(face * f.tz, -face * f.tx)), one)));
+  benches.count = benchPos.length; benches.castShadow = true; world.add(benches);
+  // calles que cruzan: en el parque, senderos de maicillo; sobre el río, puentes de piedra en arco (uno por medio)
+  let bridgeN = 0;
+  for (const s of streets) {
+    if (!inRiver(s)) continue;
+    const f = roadFrame(s, 1, 0), rot = Math.atan2(f.tz, -f.tx);
+    if (s < R.parkEnd) { const c = roadFrame(s, 1, (R.park0 + R.park1) / 2); groundPatch(c.x, c.z, 5, R.park1 - R.park0, pathMat, rot, 0.05, 6); }
+    if (bridgeN++ % 2) continue;
+    riverBridge(s, wallMat, balMat);
+  }
+}
+// puente de piedra sobre el Mapocho en la calle que cruza en s: arco rebajado, tablero a la altura del paseo y balaustradas
+function riverBridge(s, stoneMat, balMat) {
+  const R = RIVER, f = roadFrame(s, -1, R.c), c = roadFrame(s, -1, R.c), w = waterAt(c.x, c.z), top = f.y + BERM_RAISE + 0.25;
+  const wl = w > -1e8 ? w : f.y - 5, half = (R.wallN - R.wallS) / 2 + 1.5, base = wl - 1.5, span = half - 2.5, rise = Math.max(1.5, top - 1.3 - (wl + 0.4));
+  // contorno con el arco abierto abajo (un solo polígono: pilar izquierdo, arco, pilar derecho y tablero)
+  const sh = new THREE.Shape(); sh.moveTo(-half, base); sh.lineTo(-span, base); sh.lineTo(-span, wl + 0.4);
+  for (let k = 1; k < 16; k++) { const t = Math.PI - k / 16 * Math.PI; sh.lineTo(span * Math.cos(t), wl + 0.4 + rise * Math.sin(t)); }
+  sh.lineTo(span, wl + 0.4); sh.lineTo(span, base); sh.lineTo(half, base); sh.lineTo(half, top); sh.lineTo(-half, top); sh.lineTo(-half, base);
+  const W = 11, geo = new THREE.ExtrudeGeometry(sh, { depth: W, bevelEnabled: false, curveSegments: 4 }); geo.translate(0, 0, -W / 2);
+  const tex = stoneMat.map.clone(); tex.needsUpdate = true; tex.repeat.set(0.25, 0.25);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 });
+  const m = new THREE.Mesh(geo, mat);
+  // ejes del puente: x a lo ancho del río (hacia la derecha de la pista), y arriba, z contra el sentido de la pista
+  // (así la base es de mano derecha y la geometría no queda espejada)
+  const rx = -f.tz, rz = f.tx;
+  m.matrixAutoUpdate = false;
+  m.matrix.set(rx, 0, -f.tx, c.x, 0, 1, 0, 0, rz, 0, -f.tz, c.z, 0, 0, 0, 1);
+  m.castShadow = true; m.receiveShadow = true; world.add(m);
+  // balaustradas a cada lado del tablero
+  for (const sd of [-1, 1]) {
+    const run = [];
+    for (let k = 0; k <= 8; k++) { const u = -half + 2 * half * k / 8, px = c.x + rx * u + f.tx * sd * (W / 2 - 0.15), pz = c.z + rz * u + f.tz * sd * (W / 2 - 0.15); run.push([px, top + 0.95, pz, px, top, pz, k * half / 4]); }
+    world.add(stripMesh([run], balMat));
+  }
+}
+// ---------- locales comerciales en el primer piso (una textura con 16 locales y una sola malla) ----------
+const SHOPS = [
+  ['FARMACIA', '#1f8a4c', '#ffffff', '#e8e4dc', 'cross'], ['CAFÉ', '#3b2618', '#f2d8a6', '#6b4a32', 'cafe'], ['BOTILLERÍA', '#b8141e', '#ffffff', '#d8d0c4', 'bottles'],
+  ['MINIMARKET', '#1b4f9c', '#ffd23a', '#e6e6e0', 'shelves'], ['BANCO', '#0d2a4a', '#ffffff', '#c8ccd0', 'glass'], ['FUENTE DE SODA', '#d2441c', '#fff3c8', '#e9dcc4', 'menu'],
+  ['SALÓN DE TÉ', '#7a1f4a', '#ffe6f0', '#efe2d8', 'cafe'], ['EMPANADAS', '#c8781c', '#ffffff', '#f0e2c6', 'menu'], ['PELUQUERÍA', '#222226', '#f0c040', '#dcd6cc', 'glass'],
+  ['ÓPTICA', '#164a6a', '#ffffff', '#e4e8ea', 'glass'], ['TELEFONÍA', '#e2001a', '#ffffff', '#ececec', 'glass'], ['LIBRERÍA', '#2a5a3a', '#f4ecd0', '#d8cbb0', 'shelves'],
+  ['ZAPATERÍA', '#4a2a1a', '#ffd8a0', '#e0d4c2', 'shelves'], ['CASA DE CAMBIO', '#c9a227', '#1a1a1a', '#e8e2d0', 'glass'], ['DIARIOS', '#24406a', '#ffffff', '#d6d2c8', 'shelves'], ['', '#5a5a5c', '#ffffff', '#8a8a88', 'shutter'],
+];
+let SHOP_TEX = null;
+function shopAtlas() {
+  if (SHOP_TEX) return SHOP_TEX;
+  SHOP_TEX = canvasTex(2048, 1024, (g) => {
+    const rr = mulberry32(1810);
+    SHOPS.forEach(([name, bg, fg, wall, kind], i) => {
+      const x0 = (i % 4) * 512, y0 = Math.floor(i / 4) * 256, W = 512, H = 256;
+      g.save(); g.beginPath(); g.rect(x0, y0, W, H); g.clip();
+      g.fillStyle = wall; g.fillRect(x0, y0, W, H);
+      // letrero
+      g.fillStyle = bg; g.fillRect(x0 + 6, y0 + 8, W - 12, 52);
+      if (name) { g.fillStyle = fg; g.font = `800 ${name.length > 11 ? 34 : 42}px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, x0 + W / 2, y0 + 36); }
+      if (kind === 'cross') { g.fillStyle = '#2bd66a'; g.fillRect(x0 + 30, y0 + 22, 26, 8); g.fillRect(x0 + 39, y0 + 13, 8, 26); }
+      if (kind === 'shutter') {
+        // cortina metálica cerrada con rayados
+        for (let y = y0 + 70; y < y0 + H; y += 7) { g.fillStyle = (y / 7) % 2 ? '#6a6a6c' : '#7c7c7e'; g.fillRect(x0 + 18, y, W - 36, 7); }
+        const tags = ['#e83a8a', '#3ad0e8', '#f2e23a', '#ffffff'];
+        for (let k = 0; k < 5; k++) { g.strokeStyle = tags[k % 4]; g.lineWidth = 6; g.beginPath(); let x = x0 + 40 + rr() * 380, y = y0 + 120 + rr() * 90; g.moveTo(x, y); for (let j = 0; j < 7; j++) { x += 10 + rr() * 22; y += (rr() - 0.5) * 50; g.lineTo(x, y); } g.stroke(); }
+        g.restore(); return;
+      }
+      // vitrina con el interior iluminado y reflejos, y la puerta
+      const vx = x0 + 22, vy = y0 + 74, vw = W - 150, vh = H - 92;
+      const gr = g.createLinearGradient(0, vy, 0, vy + vh); gr.addColorStop(0, '#fff2d6'); gr.addColorStop(1, '#b89a70'); g.fillStyle = gr; g.fillRect(vx, vy, vw, vh);
+      if (kind === 'shelves' || kind === 'bottles') for (let r = 0; r < 4; r++) { g.fillStyle = '#6a4a2a'; g.fillRect(vx, vy + 20 + r * 38, vw, 4); for (let k = 0; k < 22; k++) { g.fillStyle = `hsl(${rr() * 360},60%,${40 + rr() * 25}%)`; const bw = kind === 'bottles' ? 6 : 10 + rr() * 8, bh = kind === 'bottles' ? 22 : 14 + rr() * 12; g.fillRect(vx + 6 + k * (vw / 22), vy + 20 + r * 38 - bh, bw, bh); } }
+      if (kind === 'cafe' || kind === 'menu') { g.fillStyle = '#4a3020'; g.fillRect(vx, vy + vh - 40, vw, 40); for (let k = 0; k < 5; k++) { g.fillStyle = '#2a1a10'; g.beginPath(); g.arc(vx + 40 + k * 70, vy + vh - 50, 14, 0, 7); g.fill(); } }
+      if (kind === 'menu') { g.fillStyle = '#1a1a1a'; g.fillRect(vx + vw - 120, vy + 10, 110, 80); g.fillStyle = '#f4f0d0'; g.font = `600 15px ${FONT}`; g.textAlign = 'left'; ['Completo  2.500', 'Churrasco 4.900', 'Empanada  2.200', 'Bebida    1.500'].forEach((t, k) => g.fillText(t, vx + vw - 114, vy + 26 + k * 18)); }
+      if (kind === 'glass') { g.fillStyle = 'rgba(30,50,70,0.35)'; g.fillRect(vx, vy, vw, vh); }
+      g.fillStyle = 'rgba(255,255,255,0.18)'; g.beginPath(); g.moveTo(vx + 30, vy); g.lineTo(vx + 90, vy); g.lineTo(vx + 20, vy + vh); g.lineTo(vx - 40, vy + vh); g.fill();
+      g.strokeStyle = '#2a2a2c'; g.lineWidth = 6; g.strokeRect(vx, vy, vw, vh);
+      const dx = x0 + W - 112; g.fillStyle = '#3a3a3e'; g.fillRect(dx, y0 + 70, 92, H - 70); g.fillStyle = '#d8c8a0'; g.fillRect(dx + 8, y0 + 80, 76, H - 92); g.fillStyle = '#c0c0c0'; g.fillRect(dx + 70, y0 + 160, 6, 22);
+      g.restore();
+    });
+  });
+  return SHOP_TEX;
+}
+// fronts: [{x, z, rot, w, d, face}] (face: +1 si la fachada que da a la calle es la cara local +z del edificio)
+function shopFronts(fronts, r) {
+  const pos = [], nrm = [], uv = [], idx = [], ap = [], an = [], ac = [], aidx = [], H = 4.2, CW = 0.25, CHt = 0.25;
+  const awn = [0xb8141e, 0x1f6a3a, 0x1b3f7a, 0x7a1f3a, 0xd8a020, 0x2a2a2a], col = new THREE.Color();
+  for (const f of fronts) {
+    const c = Math.cos(f.rot), s = Math.sin(f.rot), ux = c, uz = -s, nx = s * f.face, nz = c * f.face;
+    const fx = f.x + nx * (f.d / 2 + 0.06), fz = f.z + nz * (f.d / 2 + 0.06), y0 = groundAt(fx, fz, {}) + 0.02;
+    const W = f.w - 1.2, nSeg = Math.max(1, Math.round(W / 8)), sw = W / nSeg;
+    for (let k = 0; k < nSeg; k++) {
+      const cell = Math.floor(r() * SHOPS.length), cu = (cell % 4) * CW, cv = 1 - (Math.floor(cell / 4) + 1) * CHt;
+      let a = -W / 2 + k * sw + 0.1, b = a + sw - 0.2; if (f.face < 0) [a, b] = [b, a];
+      const base = pos.length / 3;
+      for (const [t, yy, uu, vv] of [[a, y0, cu, cv], [b, y0, cu + CW, cv], [b, y0 + H, cu + CW, cv + CHt], [a, y0 + H, cu, cv + CHt]]) { pos.push(fx + ux * t, yy, fz + uz * t); nrm.push(nx, 0, nz); uv.push(uu, vv); }
+      idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      // toldo inclinado en algunos locales
+      if (cell !== SHOPS.length - 1 && r() < 0.45) {
+        col.setHex(awn[Math.floor(r() * awn.length)]);
+        const ab = ap.length / 3, out = 1.3;
+        for (const [t, o, yy] of [[a, 0, y0 + 3.15], [b, 0, y0 + 3.15], [b, out, y0 + 2.7], [a, out, y0 + 2.7]]) { ap.push(fx + ux * t + nx * o, yy, fz + uz * t + nz * o); an.push(nx * 0.5, 0.86, nz * 0.5); ac.push(col.r, col.g, col.b); }
+        aidx.push(ab, ab + 1, ab + 2, ab, ab + 2, ab + 3);
+      }
+    }
+  }
+  if (!pos.length) return;
+  const mk = (p, n, u, i, c) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3)); if (u) g.setAttribute('uv', new THREE.Float32BufferAttribute(u, 2)); if (c) g.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); g.setIndex(i); return g; };
+  const tex = shopAtlas(), mat = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 0, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+  CITY_EMI.push({ mat, k: 0.55 });
+  const m = new THREE.Mesh(mk(pos, nrm, uv, idx), mat); m.receiveShadow = true; world.add(m);
+  if (ap.length) { const am = new THREE.Mesh(mk(ap, an, null, aidx, ac), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide })); am.castShadow = true; am.receiveShadow = true; world.add(am); }
+}
+// ---------- peatones: santiaguinos que caminan por veredas, bandejón, paseo del río y el parque ----------
+// cada persona: torso, cabeza, pelo, dos piernas y dos brazos (6 mallas instanciadas para todos). Caminan a lo largo
+// de "senderos" paralelos a la pista y se dan vuelta al llegar al final
+let PEOPLE = null;
+function buildPeople() {
+  const paths = [], ys = BERM_RAISE + 0.012;
+  if (SPLIT) {
+    const A = SPLIT;
+    paths.push({ a: A.a, b: A.b, off: -(ROAD_HALF + 2.6), w: 2.2, n: 34, ground: false, y: ys });                 // vereda sur
+    paths.push({ a: A.a, b: A.b, off: (A.med0 + A.med1) / 2, w: 3, n: 30, ground: false, y: ys });               // paseo del bandejón
+    paths.push({ a: A.a, b: A.b, off: (A.opp1 + A.walk1) / 2, w: 2.5, n: 26, ground: false, y: ys });            // vereda norte
+  }
+  if (RIVER) {
+    const R = RIVER;
+    paths.push({ a: R.a, b: R.b, off: -(R.park0 + R.wallS) / 2, w: 3, n: 22, ground: false, y: ys });             // paseo junto al Mapocho
+    paths.push({ a: R.a, b: R.b, off: ROAD_HALF + 2.6, w: 2, n: 14, ground: false, y: ys });                      // vereda del parque
+    paths.push({ a: R.a, b: R.parkEnd, off: 40, w: 2.6, n: 22, ground: true, y: 0.02 });                          // sendero del Parque Forestal
+    paths.push({ a: R.a, b: R.b, off: -(R.sm1 + R.smw) / 2, w: 3, n: 14, ground: true, y: 0.06 });                // vereda de Santa María
+  }
+  if (!paths.length) return;
+  const rr = mulberry32(4711), list = [];
+  const shirts = [0x2f4f8f, 0xc23b3b, 0xf2f2ee, 0x2b2b2e, 0x3f7a4a, 0xe0b040, 0x7a4a8a, 0x5aa0c8, 0xd87a3a, 0x9a9a9a, 0x1e3a5a, 0xb0485a];
+  const pants = [0x2b3e66, 0x1d1f24, 0x3c4a62, 0x6b6250, 0x2a2a2a, 0x4a5a78];
+  const skins = [0xe8c2a0, 0xd6a67e, 0xc28b62, 0xa8724c, 0xf0d0b4, 0x8c5a3c];
+  const hairs = [0x1c1410, 0x2e2018, 0x4a3020, 0x0e0c0a, 0x8a6a3a, 0x9a9a98];
+  for (const P of paths) for (let k = 0; k < P.n; k++) {
+    list.push({ P, s: P.a + rr() * (P.b - P.a), lat: (rr() - 0.5) * P.w, dir: rr() < 0.5 ? 1 : -1, v: 1.05 + rr() * 0.6, ph: rr() * 6.28, h: 0.92 + rr() * 0.16,
+      shirt: shirts[(rr() * shirts.length) | 0], pants: pants[(rr() * pants.length) | 0], skin: skins[(rr() * skins.length) | 0], hair: hairs[(rr() * hairs.length) | 0], x: 0, y: 0, z: 0, yaw: 0 });
+  }
+  // mezclados: en calidad baja se dibuja solo la primera mitad y igual quedan repartidos por todos los senderos
+  for (let i = list.length - 1; i > 0; i--) { const j = (rr() * (i + 1)) | 0; [list[i], list[j]] = [list[j], list[i]]; }
+  const N = list.length;
+  // pocas caras: son muchos y se ven chicos (cuentan para las gráficas integradas)
+  const torsoG = mergeGeometries([new THREE.CylinderGeometry(0.2, 0.16, 0.6, 7).scale(1, 1, 0.62).translate(0, 1.17, 0), new THREE.CylinderGeometry(0.06, 0.07, 0.1, 5, 1, true).translate(0, 1.5, 0)]);
+  const headG = new THREE.SphereGeometry(0.115, 8, 6).scale(0.9, 1.1, 1).translate(0, 1.64, 0);
+  const hairG = new THREE.SphereGeometry(0.125, 8, 3, 0, Math.PI * 2, 0, Math.PI * 0.55).scale(0.92, 1.05, 1.02).translate(0, 1.66, -0.01);
+  const legG = new THREE.CylinderGeometry(0.075, 0.06, 0.86, 6).translate(0, -0.43, 0);    // pivote en la cadera
+  const armG = new THREE.CylinderGeometry(0.05, 0.042, 0.62, 5).translate(0, -0.3, 0);      // pivote en el hombro
+  const mk = (g, n) => { const m = new THREE.InstancedMesh(g, new THREE.MeshStandardMaterial({ roughness: 0.85 }), n); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; world.add(m); return m; };
+  const torso = mk(torsoG, N), head = mk(headG, N), hair = mk(hairG, N), legs = mk(legG, N * 2), arms = mk(armG, N * 2);
+  torso.castShadow = true;
+  const c = new THREE.Color();
+  list.forEach((p, i) => {
+    torso.setColorAt(i, c.setHex(p.shirt)); head.setColorAt(i, c.setHex(p.skin)); hair.setColorAt(i, c.setHex(p.hair));
+    for (const j of [0, 1]) { legs.setColorAt(i * 2 + j, c.setHex(p.pants)); arms.setColorAt(i * 2 + j, c.setHex(rr() < 0.6 ? p.shirt : p.skin)); }
+  });
+  PEOPLE = { list, torso, head, hair, legs, arms, fr: {}, q: {}, m: new THREE.Matrix4(), qq: new THREE.Quaternion(), qa: new THREE.Quaternion(), e: new THREE.Euler(), pv: new THREE.Vector3(), sc: new THREE.Vector3(1, 1, 1), off: new THREE.Vector3() };
+  updatePeople(0);
+}
+function updatePeople(dt) {
+  const PP = PEOPLE; if (!PP) return;
+  const { list, torso, head, hair, legs, arms, fr, m, qq, qa, e, pv, sc, off } = PP;
+  const cx = camera.position.x, cz = camera.position.z, n = QS.veg < 500 ? list.length >> 1 : list.length;
+  torso.count = head.count = hair.count = n; legs.count = arms.count = n * 2;
+  list.forEach((p, i) => {
+    if (i >= n) return;
+    const P = p.P;
+    p.s += p.dir * p.v * dt;
+    if (p.s > P.b - 2) { p.s = P.b - 2; p.dir = -1; } else if (p.s < P.a + 2) { p.s = P.a + 2; p.dir = 1; }
+    p.ph += p.v * dt * 4.4;
+    // lejos de la cámara no se recalcula todo (solo cada tanto), pero siguen caminando
+    const far = (p.x - cx) ** 2 + (p.z - cz) ** 2 > 260 * 260;
+    if (far && dt > 0 && (i + (PP.tick = (PP.tick || 0) + 1)) % 8) return;
+    track.at(p.s, fr); const lx = fr.tz, lz = -fr.tx, d = p.P.off + p.lat;
+    p.x = fr.x + lx * d; p.z = fr.z + lz * d; p.y = (P.ground ? groundAt(p.x, p.z, PP.q) : fr.y) + P.y;
+    p.yaw = Math.atan2(fr.tx * p.dir, fr.tz * p.dir);
+    const sw = Math.sin(p.ph), bob = Math.abs(Math.cos(p.ph)) * 0.035;
+    qq.setFromAxisAngle(_Y, p.yaw); sc.set(p.h, p.h, p.h);
+    m.compose(pv.set(p.x, p.y + bob, p.z), qq, sc);
+    torso.setMatrixAt(i, m); head.setMatrixAt(i, m); hair.setMatrixAt(i, m);
+    for (const j of [0, 1]) {
+      const sgn = j ? 1 : -1;
+      // pierna: pivote en la cadera (0,88 m), se balancea adelante/atrás; brazo al revés que la pierna del mismo lado
+      off.set(sgn * 0.11, 0.88, 0).multiplyScalar(p.h).applyQuaternion(qq);
+      qa.setFromEuler(e.set(sgn * sw * 0.5, p.yaw, 0, 'YXZ'));
+      legs.setMatrixAt(i * 2 + j, m.compose(pv.set(p.x + off.x, p.y + bob + off.y, p.z + off.z), qa, sc));
+      off.set(sgn * 0.27, 1.43, 0).multiplyScalar(p.h).applyQuaternion(qq);
+      qa.setFromEuler(e.set(-sgn * sw * 0.38, p.yaw, sgn * 0.06, 'YXZ'));
+      arms.setMatrixAt(i * 2 + j, m.compose(pv.set(p.x + off.x, p.y + bob + off.y, p.z + off.z), qa, sc));
+    }
+  });
+  for (const im of [torso, head, hair, legs, arms]) im.instanceMatrix.needsUpdate = true;
 }
 // monumento ecuestre (Baquedano, O'Higgins): pedestal de piedra y jinete de bronce
 function equestrian(x, gy, z, rot, sc = 1.5) {
@@ -6307,6 +6767,45 @@ class Sound {
         this.setEngine(this.riv, clamp(rival.spec.idle + rival.v * 95, 900, rival.spec.redline), rival.braking ? 0.1 : 0.8, rival.spec, vol);
       } else this.riv.out.gain.setTargetAtTime(0, t, 0.1);
     }
+    this.ambience(car);
+  }
+  // ---- sonido ambiente según el lugar: ciudad (tránsito lejano y bocinas), el Mapocho, pájaros en parques y
+  // bosques, el chucao en el sur y el viento en la montaña ----
+  ambience(car) {
+    const c = this.ctx, t = c.currentTime;
+    const lp = (f, q = 0.5) => { const n = c.createBiquadFilter(); n.type = 'lowpass'; n.frequency.value = f; n.Q.value = q; return n; };
+    if (!this.amb) {
+      const bp = (f, q) => { const n = c.createBiquadFilter(); n.type = 'bandpass'; n.frequency.value = f; n.Q.value = q; return n; };
+      const chain = (...nodes) => { const g = c.createGain(); g.gain.value = 0; this.noise().connect(nodes[0]); for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]); nodes[nodes.length - 1].connect(g); g.connect(this.master); return g; };
+      this.amb = { city: chain(lp(170, 0.7)), hiss: chain(bp(700, 0.35)), river: chain(bp(1100, 0.6), lp(2600)), wind: chain(bp(380, 0.4)), next: { horn: t + 4, bird: t + 2, chucao: t + 8 } };
+      this.amb.riverLfo = c.createOscillator(); this.amb.riverLfo.frequency.value = 0.23; const lg = c.createGain(); lg.gain.value = 0.012; this.amb.riverLfo.connect(lg); lg.connect(this.amb.river.gain); this.amb.riverLfo.start();
+    }
+    const A = this.amb, x = car.x, z = car.z, city = MAP.city ? 1 : 0, inside = cam.mode >= 2 ? 0.55 : 1;
+    const riverW = MAP_ID === 'alameda' ? clamp(1 - (polyDist(ALAMEDA_RIVER, x, z) - 20) / 70, 0, 1) : 0;
+    const park = MAP.parkAt ? MAP.parkAt(x, z) : 0, nature = city ? park : (MAP_ID === 'austral' || MAP_ID === 'cordillera' || MAP_ID === 'x4_barro' || MAP_ID === 'x4_rio') ? 1 : 0;
+    const windy = MAP_ID === 'caracoles' || MAP_ID === 'x4_dunas' || MAP_ID === 'x4_rocas' ? 1 : 0.35;
+    A.city.gain.setTargetAtTime(city * 0.07 * inside, t, 0.5); A.hiss.gain.setTargetAtTime(city * 0.018 * inside, t, 0.5);
+    A.river.gain.setTargetAtTime(riverW * 0.05 * inside, t, 0.6);
+    A.wind.gain.setTargetAtTime(windy * 0.03 * inside * (city ? 0.3 : 1), t, 0.8);
+    // bocinas lejanas en la ciudad: dos tonos cortos, cada una distinta y desde un lado distinto
+    if (city && t > A.next.horn) {
+      A.next.horn = t + 6 + Math.random() * 14;
+      const f0 = 330 + Math.random() * 180, pan = c.createStereoPanner ? c.createStereoPanner() : null, g = c.createGain(), f = lp(1400, 0.8);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.025 * inside, t + 0.03); g.gain.setValueAtTime(0.025 * inside, t + 0.28); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+      for (const k of [1, 1.26]) { const o = c.createOscillator(); o.type = 'square'; o.frequency.value = f0 * k; o.connect(f); o.start(t); o.stop(t + 0.42); }
+      f.connect(g); if (pan) { pan.pan.value = Math.random() * 1.6 - 0.8; g.connect(pan); pan.connect(this.master); } else g.connect(this.master);
+    }
+    // pájaros: trinos cortos donde hay árboles
+    if (nature > 0.2 && t > A.next.bird) {
+      A.next.bird = t + 0.8 + Math.random() * (city ? 4 : 2.5);
+      const n = 2 + (Math.random() * 4 | 0), base = 2600 + Math.random() * 2400;
+      for (let k = 0; k < n; k++) { const o = c.createOscillator(), g = c.createGain(), t0 = t + k * (0.07 + Math.random() * 0.05); o.type = 'sine'; o.frequency.setValueAtTime(base * (0.9 + Math.random() * 0.25), t0); o.frequency.exponentialRampToValueAtTime(base * (1.15 + Math.random() * 0.3), t0 + 0.05); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.012 * nature * inside, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06); o.connect(g); g.connect(this.master); o.start(t0); o.stop(t0 + 0.08); }
+    }
+    // el chucao, el pájaro de los bosques del sur: "chu-chu-chu-cáo"
+    if ((MAP_ID === 'austral' || MAP_ID === 'x4_barro') && t > A.next.chucao) {
+      A.next.chucao = t + 12 + Math.random() * 20;
+      [[520, 0], [520, 0.22], [520, 0.44], [700, 0.7]].forEach(([fq, dt0], k) => { const o = c.createOscillator(), g = c.createGain(), t0 = t + dt0, d = k === 3 ? 0.3 : 0.14; o.type = 'triangle'; o.frequency.setValueAtTime(fq, t0); o.frequency.exponentialRampToValueAtTime(k === 3 ? 420 : fq * 0.92, t0 + d); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.03 * inside, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d); o.connect(g); g.connect(this.master); o.start(t0); o.stop(t0 + d + 0.02); });
+    }
   }
   hit(strength) {
     if (!this.ctx || strength < 0.05) return;
@@ -6410,6 +6909,7 @@ class Sound {
   silence() {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     for (const v of [this.eng, this.riv]) v.out.gain.setTargetAtTime(0, t, 0.05);
+    if (this.amb) for (const g of [this.amb.city, this.amb.hiss, this.amb.river, this.amb.wind]) g.gain.setTargetAtTime(0, t, 0.1);
     for (const v of [this.squeal, this.gravel, this.wind, this.scrape, this.rain, this.splash, this.road]) v.g.gain.setTargetAtTime(0, t, 0.05);
     this.sq2g.gain.setTargetAtTime(0, t, 0.05); this.rumbleG.gain.setTargetAtTime(0, t, 0.05);
     for (const g of [this.whineG, this.winchG]) g.gain.setTargetAtTime(0, t, 0.05);
@@ -7004,32 +7504,39 @@ function respawnTraffic(t, car) {
 function clearMovers() { for (const m of game.movers || []) disposeModel(m.model); game.movers = []; }
 function spawnMovers() {
   clearMovers();
-  if (!SPLIT) return;
-  const A = SPLIT, kinds = ['bus', 'car', 'taxi', 'colectivo', 'car', 'bus', 'pickup', 'car', 'taxi', 'colectivo'];
-  const lanesCar = [A.opp0 + 1.75, A.opp0 + 5.25, A.opp0 + 8.75], laneBus = A.opp1 - 1.75;
-  game.movers = kinds.map((kind, i) => {
+  // cada avenida decorada: tramo de la pista (a–b), pistas a los costados y si el camino sigue el terreno (drape).
+  // Todos avanzan hacia s menor: en la Alameda hacia el poniente, en Santa María hacia el oriente
+  const roads = [];
+  if (SPLIT) roads.push({ a: SPLIT.a, b: SPLIT.b, bus: SPLIT.opp1 - 1.75, cars: [SPLIT.opp0 + 1.75, SPLIT.opp0 + 5.25, SPLIT.opp0 + 8.75], drape: false,
+    kinds: ['bus', 'car', 'taxi', 'colectivo', 'car', 'bus', 'pickup', 'car', 'taxi', 'colectivo'] });
+  if (RIVER) roads.push({ a: RIVER.a, b: RIVER.b, bus: -(RIVER.sm0 + 1.75), cars: [-(RIVER.sm0 + 5.25), -(RIVER.sm0 + 8.75), -(RIVER.sm0 + 12.25)], drape: true,
+    kinds: ['car', 'bus', 'taxi', 'car', 'colectivo', 'pickup', 'car'] });
+  for (const R of roads) R.kinds.forEach((kind, i) => {
     const { spec, model } = trafficVehicle(kind); scene.add(model.root);
-    const m = { kind, spec, model, lane: kind === 'bus' ? laneBus : lanesCar[i % 3], s: A.a + (A.b - A.a) * (i + Math.random() * 0.6) / kinds.length, cruise: (kind === 'bus' ? 9 : 11) + Math.random() * 4, v: 0, wheelA: 0, p: {}, wait: false };
-    m.v = m.cruise; poseMover(m); return m;
+    const m = { kind, spec, model, road: R, lane: kind === 'bus' ? R.bus : R.cars[i % 3], s: R.a + (R.b - R.a) * (i + Math.random() * 0.6) / R.kinds.length, cruise: (kind === 'bus' ? 9 : 11) + Math.random() * 4, v: 0, wheelA: 0, p: {}, q: {}, wait: false };
+    m.v = m.cruise; poseMover(m); game.movers.push(m);
   });
 }
 function poseMover(m) {
   const p = track.at(m.s, m.p), lx = p.tz, lz = -p.tx;
-  m.x = p.x + lx * m.lane; m.z = p.z + lz * m.lane; m.y = p.y + 0.03;
+  m.x = p.x + lx * m.lane; m.z = p.z + lz * m.lane; m.y = (m.road.drape ? groundAt(m.x, m.z, m.q) : p.y) + 0.03;
   m.model.root.position.set(m.x, m.y, m.z); m.model.root.rotation.set(0, Math.atan2(p.tx, p.tz) + Math.PI, 0);
 }
 function updateMovers(dt) {
-  const A = SPLIT, list = game.movers; if (!A || !list || !list.length) return;
+  const list = game.movers; if (!list || !list.length) return;
   for (const m of list) {
-    // sigue al de adelante en su pista (adelante = hacia el poniente, s menor)
-    let gap = 1e9; for (const o of list) if (o !== m && !o.wait && Math.abs(o.lane - m.lane) < 1 && o.s < m.s) gap = Math.min(gap, m.s - o.s);
+    const A = m.road;
+    // sigue al de adelante en su pista (adelante = s menor)
+    let gap = 1e9; for (const o of list) if (o !== m && o.road === A && !o.wait && Math.abs(o.lane - m.lane) < 1 && o.s < m.s) gap = Math.min(gap, m.s - o.s);
+    // semáforo en rojo (o amarillo con espacio para frenar): se detiene en la línea antes del cruce
+    if (SPLIT && A.a === SPLIT.a && SIGNAL.phase !== 'g') for (const st of SIGNAL.stops) { const dl = m.s - (st + 7); if (dl > (SIGNAL.phase === 'y' ? 9 : -0.5) && dl < 40) gap = Math.min(gap, dl + 11); }
     const target = gap < 13 ? 0 : gap < 32 ? m.cruise * (gap - 13) / 19 : m.cruise;
     m.v += clamp(target - m.v, -6 * dt, 2 * dt);
     m.s -= m.v * dt;
     if (m.s < A.a + 6) {
-      // al llegar a la punta poniente reaparece en la oriente, pero solo cuando eso no se ve
+      // al llegar al final del tramo reaparece en el comienzo, pero solo cuando eso no se ve
       const s = A.b - 6; track.at(s, m.p); const lx = m.p.tz, lz = -m.p.tx;
-      const ok = !seenByCamera(m.p.x + lx * m.lane, m.p.y, m.p.z + lz * m.lane) && !list.some(o => o !== m && Math.abs(o.lane - m.lane) < 1 && Math.abs(o.s - s) < 20);
+      const ok = !seenByCamera(m.p.x + lx * m.lane, m.p.y, m.p.z + lz * m.lane) && !list.some(o => o !== m && o.road === A && Math.abs(o.lane - m.lane) < 1 && Math.abs(o.s - s) < 20);
       if (ok) { m.s = s; m.v = m.cruise * 0.8; m.wait = false; }
       else { m.s = A.a + 6; m.v = 0; m.wait = true; }
     }
@@ -7731,6 +8238,7 @@ function loop(now) {
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) $('msg').classList.remove('show'); }
   if (game.state === 'paused' || game.state === 'loading') { if (game.state === 'paused') render(); return; }
   animateDecor(dt, now / 1000);
+  updatePeople(dt); updateSignals(dt);
   if (game.state === 'menu') {
     const c = game.car; orbitCamera(dt, c.x, c.y, c.z); followSun(c.x, c.y, c.z); render(); return;
   }
