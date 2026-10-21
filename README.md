@@ -14,10 +14,10 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 
 | Mapa | Lugar | Qué tiene |
 |---|---|---|
-| Circuito Cordillera | Valle del Aconcagua | Carretera de montaña con araucarias, palmas chilenas y la Laguna del Inca. 3 vueltas. |
+| Circuito Cordillera | Valle del Aconcagua | Carretera de montaña con araucarias, palmas chilenas y la Laguna del Inca. En el valle hay viñedos con hileras de álamos como cortaviento, casas de adobe con corredor y techo de tejas, vacas, espinos y quiscos en los cerros, cercos de alambre de púas, postes de luz con sus cables y delineadores a la orilla del camino. 3 vueltas. |
 | La Alameda | Santiago Centro | Carrera callejera por la calzada sur de la Alameda, de un solo sentido, con su pista "solo bus", y vuelta por la Costanera. Al otro lado del bandejón central (dos hileras de plátanos orientales, paseo de baldosas, bancas, quioscos, accesos a la Línea 1 del Metro y O'Higgins a caballo frente a La Moneda) corre la calzada norte con micros, taxis y colectivos hacia el poniente. Calles que la cruzan con cebras y semáforos, y en su orden real: Torre Entel, La Moneda, Universidad de Chile, San Francisco, Biblioteca Nacional, cerro Santa Lucía, Universidad Católica, GAM y Plaza Baquedano. La vuelta va por Cardenal Caro, junto al Mapocho: paseo de ladrillo con balaustrada, muros de piedra del río, puentes de arco, el Parque Forestal con el Museo de Bellas Artes y la Fuente Alemana, la Estación Mapocho, y al otro lado Av. Santa María con su tránsito y las casas de colores de Bellavista. 3 vueltas. |
-| Los Caracoles | Paso Los Libertadores | Horquillas numeradas subiendo hacia Portillo, galerías antinieve, hielo, derrumbes y camiones a Argentina. 2 vueltas. |
-| Carretera Austral | Lago General Carrera | Camino de ripio entre coigües, puentes de madera sobre esteros, barro, pozas, troncos caídos, vacas sueltas y las Capillas de Mármol. 3 vueltas. |
+| Los Caracoles | Paso Los Libertadores | Horquillas numeradas subiendo hacia Portillo, galerías antinieve, hielo, derrumbes y camiones a Argentina. Las laderas muestran costillas de roca oscura entre canaletas de nieve, con peñascos, llaretas y champas de coirón donde la nieve deja ver el suelo. 2 vueltas. |
+| Carretera Austral | Lago General Carrera | Camino de ripio entre coigües, puentes de madera sobre esteros, barro, pozas, troncos caídos, vacas sueltas y las Capillas de Mármol. A la orilla del ripio crecen lupinos morados, rosados y blancos; hay helechos, troncos grises de bosque quemado, postes de luz de madera y cercos con portón frente a las casas. 3 vueltas. |
 
 ## Una ciudad viva
 
@@ -27,6 +27,16 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 - **Árboles con hojas:** las copas están hechas de hojas sueltas que dejan pasar la luz y se mecen con el viento, en todos los mapas.
 - **Aire de Santiago:** una capa de esmog café-grisácea sobre el horizonte, más espesa con cielo despejado.
 - **Sonido ambiente:** rumor del tránsito y bocinas lejanas en la ciudad, el Mapocho corriendo, pájaros en los parques y bosques, el chucao en el sur y el viento en la montaña.
+
+## El campo y la montaña
+
+- **Pasto y flores junto al camino:** matas de pasto seco o verde, flores amarillas, lupinos, coirón y helechos según el lugar, que se mecen con el viento. También en las etapas 4x4 (menos en las dunas).
+- **Montañas de verdad:** la nieve se queda en las laderas suaves y en las canaletas, y las paredes empinadas muestran la roca. La textura ya no se estira en rayas en las pendientes.
+- **Árboles nuevos:** espinos de copa ancha, quiscos (el cactus de los cerros de Chile central), álamos en hilera, árboles muertos grises en el sur y llaretas en la alta cordillera.
+
+## Rendimiento
+
+Aunque cada mapa tiene mucho más, el juego quedó más liviano que antes: los autos rivales a más de unos 16 m se dibujan con la carrocería fusionada (con las ruedas reales, que giran y doblan), las copas de los árboles proyectan sombra solo desde su núcleo, y el pasto y las flores se dibujan solo cerca de la cámara. En la largada, las llamadas de dibujo bajaron entre un 16 % y un 23 % según el mapa.
 
 ## Desafío 4x4 (solo camionetas)
 

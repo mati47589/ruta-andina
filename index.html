@@ -569,7 +569,7 @@ const MAPS = {
       return h;
     },
     pal: { dry: 0x8e7a44, dry2: 0x6c5d33, green: 0x4b5a28, dirt: 0x6a5038, rock: 0x5f5b57, rock2: 0x776c61, snow: 0xeef2f6, gravel: 0x5c564c, lake: 0x3e5925, snowLine: 820, greenH: 60, rockH: [160, 420] },
-    veg: [{ type: 'ara', n: 380 }, { type: 'palm', n: 240 }, { type: 'bush', n: 1700 }, { type: 'rock', n: 420 }],
+    veg: [{ type: 'ara', n: 380 }, { type: 'palm', n: 240 }, { type: 'bush', n: 1100 }, { type: 'rock', n: 420 }, { type: 'espino', n: 320 }, { type: 'quisco', n: 340 }],
     hazards: { pothole: 6, puddle: 3, oil: 2, gravel: 4, works: 1, rockfall: 1 },
     traffic: { n: 3, kinds: ['car', 'car', 'pickup', 'truck'], speed: [14, 20] },
     arch: 'CIRCUITO CORDILLERA', aiMu: 1, condors: true,
@@ -636,8 +636,8 @@ const MAPS = {
       h -= 13 * smooth(90 + 60, 90 - 25, Math.hypot(x + 300, z + 340));
       return h;
     },
-    pal: { dry: 0x7d7466, dry2: 0x655d51, green: 0x6b6a45, dirt: 0x5d5246, rock: 0x57524d, rock2: 0x6f675e, snow: 0xf2f5f8, gravel: 0xc9ced3, lake: 0x5d5246, snowLine: 70, greenH: 20, rockH: [60, 200] },
-    veg: [{ type: 'rock', n: 900 }, { type: 'bush', n: 500 }],
+    pal: { dry: 0x7d7466, dry2: 0x655d51, green: 0x6b6a45, dirt: 0x5d5246, rock: 0x48433e, rock2: 0x5e554b, snow: 0xf2f5f8, gravel: 0xc9ced3, lake: 0x5d5246, snowLine: 70, greenH: 20, rockH: [60, 200] },
+    veg: [{ type: 'rock', n: 900 }, { type: 'bush', n: 500 }, { type: 'crag', n: 260 }, { type: 'llareta', n: 420 }],
     hazards: { ice: 10, snow: 8, rockfall: 4, pothole: 4, gravel: 3, oil: 1 },
     traffic: { n: 6, kinds: ['truck', 'truck', 'truck', 'pickup', 'car', 'bus'], speed: [8, 12] },
     arch: 'PASO LOS LIBERTADORES', aiMu: 0.95, condors: true, snowy: true, laps: 2,
@@ -665,7 +665,7 @@ const MAPS = {
       return h;
     },
     pal: { dry: 0x3f5a28, dry2: 0x2f4a20, green: 0x355e24, dirt: 0x5a4a32, rock: 0x55574f, rock2: 0x67665c, snow: 0xeef2f6, gravel: 0x6b5f4a, lake: 0x2f4a20, snowLine: 700, greenH: 200, rockH: [120, 380] },
-    veg: [{ type: 'conifer', n: 2600 }, { type: 'nalca', n: 420 }, { type: 'bush', n: 1100 }, { type: 'rock', n: 260 }],
+    veg: [{ type: 'conifer', n: 2600 }, { type: 'nalca', n: 420 }, { type: 'bush', n: 1100 }, { type: 'rock', n: 260 }, { type: 'snag', n: 240 }],
     hazards: { pothole: 18, mud: 8, puddle: 8, log: 3, gravel: 2 },
     traffic: { n: 3, kinds: ['pickup', 'pickup', 'truck', 'car'], speed: [9, 13] }, cows: 5,
     arch: 'CARRETERA AUSTRAL', aiMu: 0.82, rainy: true,
@@ -1639,6 +1639,16 @@ function buildTerrain(N) {
   TERR = { geo, pos, roadD, n: V * V, snow: -1 };
   colorTerrain(WEATHER.id === 'snow' ? 1 : 0);
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: texGround, bumpMap: texGround, bumpScale: 0.8, roughness: 0.96, metalness: 0 });
+  // en las laderas empinadas la textura se proyecta de costado: si no, se estira en rayas verticales
+  mat.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying vec3 vTW;\nvarying vec3 vTN;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vTW = position; vTN = normal;');
+    sh.fragmentShader = 'varying vec3 vTW;\nvarying vec3 vTN;\n' + sh.fragmentShader.replace('#include <map_fragment>', `
+      vec4 sampledDiffuseColor = texture2D(map, vMapUv);
+      float stp = smoothstep(0.8, 0.55, abs(vTN.y));
+      if (stp > 0.0) sampledDiffuseColor = mix(sampledDiffuseColor, texture2D(map, (abs(vTN.x) > abs(vTN.z) ? vTW.zy : vTW.xy) / 7.0), stp);
+      diffuseColor *= sampledDiffuseColor;`);
+  };
+  mat.customProgramCacheKey = () => 'terrain-side';
   // en bloques que comparten los mismos vértices, normales y colores: la cámara descarta los que no ve
   // (antes se dibujaban siempre los ~350.000 triángulos, aunque la mitad quedara detrás)
   const grp = new THREE.Group(), step = Math.ceil(N / 7), lo = new THREE.Vector3(), hi = new THREE.Vector3();
@@ -1664,6 +1674,24 @@ function buildTerrain(N) {
   }
   return grp;
 }
+// nieve en el terreno (0..1): sobre la línea de nieve se queda en las laderas suaves y en manchones; las paredes
+// empinadas muestran la roca. Más arriba cubre casi todo. La misma regla pinta el terreno y decide dónde crecen plantas
+function snowCover(x, z, h, ny, n1 = fbm(x / 90, z / 90, 3), n2 = fbm(x / 23 + 7, z / 23, 2)) {
+  const P = MAP.pal, line = P.snowLine + fbm(x / 260, z / 260, 3) * Math.min(260, P.snowLine * 0.45), hi = smooth(line, line + 700, h);
+  // umbral de pendiente alterado por el ruido: costillas de roca oscura y canaletas llenas de nieve, con borde marcado
+  const t = lerp(0.74, 0.6, hi) - (n1 * 0.2 + n2 * 0.1);
+  return smooth(line - 60, line + 90, h) * smooth(t - 0.06, t + 0.06, ny) * smooth(-0.12, 0.12, n1 + n2 * 0.45 + 0.18 + hi * 0.8);
+}
+// campos de cultivo (viñedos) del mapa: se eligen antes de armar el terreno para pintar la tierra bajo las hileras
+let FIELDS = [];
+function fieldAt(x, z) {
+  let a = 0;
+  for (const F of FIELDS) {
+    const dx = x - F.cx, dz = z - F.cz, u = Math.abs(dx * F.ux + dz * F.uz), v = Math.abs(-dx * F.uz + dz * F.ux);
+    if (u < F.l / 2 + 3 && v < F.w / 2 + 3) a = Math.max(a, smooth(F.l / 2 + 3, F.l / 2, u) * smooth(F.w / 2 + 3, F.w / 2, v));
+  }
+  return a;
+}
 // colores del terreno según la paleta del mapa; snowW > 0 agrega la nevazón del clima "Nieve"
 function colorTerrain(snowW) {
   if (!TERR || TERR.snow === snowW) return;
@@ -1685,8 +1713,8 @@ function colorTerrain(snowW) {
     tmp.lerp(cDirt, smooth(0.93, 0.8, ny) * 0.7);
     const rockAmt = clamp(smooth(0.82, 0.62, ny) + smooth(rk0, rk1, h) * 0.85, 0, 1);
     tmp.lerp(n2 > 0 ? cRock : cRock2, rockAmt);
-    const snowLine = P.snowLine + fbm(x / 260, z / 260, 3) * Math.min(260, P.snowLine * 0.45);
-    tmp.lerp(cSnow, smooth(snowLine - 60, snowLine + 90, h) * smooth(0.22, 0.55, ny));
+    tmp.lerp(cSnow, snowCover(x, z, h, ny, n1, n2));
+    if (FIELDS.length) { const fa = fieldAt(x, z); if (fa > 0) tmp.lerp(cDirt, fa * 0.8); }   // tierra arada entre las hileras del viñedo
     if (snowW > 0) tmp.lerp(cSnow, snowW * smooth(0.5, 0.8, ny) * (0.55 + 0.4 * clamp(0.5 + n2, 0, 1)) * smooth(ROAD_HALF + 0.5, ROAD_HALF + FLAT_EXTRA + 3, roadD[k]));
     if (roadD[k] < 12) tmp.lerp(cGravel, smooth(12, ROAD_HALF + FLAT_EXTRA, roadD[k]) * 0.9);
     col[k * 3] = tmp.r; col[k * 3 + 1] = tmp.g; col[k * 3 + 2] = tmp.b;
@@ -2079,7 +2107,7 @@ function jitterGeo(geo, amt, seed) {
 function frondsGeo() {
   const parts = [];
   for (let k = 0; k < 16; k++) {
-    const g = new THREE.PlaneGeometry(0.9, 5.2, 2, 9); g.translate(0, 2.6, 0);
+    const g = new THREE.PlaneGeometry(0.9, 5.2, 1, 6); g.translate(0, 2.6, 0);
     const p = g.attributes.position, up = k < 5;
     for (let i = 0; i < p.count; i++) {
       const y = p.getY(i), t = y / 5.2, x = p.getX(i) * (1 - t * 0.75);
@@ -2119,12 +2147,12 @@ function leafTex() {
   return LEAF_TEX;
 }
 // blobs: [x, y, z, r] (masas de la copa) · cards: tarjetas por masa · size: tamaño de cada tarjeta (relativo a r)
-function leafyGeo(blobs, cards, size, seed) {
+function leafyGeo(blobs, cards, size, seed, coreSeg = [6, 4]) {
   const rr = mulberry32(seed), cores = [], quads = [];
   let cy = 0; for (const b of blobs) cy += b[1]; cy /= blobs.length;
   const n = new THREE.Vector3(), up = new THREE.Vector3(0, 0, 1), q = new THREE.Quaternion(), qr = new THREE.Quaternion(), m = new THREE.Matrix4(), s = new THREE.Vector3(), p = new THREE.Vector3(), v = new THREE.Vector3();
   for (const [bx, by, bz, r] of blobs) {
-    const core = new THREE.SphereGeometry(r * 0.7, 6, 4), cn = core.attributes.normal;   // núcleo simple: lo que se ve son las hojas
+    const core = new THREE.SphereGeometry(r * 0.76, coreSeg[0], coreSeg[1]), cn = core.attributes.normal;   // núcleo simple (y la sombra de la copa): lo que se ve son las hojas
     // la luz se cuela entre las hojas: las normales miran algo más hacia arriba (la copa no queda negra por debajo)
     for (let i = 0; i < cn.count; i++) { v.set(cn.getX(i), cn.getY(i) + 0.6, cn.getZ(i)).normalize(); cn.setXYZ(i, v.x, v.y, v.z); }
     core.translate(bx, by, bz); cores.push(core.toNonIndexed());
@@ -2156,23 +2184,30 @@ function windify(mat, amp) {
       #endif
       float wv = sin(uTime * 1.5 + wph + position.y * 1.1) + 0.5 * sin(uTime * 3.7 + wph * 2.0 + position.x * 2.0);
       transformed.xz += wv * ${amp.toFixed(3)} * vec2(1.0, 0.6) * max(0.0, position.y);`);
+    // las tarjetas de dos caras usan la misma normal por ambos lados (si no, la mitad de las hojas queda a contraluz)
+    sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n  normal = normalize(vNormal);');
   };
   mat.customProgramCacheKey = () => 'wind' + amp;
   return mat;
+}
+// núcleo y tarjetas del follaje (los comparten árboles, arbustos y parras)
+let FOLIAGE = null;
+function foliageMats() {
+  return FOLIAGE || (FOLIAGE = [windify(new THREE.MeshStandardMaterial({ color: 0xa8a8a8, roughness: 0.92 }), 0.03), windify(new THREE.MeshStandardMaterial({ map: leafTex(), alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.8 }), 0.05)]);
 }
 function buildVegetation(opts = {}) {
   const rv = mulberry32(99 + MAP_IDS.indexOf(MAP_ID) * 17), q = {};
   const araTrunk = new THREE.CylinderGeometry(0.3, 0.5, 1, 7); araTrunk.translate(0, 0.5, 0);
   const tiers = [];
   // copa de paraguas: ramas más anchas arriba, como la araucaria adulta
-  [[2.2, 0], [3.3, 0.7], [4.2, 1.4], [4.6, 2.05]].forEach(([r, y]) => { const c = new THREE.ConeGeometry(r, 1.0, 12, 1); c.translate(0, y, 0); tiers.push(c); });
-  const dome = new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2); dome.scale(4.3, 1.1, 4.3); dome.translate(0, 2.5, 0);
+  [[2.2, 0], [3.3, 0.7], [4.2, 1.4], [4.6, 2.05]].forEach(([r, y]) => { const c = new THREE.ConeGeometry(r, 1.0, 10, 1); c.translate(0, y, 0); tiers.push(c); });
+  const dome = new THREE.SphereGeometry(1, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2); dome.scale(4.3, 1.1, 4.3); dome.translate(0, 2.5, 0);
   tiers.push(dome);
   const araCrown = jitterGeo(mergeGeometries(tiers), 0.12, 3);
   const palmTrunk = new THREE.CylinderGeometry(0.55, 0.78, 1, 10); palmTrunk.translate(0, 0.5, 0);
   const fronds = frondsGeo();
   // arbustos, plátanos y coigües: núcleo suave + tarjetas de hojas (ver leafyGeo)
-  const bushGeo = leafyGeo([[0, 0, 0, 1], [0.5, -0.1, 0.3, 0.6]], 9, 0.95, 7); bushGeo.scale(1, 0.72, 1); bushGeo.translate(0, 0.45, 0);
+  const bushGeo = leafyGeo([[0, 0, 0, 1], [0.5, -0.1, 0.3, 0.6]], 9, 0.95, 7, [5, 3]); bushGeo.scale(1, 0.72, 1); bushGeo.translate(0, 0.45, 0);
   const rockG = rockGeo();
   // plátano oriental (las avenidas de Santiago): copa redonda de varias masas
   const treeCrown = leafyGeo([[0, 0, 0, 1], [0.62, 0.25, 0.2, 0.74], [-0.55, 0.18, -0.35, 0.78], [0.1, 0.55, -0.5, 0.66], [-0.2, 0.42, 0.55, 0.7]], 15, 0.85, 21);
@@ -2191,6 +2226,32 @@ function buildVegetation(opts = {}) {
     }
     return mergeGeometries(parts);
   })();
+  // quisco (el cactus columnar de los cerros de Chile central): columna con brazos que salen y suben; caras planas = costillas
+  const quiscoGeo = (() => {
+    // (cilindros abiertos: las puntas las tapan los casquetes y las uniones quedan adentro)
+    const parts = [], cap = (r, x, y, z, n) => parts.push(new THREE.ConeGeometry(r, r * 0.9, n, 1, true).translate(x, y + r * 0.45, z).toNonIndexed());
+    parts.push(new THREE.CylinderGeometry(0.16, 0.19, 3, 8, 1, true).translate(0, 1.5, 0).toNonIndexed()); cap(0.16, 0, 3, 0, 8);
+    for (const [a, y, up] of [[0.5, 1.1, 1.0], [2.7, 1.5, 0.7], [4.6, 0.8, 0.85]]) {
+      const dx = Math.cos(a), dz = Math.sin(a);
+      parts.push(new THREE.CylinderGeometry(0.12, 0.13, 0.34, 6, 1, true).rotateZ(Math.PI / 2).rotateY(-a).translate(dx * 0.3, y, dz * 0.3).toNonIndexed());
+      parts.push(new THREE.CylinderGeometry(0.12, 0.13, up, 6, 1, true).translate(dx * 0.46, y + up / 2 - 0.06, dz * 0.46).toNonIndexed());
+      cap(0.12, dx * 0.46, y + up - 0.06, dz * 0.46, 6);
+    }
+    const g = mergeGeometries(parts); g.computeVertexNormals(); return g;
+  })();
+  // espino (Acacia caven): tronco torcido que se abre en dos y copa ancha y aplanada, verde amarillento
+  const espinoTrunk = mergeGeometries([new THREE.CylinderGeometry(0.06, 0.11, 1.5, 5, 1, true).rotateZ(0.35).translate(-0.25, 0.7, 0), new THREE.CylinderGeometry(0.05, 0.09, 1.6, 5, 1, true).rotateZ(-0.4).translate(0.3, 0.75, 0.1)]);
+  const espinoCrown = leafyGeo([[0, 0, 0, 1], [0.95, -0.12, 0.3, 0.7], [-0.85, -0.05, -0.35, 0.75], [0.15, 0.05, 0.9, 0.65], [-0.2, -0.1, -0.95, 0.6]], 8, 0.8, 55, [4, 2]); espinoCrown.scale(1, 0.42, 1);
+  // álamo (chopo lombardo): copa en columna, altísima y angosta; en hileras junto a caminos y potreros
+  const alamoCrown = leafyGeo([[0, 0, 0, 1], [0, 1.3, 0, 0.95], [0, 2.5, 0, 0.85], [0, 3.6, 0, 0.7], [0, 4.5, 0, 0.5]], 8, 0.75, 77, [5, 3]);
+  // árbol muerto (los bosques quemados de Aysén): tronco gris pelado y unas pocas ramas
+  const snagGeo = (() => {
+    const p = [new THREE.CylinderGeometry(0.12, 0.3, 10, 6).translate(0, 5, 0)];
+    for (const [y, a, l, t] of [[6.5, 0.4, 2.6, 0.9], [7.6, 2.6, 2.0, 0.8], [8.6, 4.4, 1.6, 0.7], [5.2, 3.6, 1.8, 1.0]]) p.push(new THREE.CylinderGeometry(0.035, 0.08, l, 5).translate(0, l / 2, 0).rotateZ(-t).rotateY(a).translate(0, y, 0));
+    return mergeGeometries(p);
+  })();
+  // llareta: cojín verde y duro que crece pegado a las rocas en la alta cordillera
+  const llaretaGeo = jitterGeo(new THREE.SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2), 0.18, 61); llaretaGeo.scale(1, 0.5, 1);
 
   const RULES = {
     ara: { minRoad: 14, ok: (x, z, h) => h > 4 || Math.hypot(x, z) > 520 },
@@ -2200,6 +2261,12 @@ function buildVegetation(opts = {}) {
     tree: { minRoad: 12, ok: (x, z) => !MAP.parkAt || MAP.parkAt(x, z) > 0.35 || MAP.urbanAt(x, z) < 0.2 },
     conifer: { minRoad: 8, ok: (x, z, h) => h > -1.5, near: 0.65, slope: 0.7 },
     nalca: { minRoad: ROAD_HALF + FLAT_EXTRA + 1.5, ok: () => true, near: 1, nearMax: 24 },
+    quisco: { minRoad: 9, ok: (x, z, h) => h > 6 && h < 520, minSlope: 0.08, slope: 0.85 },
+    espino: { minRoad: 10, ok: (x, z, h) => h < 300 && Math.hypot(x - LAKE.x, z - LAKE.z) > LAKE.r + 15, near: 0.45, nearMax: 120 },
+    alamo: { minRoad: 8, ok: () => true },
+    snag: { minRoad: 14, ok: (x, z, h) => h > 2, near: 0.35, slope: 0.8 },
+    llareta: { minRoad: 7, ok: (x, z, h) => snowCover(x, z, h, 0.95) < 0.35, near: 0.6, nearMax: 70, slope: 0.9 },
+    crag: { minRoad: 26, ok: () => true, minSlope: 0.42, slope: 4 },
   };
   const out = {}; for (const t of Object.keys(RULES)) out[t] = [];
   for (const t of Object.keys(opts.extra || {})) out[t].push(...opts.extra[t]);
@@ -2219,7 +2286,7 @@ function buildVegetation(opts = {}) {
       const h = groundAt(x, z, q), hx = groundAt(x + 2, z, q), hz = groundAt(x, z + 2, q);
       if (waterAt(x, z) > h - 0.3) continue;
       const slope = Math.hypot(hx - h, hz - h) / 2;
-      if (slope > (sp.slope || 0.55)) continue;
+      if (slope > (sp.slope || 0.55) || slope < (sp.minSlope || 0)) continue;
       if (!sp.ok(x, z, h)) continue;
       out[type].push([x, h, z, rv(), rv(), rv()]); got++;
     }
@@ -2228,15 +2295,19 @@ function buildVegetation(opts = {}) {
   // instancias repartidas por sectores de 300 m: así la cámara y la sombra solo dibujan lo que ven,
   // y los sectores lejanos se ocultan (la bruma los cubre)
   const CH = 300;
-  const inst = (geo, mat, list, fn, shadow = true) => {
+  // copas de hojas (dos materiales): el núcleo y las tarjetas van en mallas separadas que comparten los vértices, y solo
+  // el núcleo proyecta sombra (las tarjetas con huecos eran lo más caro del mapa de sombras)
+  const part = (geo, g) => { const s = new THREE.BufferGeometry(); for (const k in geo.attributes) s.setAttribute(k, geo.attributes[k]); if (geo.index) s.setIndex(geo.index); s.setDrawRange(g.start, g.count); return s; };
+  // C: tamaño del sector; lo liviano y disperso (espinos, quiscos…) va en sectores más grandes: menos llamadas de dibujo
+  const inst = (geo, mat, list, fn, shadow = true, C = CH) => {
+    const parts = Array.isArray(mat) ? geo.groups.map((g, k) => [part(geo, g), mat[g.materialIndex], shadow && k === 0]) : [[geo, mat, shadow]];
     const buckets = new Map();
-    for (const it of list) { const key = Math.floor(it[0] / CH) + ',' + Math.floor(it[2] / CH); if (!buckets.has(key)) buckets.set(key, []); buckets.get(key).push(it); }
+    for (const it of list) { const key = Math.floor(it[0] / C) + ',' + Math.floor(it[2] / C); if (!buckets.has(key)) buckets.set(key, []); buckets.get(key).push(it); }
     for (const [key, items] of buckets) {
-      const im = new THREE.InstancedMesh(geo, mat, items.length);
-      items.forEach((it, k) => { fn(it, k); im.setMatrixAt(k, mat4.compose(ps, qq, sc)); im.setColorAt(k, col); });
-      im.castShadow = shadow; im.receiveShadow = true; im.computeBoundingSphere(); world.add(im);
+      const ims = parts.map(([g, m, sh]) => { const im = new THREE.InstancedMesh(g, m, items.length); im.castShadow = sh; im.receiveShadow = true; return im; });
+      items.forEach((it, k) => { fn(it, k); mat4.compose(ps, qq, sc); for (const im of ims) { im.setMatrixAt(k, mat4); im.setColorAt(k, col); } });
       const [cx, cz] = key.split(',').map(Number);
-      VEG.push({ mesh: im, x: (cx + 0.5) * CH, z: (cz + 0.5) * CH });
+      for (const im of ims) { im.computeBoundingSphere(); world.add(im); VEG.push({ mesh: im, x: (cx + 0.5) * C, z: (cz + 0.5) * C }); }
     }
   };
   const barkM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 });
@@ -2244,7 +2315,7 @@ function buildVegetation(opts = {}) {
   const frondM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, side: THREE.DoubleSide });
   const rockM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, flatShading: true });
   // follaje: el núcleo un poco más oscuro (la sombra interior de la copa) y las hojas con huecos; ambos se mecen
-  const foliage = [windify(new THREE.MeshStandardMaterial({ color: 0xa8a8a8, roughness: 0.92 }), 0.03), windify(new THREE.MeshStandardMaterial({ map: leafTex(), alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.8 }), 0.05)];
+  const foliage = foliageMats();
   // Araucarias
   inst(araTrunk, barkM, out.ara, ([x, y, z, a, b]) => { const H = 11 + a * 9; ps.set(x, y - 0.3, z); qq.identity(); sc.set(1 + b * 0.5, H, 1 + b * 0.5); col.setHex(0x6a5444); });
   inst(araCrown, leafM, out.ara, ([x, y, z, a, b, c]) => { const H = 11 + a * 9, s = 0.75 + b * 0.5; ps.set(x, y + H - 1.2, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, s * (0.9 + a * 0.4), s); col.setHex(0x223619).lerp(new THREE.Color(0x30481f), c); });
@@ -2266,14 +2337,35 @@ function buildVegetation(opts = {}) {
   // Espinos y arbustos
   const bushCol = MAP_ID === 'austral' ? [0x2a4a1c, 0x45622a] : MAP_ID === 'caracoles' ? [0x5a5a38, 0x75704a] : [0x394220, 0x626030];
   inst(bushGeo, foliage, out.bush, ([x, y, z, a, b, c]) => { const s = 0.8 + a * 2.0; ps.set(x, y - 0.25, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s * (0.8 + b * 0.5), s * (0.7 + c * 0.6), s); col.setHex(bushCol[0]).lerp(new THREE.Color(bushCol[1]), b); }, false);
-  // Rocas
-  inst(rockG, rockM, out.rock, ([x, y, z, a, b, c]) => { const s = 0.4 + a * a * 2.6; ps.set(x, y - s * 0.2, z); qq.setFromEuler(e.set(b, c * 6, a)); sc.set(s, s, s * (0.7 + b * 0.6)); col.setHex(0x7c766f).lerp(new THREE.Color(0x9a8e80), c); }, false);
+  // Rocas (las chicas y medianas: icosaedro facetado, la mitad de caras que la roca grande)
+  const rockS = jitterGeo(new THREE.IcosahedronGeometry(1, 1), 0.3, 13).scale(1, 0.62, 1);
+  inst(rockS, rockM, out.rock, ([x, y, z, a, b, c]) => { const s = 0.4 + a * a * 2.6; ps.set(x, y - s * 0.2, z); qq.setFromEuler(e.set(b, c * 6, a)); sc.set(s, s, s * (0.7 + b * 0.6)); col.setHex(0x7c766f).lerp(new THREE.Color(0x9a8e80), c); }, false);
   out.rock.forEach(([x, y, z, a]) => { const s = 0.4 + a * a * 2.6; if (s > 0.7) addObstacle(x, z, s * 0.85, null, 'rock'); });
+  // Quiscos
+  const cactusM = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+  inst(quiscoGeo, cactusM, out.quisco, ([x, y, z, a, b, c]) => { const s = 0.6 + a * 0.8; ps.set(x, y - 0.1, z); qq.setFromEuler(e.set((b - 0.5) * 0.1, c * 6, (a - 0.5) * 0.1)); sc.set(s, s, s); col.setHex(0x6a8448).lerp(new THREE.Color(0x8a9a5e), b); }, false, 600);
+  out.quisco.forEach(([x, y, z]) => addObstacle(x, z, 0.3));
+  // Espinos
+  inst(espinoTrunk, barkM, out.espino, ([x, y, z, a, b, c]) => { const s = 0.8 + a * 0.6; ps.set(x, y - 0.1, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, s, s); col.setHex(0x3d3128); }, true, 600);
+  inst(espinoCrown, foliage, out.espino, ([x, y, z, a, b, c]) => { const s = 0.8 + a * 0.6; ps.set(x, y + 1.45 * s, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.setScalar(1.6 * s); col.setHex(0x6c7836).lerp(new THREE.Color(0x929a48), b); }, true, 600);
+  out.espino.forEach(([x, y, z]) => addObstacle(x, z, 0.3));
+  // Álamos
+  inst(treeTrunk, barkM, out.alamo, ([x, y, z, a, b]) => { const H = 16 + a * 6; ps.set(x, y - 0.2, z); qq.identity(); sc.set(1.2 + b * 0.4, H * 0.55, 1.2 + b * 0.4); col.setHex(0x8f877a); }, true, 600);
+  inst(alamoCrown, foliage, out.alamo, ([x, y, z, a, b, c]) => { const H = 16 + a * 6, sy = (H - 3) / 6, s = 1.35 + b * 0.45; ps.set(x, y + 3 + sy, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, sy, s); col.setHex(0x4b7628).lerp(new THREE.Color(0x6b9138), c); }, true, 600);
+  out.alamo.forEach(([x, y, z]) => addObstacle(x, z, 0.35));
+  // Árboles muertos
+  inst(snagGeo, barkM, out.snag, ([x, y, z, a, b, c]) => { const s = 0.7 + a * 0.7; ps.set(x, y - 0.3, z); qq.setFromEuler(e.set((b - 0.5) * 0.16, c * 6, (c - 0.5) * 0.16)); sc.set(s, s, s); col.setHex(0xa49e94).lerp(new THREE.Color(0x7d776e), b); }, true, 600);
+  out.snag.forEach(([x, y, z, a]) => addObstacle(x, z, 0.3 * (0.7 + a * 0.7)));
+  // Llaretas
+  inst(llaretaGeo, rockM, out.llareta, ([x, y, z, a, b, c]) => { const s = 0.5 + a * 1.4; ps.set(x, y - 0.1, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s * (0.8 + b * 0.4), s, s); col.setHex(0x6c8c28).lerp(new THREE.Color(0x98ab3e), c); }, false, 600);
+  // Peñascos en las laderas empinadas: rompen la ladera lisa con roca a la vista
+  inst(rockG, rockM, out.crag, ([x, y, z, a, b, c]) => { const s = 5 + a * a * 14; ps.set(x, y - s * 0.22, z); qq.setFromEuler(e.set((b - 0.5) * 0.6, c * 6, (a - 0.5) * 0.5)); sc.set(s, s * (0.8 + b * 0.8), s * (0.7 + c * 0.6)); col.setHex(MAP.pal.rock).lerp(new THREE.Color(MAP.pal.rock2), c).multiplyScalar(0.9 + b * 0.25); }, false, 600);
   // oclusión de contacto bajo árboles, arbustos y rocas (se ve aunque estén fuera del mapa de sombras)
   const aoMat = new THREE.MeshBasicMaterial({ map: texBlob, transparent: true, depthWrite: false, opacity: 0.55, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
   const aoGeo = new THREE.PlaneGeometry(1, 1); aoGeo.rotateX(-Math.PI / 2);
   const aoList = [...out.ara.map(i => [i, 9 * (0.75 + i[4] * 0.5)]), ...out.palm.map(i => [i, 7.5]), ...out.bush.map(i => [i, (0.8 + i[3] * 2) * 2.3]), ...out.rock.map(i => [i, (0.4 + i[3] * i[3] * 2.6) * 2.6]),
-    ...out.tree.map(i => [i, 7 + i[4] * 3]), ...out.conifer.map(i => [i, 6 + i[4] * 2]), ...out.nalca.map(i => [i, 3])];
+    ...out.tree.map(i => [i, 7 + i[4] * 3]), ...out.conifer.map(i => [i, 6 + i[4] * 2]), ...out.nalca.map(i => [i, 3]),
+    ...out.espino.map(i => [i, 5 + i[3] * 3]), ...out.alamo.map(i => [i, 4]), ...out.quisco.map(i => [i, 1.4]), ...out.llareta.map(i => [i, (0.5 + i[3] * 1.4) * 2.4])];
   const upV = new THREE.Vector3(0, 1, 0), nrm = new THREE.Vector3(), gq = {};
   inst(aoGeo, aoMat, aoList.map(([it, s]) => [it[0], 0, it[2], s]), ([x, , z, s]) => {
     const h0 = groundAt(x, z, gq), hx = groundAt(x + 1, z, gq), hz = groundAt(x, z + 1, gq);
@@ -2286,6 +2378,9 @@ const VEG = [];
 function cullVegetation(maxDist) {
   const cx = camera.position.x, cz = camera.position.z, m2 = (maxDist + 212) ** 2;
   for (const v of VEG) v.mesh.visible = (v.x - cx) ** 2 + (v.z - cz) ** 2 < m2;
+  // matas junto al camino: solo cerca (de lejos ni se distinguen) y no cuando nieva
+  const n2 = WEATHER.id === 'snow' ? -1 : (maxDist * 0.24) ** 2;
+  for (const v of NEARV) v.mesh.visible = (v.x - cx) ** 2 + (v.z - cz) ** 2 < n2;
 }
 // objetos chicos (letreros, conos, paraderos, animitas…): de lejos no se ven y solo gastan llamadas de dibujo
 const DETAIL = [];
@@ -2462,7 +2557,7 @@ function woodSignTex(text) {
   return canvasTex(512, 160, (c, w, h) => { c.fillStyle = '#6b3f1f'; c.fillRect(0, 0, w, h); c.fillStyle = '#f4ead2'; c.font = `800 ${text.length > 16 ? 56 : 72}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, w / 2, h / 2 + 4); });
 }
 function buildDecor() {
-  const city = MAP_ID === 'alameda' ? decorAlameda() : {};
+  const city = MAP_ID === 'alameda' ? decorAlameda() : campoPre();
   buildWater();
   if (MAP.mode === '4x4') city.blocked = (x, z) => ob4Near(x, z, 1.5);
   buildVegetation(city);
@@ -2471,6 +2566,7 @@ function buildDecor() {
     decor4x4();
     for (let k = 0; k < 3; k++) for (const side of [1, -1]) { const f = roadFrame(track.START_S + 10 + k * 12, side, ROAD_HALF + 3.5); chileanFlag(f.x, f.y, f.z, 6.5, 0.9); }
     if (MAP.condors) buildCondors();
+    campoPost();
     return;
   }
   tribuna(track.START_S - 40, 1);
@@ -2497,6 +2593,7 @@ function buildDecor() {
   }
   if (MAP_ID === 'caracoles') decorCaracoles();
   if (MAP_ID === 'austral') decorAustral();
+  if (MAP_ID !== 'alameda') campoPost();
 }
 
 // ---------- edificios: cajas con fachada (ventanas que se encienden de noche) fusionadas por material ----------
@@ -3640,7 +3737,405 @@ function decorAustral() {
     addObstacle(f.x, f.z, 3.4, null, 'concrete');
     g.updateMatrixWorld(true);
     decor.chimneys.push(new THREE.Vector3(1.8, 5.6, 0.8).applyMatrix4(g.matrixWorld));
+    CAMPO.houses.push({ x: f.x, z: f.z, s, side, off: f.off });
   }
+}
+
+// =====================================================================
+// Campo chileno: a la orilla de la ruta pasto, flores, cercos, postes de luz y delineadores; en el paisaje viñedos,
+// álamos, casas de adobe y vacas. Todo instanciado o fusionado: pocas llamadas de dibujo
+// =====================================================================
+const CAMPO = { houses: [] };
+// atlas de plantas chicas (8 columnas): 0 pasto seco · 1 pasto verde · 2-4 lupinos morado, rosado y blanco ·
+// 5 flores amarillas · 6 coirón · 7 helecho. Los pastos van claros (los tiñe cada mata); las flores, con su color
+let PLANT_TEX = null;
+function plantTex() {
+  if (PLANT_TEX) return PLANT_TEX;
+  PLANT_TEX = canvasTex(2048, 256, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    const rr = mulberry32(5150), C = 256, rgb = (r, gg, b) => `rgb(${r | 0},${gg | 0},${b | 0})`;
+    // cada planta se dibuja recortada a su columna (sin pasarse a la vecina)
+    const inCol = (c, fn) => { g.save(); g.beginPath(); g.rect(c * C + 8, 0, C - 16, h); g.clip(); fn(c * C + C / 2); g.restore(); };
+    const stroke = (x0, x1, y1, lw, col, bend = 0.25) => {
+      g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(x0, h); g.quadraticCurveTo(x0 + (x1 - x0) * bend, h - (h - y1) * 0.6, x1, y1); g.stroke();
+    };
+    // mata de pasto: hojas finas que se abren desde la base
+    const tuft = (mid, n, hMin, hMax, spread, open, lw, tone) => {
+      for (let k = 0; k < n; k++) {
+        const x0 = mid + (rr() - 0.5) * spread, L = h * (hMin + rr() * (hMax - hMin)), x1 = x0 + (x0 - mid) * open + (rr() - 0.5) * L * 0.5;
+        stroke(x0, x1, h - L, lw * (0.6 + rr() * 0.8), tone(rr()));
+      }
+    };
+    inCol(0, m => {
+      tuft(m, 110, 0.3, 0.92, 70, 1.6, 2.6, v => rgb(205 + v * 45, 192 + v * 45, 150 + v * 45));
+      for (let k = 0; k < 14; k++) { g.fillStyle = rgb(240, 230, 196); g.beginPath(); g.ellipse(m + (rr() - 0.5) * 150, h * (0.1 + rr() * 0.25), 3, 9, (rr() - 0.5) * 0.6, 0, 7); g.fill(); }   // espigas
+    });
+    inCol(1, m => tuft(m, 120, 0.25, 0.85, 80, 1.4, 2.8, v => rgb(165 + v * 55, 200 + v * 50, 150 + v * 45)));
+    // lupinos: hojas palmeadas abajo y espigas de flores que se afinan hacia la punta
+    const lupine = (A, B) => m => {
+      for (let k = 0; k < 9; k++) {
+        const cx = m + (rr() - 0.5) * 150, cy = h - 18 - rr() * 50;
+        stroke(cx + (rr() - 0.5) * 10, cx, cy, 2, rgb(70, 110, 50));
+        for (let j = 0; j < 7; j++) { const a = -Math.PI / 2 + (j - 3) * 0.42; g.fillStyle = rgb(75 + rr() * 30, 120 + rr() * 30, 55 + rr() * 20); g.beginPath(); g.ellipse(cx + Math.cos(a) * 11, cy + Math.sin(a) * 11, 11, 3.2, a, 0, 7); g.fill(); }
+      }
+      for (let k = 0; k < 5; k++) {
+        const x = m + (rr() - 0.5) * 130, top = h * (0.06 + rr() * 0.3), base = top + h * (0.3 + rr() * 0.12);
+        stroke(x + (rr() - 0.5) * 16, x, top, 3, rgb(75, 105, 55), 0.1);
+        for (let y = base; y > top; y -= 5) {
+          const t = (base - y) / (base - top), r = 9 * (1 - t * 0.7);
+          for (const sx of [-1, 1]) { g.fillStyle = t > 0.86 ? rgb(150, 175, 120) : (rr() < 0.5 ? A : B); g.beginPath(); g.ellipse(x + sx * r * 0.6, y, r * 0.55, 3.6, 0, 0, 7); g.fill(); }
+        }
+      }
+    };
+    inCol(2, lupine('#6b46c2', '#8f6ad8')); inCol(3, lupine('#d2559c', '#ec8cc0')); inCol(4, lupine('#ebe5f3', '#cbb8e8'));
+    inCol(5, m => {
+      tuft(m, 40, 0.15, 0.5, 120, 1.0, 2.2, v => rgb(95 + v * 40, 135 + v * 40, 60 + v * 25));
+      for (let k = 0; k < 16; k++) {
+        const x0 = m + (rr() - 0.5) * 120, x1 = x0 + (rr() - 0.5) * 40, y = h * (0.12 + rr() * 0.45);
+        stroke(x0, x1, y, 2, rgb(90, 125, 55));
+        for (let j = 0; j < 6; j++) { g.fillStyle = rr() < 0.7 ? '#f3cf2c' : '#f7e36a'; g.beginPath(); g.arc(x1 + (rr() - 0.5) * 16, y + (rr() - 0.5) * 12, 4 + rr() * 3, 0, 7); g.fill(); }
+      }
+    });
+    inCol(6, m => tuft(m, 190, 0.35, 0.8, 50, 2.6, 1.8, v => rgb(225 + v * 28, 210 + v * 30, 165 + v * 35)));   // coirón: champa densa
+    inCol(7, m => {
+      // helecho: frondas que se arquean hacia afuera, con folíolos que se achican hacia la punta
+      for (let k = 0; k < 7; k++) {
+        const a0 = -Math.PI / 2 + (k - 3) * 0.2, bend = (k - 3) * 0.07, L = h * (0.6 + rr() * 0.3);
+        let px = m + (rr() - 0.5) * 20, py = h; g.strokeStyle = rgb(70, 115, 45); g.lineWidth = 2.5;
+        for (let t = 0; t < 1; t += 0.05) {
+          const ang = a0 + bend * t * 3, nx = px + Math.cos(ang) * L * 0.05, ny = py + Math.sin(ang) * L * 0.05;
+          g.beginPath(); g.moveTo(px, py); g.lineTo(nx, ny); g.stroke();
+          if (t > 0.12) {
+            const len = 26 * (1 - t) + 4; g.fillStyle = rgb(70 + rr() * 30, 125 + rr() * 35, 50 + rr() * 20);
+            for (const sd of [-1, 1]) { const la = ang + sd * 1.25; g.beginPath(); g.ellipse(nx + Math.cos(la) * len / 2, ny + Math.sin(la) * len / 2, len / 2, 3, la, 0, 7); g.fill(); }
+          }
+          px = nx; py = ny;
+        }
+      }
+    });
+  });
+  return PLANT_TEX;
+}
+// material de las matas: elige la columna del atlas por instancia (aCol) y se mece con el viento
+let PLANT_MAT = null;
+function plantMat() {
+  if (PLANT_MAT) return PLANT_MAT;
+  const mat = new THREE.MeshStandardMaterial({ map: plantTex(), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.92 });
+  mat.onBeforeCompile = sh => {
+    sh.uniforms.uTime = ATM.uTime;
+    sh.vertexShader = 'uniform float uTime;\nattribute float aCol;\n' + sh.vertexShader
+      .replace('#include <uv_vertex>', '#include <uv_vertex>\n  vMapUv.x = (vMapUv.x + aCol) * 0.125;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        float wph = instanceMatrix[3].x * 0.31 + instanceMatrix[3].z * 0.23;
+        transformed.xz += (sin(uTime * 2.3 + wph) + 0.45 * sin(uTime * 5.1 + wph * 1.7)) * 0.08 * position.y * vec2(1.0, 0.7);`);
+    // las dos caras con la misma normal (hacia arriba): la mata no se ve oscura por detrás
+    sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n  normal = normalize(vNormal);');
+  };
+  mat.customProgramCacheKey = () => 'plants8';
+  return (PLANT_MAT = mat);
+}
+// mata: tres planos cruzados de 1 × 1 m apoyados en el suelo (6 triángulos)
+function tuftGeo() {
+  const parts = [];
+  for (let k = 0; k < 3; k++) parts.push(new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0).rotateY(k * Math.PI / 3 + 0.3));
+  const g = mergeGeometries(parts), n = g.attributes.normal, p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < n.count; i++) { v.set(p.getX(i) * 0.5, 1, p.getZ(i) * 0.5).normalize(); n.setXYZ(i, v.x, v.y, v.z); }
+  return g;
+}
+function nearObstacle(x, z, pad) {
+  let hit = false;
+  forNearObstacles(x, z, o => { if (!hit && (o.x - x) ** 2 + (o.z - z) ** 2 < (o.r + pad) ** 2) hit = true; });
+  return hit;
+}
+// matas a lo largo de la ruta: densas junto a la berma, ralas más afuera. pick(x, z, h, d, rng, color) → [columna,
+// tamaño] o null (y deja el color de la mata en "color"). Van en tramos de 80 m, cada uno una malla que se oculta de lejos
+const NEARV = [];
+function nearPlants(pick, dens = 1) {
+  const rng = mulberry32(31 + MAP_IDS.indexOf(MAP_ID) * 7), q = {}, fr = {}, buckets = new Map(), col = new THREE.Color();
+  const d0 = Math.max(ROAD_HALF + FLAT_EXTRA + 0.5, MAP.rails === 'ninguna' ? 0 : RAIL_D + 0.4);
+  const onOb4 = (x, z) => { const l = OB4 && OB4.cells.get(Math.floor(x / 4) * 4099 + Math.floor(z / 4)); return l && l.some(o => Math.hypot(x - o.x, z - o.z) < (o.t === 'zone' ? o.r : Math.max(o.a, o.b || o.r || 0)) + 0.6); };
+  for (let s = 0; s < track.length; s += 1) for (const side of [1, -1]) for (let t = 0; t < 5; t++) {
+    const near = t < 2, d = near ? d0 + rng() * 6 : d0 + 6 + rng() * 22;
+    if (rng() > (near ? 0.6 : 0.5) * dens) continue;
+    track.at(s + rng(), fr);
+    const x = fr.x + fr.tz * side * d, z = fr.z - fr.tx * side * d, h = groundAt(x, z, q);
+    if (!q.ok || q.dist < d0 - 0.3 || (track.bridge[q.i] && q.dist < ROAD_HALF + 4)) continue;
+    if (waterAt(x, z) > h - 0.15 || nearObstacle(x, z, 0.3) || onOb4(x, z)) continue;
+    const p = pick(x, z, h, d, rng, col); if (!p) continue;
+    const key = Math.floor(s / 80);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push([x, h, z, p[0], p[1], col.r, col.g, col.b, rng() * 6.28]);
+  }
+  const base = tuftGeo(), mat = plantMat(), m4 = new THREE.Matrix4(), qq = new THREE.Quaternion(), ps = new THREE.Vector3(), sc = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  for (const list of buckets.values()) {
+    const g = new THREE.BufferGeometry();
+    for (const k of ['position', 'normal', 'uv']) g.setAttribute(k, base.attributes[k]);
+    g.setIndex(base.index);
+    const ac = new Float32Array(list.length), im = new THREE.InstancedMesh(g, mat, list.length);
+    let cx = 0, cz = 0;
+    list.forEach(([x, y, z, c, s, r, gg, b, a], k) => {
+      im.setMatrixAt(k, m4.compose(ps.set(x, y - 0.04, z), qq.setFromAxisAngle(up, a), sc.set(s, s, s)));
+      im.setColorAt(k, col.setRGB(r, gg, b)); ac[k] = c; cx += x; cz += z;
+    });
+    g.setAttribute('aCol', new THREE.InstancedBufferAttribute(ac, 1));
+    im.receiveShadow = true; im.computeBoundingSphere(); world.add(im);
+    NEARV.push({ mesh: im, x: cx / list.length, z: cz / list.length });
+  }
+}
+// ---- postes y alambres: se juntan en listas y al final queda una malla instanciada por tipo de poste y una sola de cables ----
+const WIRES = [], POSTS = { fence: [], pole: [], wood: [], delin: [] };
+function wireSpan(a, b, sag, segs) {
+  for (let k = 0; k < segs; k++) for (const t of [k / segs, (k + 1) / segs]) WIRES.push(lerp(a[0], b[0], t), lerp(a[1], b[1], t) - sag * 4 * t * (1 - t), lerp(a[2], b[2], t));
+}
+// cerco de alambre de púas con polines de madera, a "off" metros del eje; deja un portón en "gap"
+function fence(s0, s1, side, off, gap = null) {
+  const q = {}; let prev = null, k = 0;
+  for (let s = s0; s <= s1; s += 2.8) {
+    if (gap !== null && Math.abs(s - gap) < 2.5) { prev = null; continue; }
+    const f = roadFrame(s, side, off);
+    track.query(f.x, f.z, q);
+    if (q.dist < off - 1.5 || waterAt(f.x, f.z) > f.y - 0.2 || nearObstacle(f.x, f.z, 0.2)) { prev = null; continue; }
+    POSTS.fence.push([f.x, f.y - 0.1, f.z, f.heading + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.08]);
+    if (k++ % 2 === 0) addObstacle(f.x, f.z, 0.12);
+    if (prev) for (const hg of [0.42, 0.78, 1.12]) wireSpan([prev.x, prev.y + hg, prev.z], [f.x, f.y + hg, f.z], 0.03, 1);
+    prev = f;
+  }
+}
+// tendido eléctrico a un costado de la ruta: postes de hormigón (o de madera en el sur) con cables que cuelgan
+function powerLine(side, off, span, wood) {
+  const L = track.length, n = Math.max(3, Math.round(L / span)), step = L / n, q = {}, pts = [];
+  const H = wood ? 7.3 : 8.8, arms = wood ? [-0.55, 0.55] : [-0.9, -0.3, 0.9];
+  for (let k = 0; k < n; k++) {
+    const f = roadFrame(k * step, side, off);
+    track.query(f.x, f.z, q);
+    const ok = q.dist > off - 2.5 && waterAt(f.x, f.z) < f.y - 0.3 && !nearObstacle(f.x, f.z, 1.0) && Math.hypot(f.x - LAKE.x, f.z - LAKE.z) > LAKE.r + 4 && !(FIELDS.length && fieldAt(f.x, f.z) > 0);
+    if (!ok) { pts.push(null); continue; }
+    (wood ? POSTS.wood : POSTS.pole).push([f.x, f.y - 0.2, f.z, f.heading]);
+    addObstacle(f.x, f.z, 0.22, null, wood ? 'tree' : 'concrete');
+    pts.push(arms.map(o => [f.x + f.tz * o, f.y - 0.2 + H, f.z - f.tx * o]));
+  }
+  for (let k = 0; k < n; k++) { const a = pts[k], b = pts[(k + 1) % n]; if (a && b) for (let j = 0; j < a.length; j++) wireSpan(a[j], b[j], span * 0.022, 6); }
+}
+// delineadores: postes blancos con franja negra y reflectante, cada "every" metros a ambos lados
+function delineators(every) {
+  const q = {};
+  for (let s = 0; s < track.length; s += every) for (const side of [1, -1]) {
+    const f = roadFrame(s + (side > 0 ? every / 2 : 0), side, RAIL_D + 0.75);
+    track.query(f.x, f.z, q);
+    if (track.bridge[q.i] || q.dist < RAIL_D + 0.3 || waterAt(f.x, f.z) > f.y - 0.2 || nearObstacle(f.x, f.z, 0.4)) continue;
+    POSTS.delin.push([f.x, f.y - 0.05, f.z, f.heading]);
+  }
+}
+function flushPosts() {
+  const m4 = new THREE.Matrix4(), qq = new THREE.Quaternion(), e = new THREE.Euler(), ps = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1), col = new THREE.Color();
+  const make = (list, geo, mat, shadow, tint) => {
+    if (!list.length) return;
+    const im = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach(([x, y, z, rot, tilt = 0], k) => { im.setMatrixAt(k, m4.compose(ps.set(x, y, z), qq.setFromEuler(e.set(tilt, rot, tilt * 0.7)), sc)); if (tint) im.setColorAt(k, tint(col, k)); });
+    im.castShadow = shadow; im.receiveShadow = true; im.computeBoundingSphere(); world.add(im);
+  };
+  make(POSTS.fence, new THREE.BoxGeometry(0.1, 1.35, 0.1).translate(0, 0.62, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 }), false, (c, k) => c.setHex(0x6b5038).multiplyScalar(0.75 + ((k * 0.618) % 1) * 0.5));
+  // (piezas abiertas y de pocas caras: son muchos postes y van en la pasada de sombras)
+  const ins = (x, y) => new THREE.CylinderGeometry(0.045, 0.07, 0.18, 4, 1, true).translate(x, y, 0);
+  make(POSTS.pole, mergeGeometries([new THREE.CylinderGeometry(0.1, 0.16, 8.9, 5, 1, true).translate(0, 4.45, 0), new THREE.BoxGeometry(2.2, 0.13, 0.13).translate(0, 8.62, 0), ins(-0.9, 8.75), ins(-0.3, 8.75), ins(0.9, 8.75)]),
+    new THREE.MeshStandardMaterial({ color: 0xb2ada4, roughness: 0.9 }), true);
+  make(POSTS.wood, mergeGeometries([new THREE.CylinderGeometry(0.11, 0.15, 7.6, 5, 1, true).translate(0, 3.8, 0), new THREE.BoxGeometry(1.45, 0.11, 0.11).translate(0, 7.14, 0), ins(-0.55, 7.25), ins(0.55, 7.25)]),
+    new THREE.MeshStandardMaterial({ color: 0x5b4532, roughness: 0.95 }), true);
+  const dt = canvasTex(32, 128, (g, w, h) => { g.fillStyle = '#f2f2ee'; g.fillRect(0, 0, w, h); g.fillStyle = '#151515'; g.fillRect(0, h * 0.1, w, h * 0.2); g.fillStyle = '#f2b01e'; g.fillRect(w * 0.2, h * 0.14, w * 0.6, h * 0.12); });
+  make(POSTS.delin, new THREE.BoxGeometry(0.1, 1.0, 0.07).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ map: dt, roughness: 0.5 }), false);
+  if (WIRES.length) {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(WIRES, 3));
+    world.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x262626 })));
+  }
+}
+// ---- vacas pastando (una sola malla instanciada; el color de cada una es su pelaje) ----
+const COWS = [];
+function herd(x0, z0, n, rng) {
+  const q = {};
+  for (let k = 0; k < n; k++) {
+    const x = x0 + (rng() - 0.5) * 16, z = z0 + (rng() - 0.5) * 16, h = groundAt(x, z, q);
+    if ((q.ok && q.dist < ROAD_HALF + 6) || waterAt(x, z) > h - 0.3 || nearObstacle(x, z, 1.2) || (FIELDS.length && fieldAt(x, z) > 0)) continue;
+    COWS.push([x, h, z, rng() * 6.28, (rng() * 4) | 0]); addObstacle(x, z, 0.9);
+  }
+}
+function flushCows() {
+  if (!COWS.length) return;
+  const L = [], c = 0xffffff;
+  piece(L, new THREE.CapsuleGeometry(0.42, 1.1, 4, 8).rotateX(Math.PI / 2), c, 0, 1.0, 0);
+  piece(L, new THREE.CylinderGeometry(0.17, 0.24, 0.62, 6), c, 0, 0.78, 0.85, -0.83);         // cuello agachado
+  piece(L, new THREE.BoxGeometry(0.3, 0.34, 0.5), c, 0, 0.45, 1.15, 0.93);                     // cabeza pastando
+  piece(L, new THREE.BoxGeometry(0.22, 0.2, 0.14), 0x4a3a34, 0, 0.25, 1.3, 0.93);              // hocico
+  for (const s of [-1, 1]) piece(L, new THREE.ConeGeometry(0.035, 0.18, 5), 0xf0e6d2, s * 0.16, 0.68, 1.02, 0, 0, -s * 1.1);
+  for (const [x, z] of [[-0.22, 0.55], [0.22, 0.55], [-0.22, -0.55], [0.22, -0.55]]) { piece(L, new THREE.CylinderGeometry(0.08, 0.07, 0.72, 5), c, x, 0.38, z); piece(L, new THREE.CylinderGeometry(0.08, 0.08, 0.06, 5), 0x2a1a12, x, 0.03, z); }
+  piece(L, new THREE.CylinderGeometry(0.025, 0.02, 0.7, 4), c, 0, 0.72, -0.98, 0.18);
+  const im = new THREE.InstancedMesh(mergeGeometries(L, false), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 }), COWS.length);
+  const m4 = new THREE.Matrix4(), qq = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), ps = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1), col = new THREE.Color();
+  const coats = [0x6e3b22, 0x2a2420, 0xd9d0c0, 0x8a5a36];
+  COWS.forEach(([x, y, z, rot, k], i) => { im.setMatrixAt(i, m4.compose(ps.set(x, y, z), qq.setFromAxisAngle(up, rot), sc)); im.setColorAt(i, col.setHex(coats[k])); });
+  im.receiveShadow = true; im.computeBoundingSphere(); world.add(im);   // sin sombra propia: pastan lejos del camino
+}
+// ---- casa de campo de adobe: muros encalados, zócalo, corredor con pilares de madera, techo de tejas y horno de barro ----
+let ADOBE_MAT = null;
+function casaAdobe(x, y, z, rot) {
+  const L = [], W = 12, D = 6.5, white = 0xe9e2cf, wood = 0x6a4a2e, tile = 0x8e4c36;
+  piece(L, new THREE.BoxGeometry(W, 3.0, D), white, 0, 1.5, 0);
+  piece(L, new THREE.BoxGeometry(W + 0.08, 0.5, D + 0.08), 0x8c7b66, 0, 0.25, 0);
+  piece(L, new THREE.BoxGeometry(W, 0.16, 2.7), 0x9b8f80, 0, 0.08, D / 2 + 1.35);
+  for (let k = 0; k < 6; k++) piece(L, new THREE.BoxGeometry(0.16, 2.55, 0.16), wood, -W / 2 + 0.3 + k * (W - 0.6) / 5, 1.35, D / 2 + 2.5);
+  piece(L, new THREE.BoxGeometry(W + 0.3, 0.18, 0.2), wood, 0, 2.66, D / 2 + 2.5);
+  piece(L, gableGeo(D, W, 1.4).rotateY(Math.PI / 2), white, 0, 3.0, 0);
+  // techo a dos aguas: la falda delantera baja hasta cubrir el corredor
+  const slab = (z0, y0, z1, y1) => { const len = Math.hypot(z1 - z0, y1 - y0), a = Math.atan2(y1 - y0, z1 - z0); piece(L, new THREE.BoxGeometry(W + 0.8, 0.14, len), tile, 0, (y0 + y1) / 2 + 0.07, (z0 + z1) / 2, -a); };
+  slab(-D / 2 - 0.6, 2.85, 0, 4.42); slab(0, 4.42, D / 2 + 2.85, 2.72);
+  piece(L, new THREE.BoxGeometry(W + 0.9, 0.16, 0.28), 0x7a3e2a, 0, 4.5, 0);
+  piece(L, new THREE.BoxGeometry(1.1, 2.1, 0.08), 0x4a2e1a, 0, 1.05, D / 2 + 0.02);
+  for (const wx of [-4.6, -2.4, 2.4, 4.6]) { piece(L, new THREE.BoxGeometry(1.0, 1.25, 0.06), 0x2e2a26, wx, 1.65, D / 2 + 0.02); for (const sx of [-1, 1]) piece(L, new THREE.BoxGeometry(0.5, 1.3, 0.05), 0x3c6a62, wx + sx * 0.78, 1.65, D / 2 + 0.05); }
+  piece(L, new THREE.BoxGeometry(1.9, 0.6, 1.9), 0x8c7b66, W / 2 + 2.2, 0.3, -1);
+  piece(L, new THREE.SphereGeometry(0.95, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.85, 1), 0xa06c45, W / 2 + 2.2, 0.6, -1);
+  const m = new THREE.Mesh(mergeGeometries(L, false), ADOBE_MAT || (ADOBE_MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 })));
+  m.position.set(x, y, z); m.rotation.y = rot; m.castShadow = true; m.receiveShadow = true; world.add(m);
+  const c = Math.cos(rot), s = Math.sin(rot);
+  for (const [lx, lz] of [[-4.5, 0], [0, 0], [4.5, 0], [-3, 4.6], [3, 4.6], [W / 2 + 2.2, -1]]) addObstacle(x + lx * c + lz * s, z - lx * s + lz * c, lz > 4 ? 1.6 : lx > 7 ? 1.1 : 3.4, null, 'concrete');
+}
+// ---- viñedos del valle del Aconcagua: bloques planos, lejos de la ruta, con hileras paralelas al camino ----
+function planFields() {
+  if (MAP_ID !== 'cordillera') return [];
+  const out = [], rng = mulberry32(1987), q = {}, fr = {}, L = track.length;
+  for (let tries = 0; tries < 500 && out.length < 6; tries++) {
+    const s = rng() * L, gs = wrapGap(s - track.START_S), side = rng() < 0.5 ? 1 : -1;
+    if (gs > -120 && gs < 480) continue;
+    track.at(s, fr);
+    const l = 50 + rng() * 30, w = 30 + rng() * 22, off = ROAD_HALF + 22 + w / 2 + rng() * 30;
+    const cx = fr.x + fr.tz * side * off, cz = fr.z - fr.tx * side * off, ux = fr.tx, uz = fr.tz;
+    let lo = 1e9, hi = -1e9, bad = false;
+    for (let i = -2; i <= 2 && !bad; i++) for (let j = -2; j <= 2 && !bad; j++) {
+      const x = cx + ux * i * l / 4 - uz * j * w / 4, z = cz + uz * i * l / 4 + ux * j * w / 4, h = baseH(x, z);
+      lo = Math.min(lo, h); hi = Math.max(hi, h);
+      if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r + 30 || (track.query(x, z, q) && q.dist < ROAD_HALF + 14)) bad = true;
+    }
+    if (bad || hi - lo > 3.2 || out.some(F => Math.hypot(F.cx - cx, F.cz - cz) < 140)) continue;
+    out.push({ cx, cz, ux, uz, l, w });
+  }
+  return out;
+}
+function buildVines() {
+  // tramo de hilera (2,5 m): dos planos de hojas a los costados (bajan hasta casi el suelo y tapan las cepas) y uno arriba
+  const parts = [];
+  for (const sx of [-0.3, 0.3]) parts.push(new THREE.PlaneGeometry(2.5, 1.2).rotateY(Math.PI / 2).translate(sx, 0.95, 0));
+  parts.push(new THREE.PlaneGeometry(0.6, 2.5).rotateX(-Math.PI / 2).translate(0, 1.55, 0));
+  const geo = mergeGeometries(parts), uv = geo.attributes.uv, nr = geo.attributes.normal, p = geo.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < uv.count; i++) { if (i < 8) uv.setX(i, uv.getX(i) * 2); v.set(p.getX(i) * 1.5, 1, 0).normalize(); nr.setXYZ(i, v.x, v.y, v.z); }
+  const mat = foliageMats()[1], q = {};
+  const m4 = new THREE.Matrix4(), qq = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), ps = new THREE.Vector3(), sc = new THREE.Vector3(), col = new THREE.Color();
+  for (const F of FIELDS) {
+    const rows = Math.floor(F.w / 2.6), segs = Math.floor(F.l / 2.5), list = [], rot = Math.atan2(F.ux, F.uz);
+    const at = (u, v) => [F.cx + F.ux * u - F.uz * v, F.cz + F.uz * u + F.ux * v];
+    for (let r = 0; r < rows; r++) {
+      const v0 = -F.w / 2 + (r + 0.5) * 2.6;
+      for (let k = 0; k < segs; k++) { const [x, z] = at(-F.l / 2 + (k + 0.5) * 2.5, v0); list.push([x, groundAt(x, z, q), z]); if (k % 2 === 0) addObstacle(x, z, 0.5); }
+      for (const e of [-1, 1]) { const [x, z] = at(e * (F.l / 2 + 0.4), v0); POSTS.fence.push([x, groundAt(x, z, q) - 0.1, z, rot, 0]); }
+    }
+    const im = new THREE.InstancedMesh(geo, mat, list.length);
+    list.forEach(([x, y, z], k) => {
+      const s = 0.9 + ((k * 0.618) % 1) * 0.2;
+      im.setMatrixAt(k, m4.compose(ps.set(x, y, z), qq.setFromAxisAngle(up, rot), sc.set(1, s, 1)));
+      im.setColorAt(k, col.setHex(0x4f7d28).lerp(new THREE.Color(0x78953a), (k * 0.371) % 1));
+    });
+    im.receiveShadow = true; im.computeBoundingSphere(); world.add(im); VEG.push({ mesh: im, x: F.cx, z: F.cz });
+  }
+}
+// ---- Cordillera: casas de campo y álamos, ubicados antes de plantar el resto de la vegetación ----
+function planHouses(n, rng) {
+  const out = [], q = {};
+  for (let tries = 0; tries < 400 && out.length < n; tries++) {
+    const s = rng() * track.length, gs = wrapGap(s - track.START_S);
+    if (gs > -120 && gs < 480) continue;
+    const side = rng() < 0.5 ? 1 : -1, off = ROAD_HALF + 20 + rng() * 8, f = roadFrame(s, side, off);
+    track.query(f.x, f.z, q); if (q.dist < off - 3) continue;
+    if (Math.hypot(f.x - LAKE.x, f.z - LAKE.z) < LAKE.r + 25 || FIELDS.some(F => Math.hypot(F.cx - f.x, F.cz - f.z) < Math.max(F.l, F.w) / 2 + 22)) continue;
+    const rot = Math.atan2(-side * f.tz, side * f.tx), c = Math.cos(rot), sn = Math.sin(rot);
+    let lo = 1e9, hi = -1e9;
+    for (const [a, b] of [[-9, -5], [9, -5], [9, 7], [-9, 7], [0, 0]]) { const h = groundAt(f.x + a * c + b * sn, f.z - a * sn + b * c, q); lo = Math.min(lo, h); hi = Math.max(hi, h); }
+    if (hi - lo > 2.2 || out.some(o => Math.hypot(o.x - f.x, o.z - f.z) < 300)) continue;
+    out.push({ x: f.x, z: f.z, y: lo - 0.05, rot, s, side, off });
+  }
+  return out;
+}
+function planAlamos(rng, houses) {
+  const out = [], q = {}, fr = {};
+  const put = (x, z) => {
+    const h = groundAt(x, z, q);
+    if ((q.ok && q.dist < 7.5) || waterAt(x, z) > h - 0.3 || Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.r + 8 || houses.some(o => Math.hypot(o.x - x, o.z - z) < 14)) return;
+    out.push([x, h, z, rng(), rng(), rng()]);
+  };
+  // hileras a lo largo de las rectas del camino
+  let rows = 0;
+  for (let tries = 0; tries < 300 && rows < 5; tries++) {
+    const s0 = rng() * track.length, gs = wrapGap(s0 - track.START_S), len = 90 + rng() * 80;
+    if (gs > -150 && gs < 480) continue;
+    let straight = true;
+    for (let s = s0; s < s0 + len && straight; s += 10) if (Math.abs(track.at(s, fr).k) > 1 / 350) straight = false;
+    if (!straight) continue;
+    const side = rng() < 0.5 ? 1 : -1, off = ROAD_HALF + 8.5 + rng() * 3;
+    for (let s = s0; s < s0 + len; s += 6) { const f = roadFrame(s, side, off); put(f.x, f.z); }
+    rows++;
+  }
+  // cortavientos en el borde de cada viñedo que queda lejos del camino
+  for (const F of FIELDS) {
+    const far = [1, -1].map(sg => { const x = F.cx - F.uz * sg * (F.w / 2 + 3), z = F.cz + F.ux * sg * (F.w / 2 + 3); return [track.query(x, z, q) ? q.dist : 1e9, sg]; }).sort((a, b) => b[0] - a[0])[0][1];
+    for (let u = -F.l / 2; u <= F.l / 2; u += 6) put(F.cx + F.ux * u - F.uz * far * (F.w / 2 + 4), F.cz + F.uz * u + F.ux * far * (F.w / 2 + 4));
+  }
+  return out;
+}
+// antes de la vegetación: lo que ocupa terreno (casas, hileras de álamos) y dónde no plantar
+function campoPre() {
+  if (MAP_ID !== 'cordillera') return {};
+  const rng = mulberry32(4242), houses = planHouses(5, rng);
+  for (const H of houses) { casaAdobe(H.x, H.y, H.z, H.rot); CAMPO.houses.push(H); }
+  return { extra: { alamo: planAlamos(rng, houses) }, blocked: (x, z) => fieldAt(x, z) > 0 || houses.some(H => (H.x - x) ** 2 + (H.z - z) ** 2 < 225) };
+}
+// después de la vegetación y la decoración: viñas, cercos, postes, animales y, al final, las matas junto al camino
+function campoPost() {
+  const rng = mulberry32(777 + MAP_IDS.indexOf(MAP_ID)), P = MAP.pal;
+  const dry = new THREE.Color(P.dry), dry2 = new THREE.Color(P.dry2), green = new THREE.Color(P.green);
+  // vacas detrás de cada casa (del lado contrario al camino)
+  const yard = H => { const f = roadFrame(H.s, H.side, (H.off || ROAD_HALF + 28) + 18); herd(f.x, f.z, 2 + (rng() * 3 | 0), rng); };
+  if (MAP_ID === 'cordillera') {
+    buildVines();
+    for (const H of CAMPO.houses) { fence(H.s - 40, H.s + 40, H.side, ROAD_HALF + 9, H.s); yard(H); }
+    powerLine(-1, ROAD_HALF + 13, 42, false);
+    delineators(25);
+    nearPlants((x, z, h, d, r, c) => {
+      if (fbm(x / 35 + 4, z / 35, 2) > 0.28 && r() < 0.4) { c.setScalar(0.85 + r() * 0.15); return [5, 0.35 + r() * 0.3]; }   // manchones de flores amarillas
+      c.copy(dry).lerp(dry2, r() * 0.7).lerp(green, clamp(smooth(0.05, 0.45, fbm(x / 90, z / 90, 3)) * 0.8, 0, 0.8)).multiplyScalar(1.0 + r() * 0.25);
+      return [r() < 0.2 ? 1 : 0, 0.3 + r() * 0.4];
+    });
+  } else if (MAP_ID === 'caracoles') {
+    // coirón: champas pajizas donde la nieve deja ver el suelo
+    nearPlants((x, z, h, d, r, c) => {
+      if (snowCover(x, z, h, 0.92) > 0.3 || r() < 0.4) return null;
+      c.setHex(0xcfc29a).multiplyScalar(0.8 + r() * 0.25); return [6, 0.35 + r() * 0.4];
+    }, 0.8);
+  } else if (MAP_ID === 'austral') {
+    for (const H of CAMPO.houses) { fence(H.s - 34, H.s + 34, H.side, ROAD_HALF + 8, H.s); yard(H); }
+    powerLine(1, ROAD_HALF + 7, 38, true);
+    // lupinos en manchones a la orilla del ripio, pasto verde y helechos más adentro
+    nearPlants((x, z, h, d, r, c) => {
+      const near = d < ROAD_HALF + FLAT_EXTRA + 9;
+      if (near && fbm(x / 26 + 9, z / 26, 2) > 0.05 && r() < 0.85) { const t = r(); c.setScalar(0.9 + r() * 0.15); return [t < 0.5 ? 2 : t < 0.82 ? 3 : 4, 0.9 + r() * 0.55]; }
+      if (!near && r() < 0.3) { c.setScalar(0.75 + r() * 0.2); return [7, 0.8 + r() * 0.7]; }
+      c.copy(green).multiplyScalar(1.15 + r() * 0.3); return [1, 0.4 + r() * 0.45];
+    });
+  } else if (MAP.mode === '4x4' && MAP_ID !== 'x4_dunas') {
+    const wet = MAP_ID !== 'x4_rocas';
+    nearPlants((x, z, h, d, r, c) => {
+      if (wet && r() < 0.25) { c.setScalar(0.85 + r() * 0.2); return [7, 0.7 + r() * 0.6]; }
+      if (!wet && r() < 0.15) { c.setHex(0xcfc29a).multiplyScalar(0.85 + r() * 0.2); return [6, 0.4 + r() * 0.35]; }
+      c.copy(wet ? green : dry).lerp(dry2, r() * 0.4).multiplyScalar(1.6 + r() * 0.3); return [wet ? 1 : 0, 0.35 + r() * 0.45];
+    }, 0.7);
+  }
+  flushPosts(); flushCows();
 }
 
 // =====================================================================
@@ -4317,25 +4812,38 @@ function setCockpit(m, on) {
     else if (gl.cockMat) { if (gl.mesh.material === m.cock.glass) gl.mesh.material = gl.cockMat; gl.cockMat = null; }
   }
 }
-// de lejos se ocultan interior, molduras y calipers (no se notan y ahorran dibujo)
-// y más lejos todavía (rivales y tránsito a más de ~55 m) se dibuja una copia fusionada del auto: un dibujo por
-// material en vez de 20–46 piezas sueltas. Es lo que más carga al procesador en los mapas con tránsito.
+// de lejos se ocultan interior, molduras y calipers (no se notan y ahorran dibujo). Rivales y tránsito tienen además
+// copias fusionadas del auto (un dibujo por material en vez de 20–46 piezas sueltas), que es lo que más carga al
+// procesador: nivel 1 (rivales a más de ~16 m), la carrocería con su interior y las ruedas de verdad, que giran y
+// doblan; nivel 2 (más de ~55 m), todo junto, ruedas incluidas. En la largada los cinco rivales están cerca
 function updateCarLOD(m, allowFar = false) {
   if (!m) return;
-  const d2 = m.root.position.distanceToSquared(camera.position), near = d2 < 75 * 75;
-  if (m.lodNear !== near) { m.lodNear = near; for (const o of m.lod) o.visible = near; }
-  if (!allowFar) return;
-  const far = m.isFar ? d2 > 52 * 52 : d2 > 58 * 58;
-  if (far !== !!m.isFar) {
-    if (far && (!m.far || m.farDirty)) buildFarLOD(m);
-    m.isFar = far; m.body.visible = !far; m.far.visible = far;
-    for (const w of m.wheels) { if (far) { w.wasVis = w.pivot.visible; w.pivot.visible = false; } else w.pivot.visible = w.wasVis ?? true; }
-  } else if (far && m.farDirty && performance.now() - m.farT > 400) { buildFarLOD(m); m.far.visible = true; }
-  if (far) { m.far.position.copy(m.body.position); m.far.quaternion.copy(m.body.quaternion); }
+  const d2 = m.root.position.distanceToSquared(camera.position), lv0 = m.lv || 0;
+  let lv = 0;
+  if (allowFar) {
+    lv = d2 > (lv0 === 2 ? 52 : 58) ** 2 ? 2 : 0;
+    // recién chocado se ve completo un rato: la copia se rehace después, con las abolladuras, vidrios y piezas sueltas
+    if (!lv && !m.simple && d2 > (lv0 === 1 ? 14 : 18) ** 2 && !(m.hitT && performance.now() - m.hitT < 1500)) lv = 1;
+  }
+  const det = lv === 0 && d2 < 75 * 75;
+  if (m.lodNear !== det) { m.lodNear = det; for (const o of m.lod) o.visible = det; }
+  if (lv !== lv0) {
+    if (lv === 2 && (!m.far || m.farDirty)) buildFarLOD(m, false);
+    if (lv === 1 && (!m.mid || m.midDirty)) buildFarLOD(m, true);
+    m.lv = lv; m.body.visible = lv === 0;
+    if (m.far) m.far.visible = lv === 2;
+    if (m.mid) m.mid.visible = lv === 1;
+    for (const w of m.wheels) { if (lv === 2) { w.wasVis = w.pivot.visible; w.pivot.visible = false; } else if (lv0 === 2) w.pivot.visible = w.wasVis ?? true; }
+  } else if (lv === 2 && m.farDirty && performance.now() - m.farT > 400) { buildFarLOD(m, false); m.far.visible = true; }
+  else if (lv === 1 && m.midDirty) { buildFarLOD(m, true); m.mid.visible = true; }
+  const cp = lv === 2 ? m.far : lv === 1 ? m.mid : null;
+  if (cp) { cp.position.copy(m.body.position); cp.quaternion.copy(m.body.quaternion); }
 }
 const _farInv = new THREE.Matrix4(), _farM = new THREE.Matrix4();
-function buildFarLOD(m) {
-  if (m.far) { m.root.remove(m.far); for (const o of m.far.children) o.geometry.dispose(); }
+// mid: copia de nivel 1 (con interior y sin ruedas); si no, la de nivel 2
+function buildFarLOD(m, mid = false) {
+  const key = mid ? 'mid' : 'far';
+  if (m[key]) { m.root.remove(m[key]); for (const o of m[key].children) o.geometry.dispose(); }
   m.root.updateMatrixWorld(true); _farInv.copy(m.body.matrixWorld).invert();
   // las luces de un mismo tipo comparten el material de la primera (setLights las enciende igual a todas)
   const groups = new Map(), lightKey = new Map(), lightMat = new Map();
@@ -4359,7 +4867,7 @@ function buildFarLOD(m) {
   };
   const take = o => {
     // de las piezas de detalle solo se quedan las molduras (marcos de ventanas, líneas de puertas): dan la silueta
-    if (!o.isMesh || (m.lod.includes(o) && o.material !== CM.trimDark && o.material !== CM.trimChrome)) return;
+    if (!o.isMesh || (!mid && m.lod.includes(o) && o.material !== CM.trimDark && o.material !== CM.trimChrome)) return;
     for (let p = o; p && p !== m.root; p = p.parent) if (!p.visible && !m.lod.includes(p)) return;
     const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
     g.morphAttributes = {}; g.applyMatrix4(_farM.multiplyMatrices(_farInv, o.matrixWorld));
@@ -4371,8 +4879,8 @@ function buildFarLOD(m) {
   };
   // (si ya estaba de lejos, la carrocería y las ruedas están ocultas: se miran como estaban antes de ocultarlas)
   const bv = m.body.visible; m.body.visible = true;
-  const wv = m.wheels.map(w => w.pivot.visible); if (m.isFar) m.wheels.forEach(w => w.pivot.visible = w.wasVis ?? true);
-  m.body.traverse(take); for (const w of m.wheels) w.pivot.traverse(take);
+  const wv = m.wheels.map(w => w.pivot.visible); if (m.lv === 2) m.wheels.forEach(w => w.pivot.visible = w.wasVis ?? true);
+  m.body.traverse(take); if (!mid) for (const w of m.wheels) w.pivot.traverse(take);
   m.body.visible = bv; m.wheels.forEach((w, i) => w.pivot.visible = wv[i]);
   const far = new THREE.Group();
   for (const gr of groups.values()) {
@@ -4381,7 +4889,7 @@ function buildFarLOD(m) {
     if (merged && gr.geos.length > 1) for (const g of gr.geos) g.dispose();
     for (const g of list) { const mesh = new THREE.Mesh(g, gr.mat); mesh.castShadow = gr.cast; far.add(mesh); }
   }
-  far.visible = false; m.root.add(far); m.far = far; m.farDirty = false; m.farT = performance.now();
+  far.visible = false; m.root.add(far); m[key] = far; m[key + 'Dirty'] = false; if (!mid) m.farT = performance.now();
 }
 function setLights(m, braking, reverse, headScale = 1) {
   const tl = braking ? 5 : (tod.lights ? 1.4 : 0.3), hl = tod.lights ? 6 : 0.04;
@@ -5684,7 +6192,7 @@ function simplifyModel(model) {
   for (const { mat, geos } of groups.values()) { const mm = new THREE.Mesh(mergeList(geos), mat); mm.castShadow = true; body.add(mm); }
   model.lights = [];
   for (const { mat, kind, geos } of lightGroups.values()) { const mesh = new THREE.Mesh(mergeList(geos), mat); body.add(mesh); model.lights.push({ mesh, mat, kind, broken: false }); }
-  model.lod = []; model.parts = []; model.glass = [];
+  model.lod = []; model.parts = []; model.glass = []; model.simple = true;
 }
 const TRAFFIC_LANE = ROAD_HALF > 7 ? [1.5, 4.5, 7.5] : [ROAD_HALF * 0.48];
 // pistas de la calzada de un sentido (mismas medidas que onewayTex): autos en cualquiera, micros en la "solo bus"
@@ -6035,7 +6543,7 @@ class CarDamage {
   hit(worldPoint, worldNormal, dv) {
     if (this.mode === 'off' || dv < 1.2) return null;
     const m = this.m, out = { broken: [], detached: [] };
-    m.farDirty = true; // la copia de lejos se rehace con las abolladuras
+    m.farDirty = m.midDirty = true; m.hitT = performance.now(); // las copias fusionadas se rehacen con las abolladuras
     m.root.updateMatrixWorld(true);
     this.inv.copy(m.body.matrixWorld).invert();
     const P = this.P.copy(worldPoint).applyMatrix4(this.inv);
@@ -8570,6 +9078,7 @@ async function init() {
   await new Promise(r => setTimeout(r, 30));
   WEATHER.id = store.get('weather_' + MAP_ID, MAP.defWeather || (MAP_ID === 'austral' ? 'rain' : 'clear'));
   setTimeOfDay(TOD[store.get('tod', 'day')] ? store.get('tod', 'day') : 'day');
+  FIELDS = planFields();
   world.add(buildTerrain(IS_TOUCH ? 300 : 420));
   world.add(buildRoad());
   if (TRIAL) OB4 = buildObstacles4();
