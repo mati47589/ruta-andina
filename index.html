@@ -8924,12 +8924,12 @@ let CUR_ZONE = null;
 const game = { state: 'loading', mode: 'race', laps: MAP.laps || 3, carIdx: clamp(store.get('car', 0) | 0, 0, CARS.length - 1), t: 0, rivals: [], traffic: [], movers: [], car: null, model: null, spot: null };
 const bestKey = id => MAP_ID === 'cordillera' ? 'best_' + id : 'best_' + id + '_' + MAP_ID;
 let composer = null, bloomPass = null, gradePass = null, fxaaPass = null, postQ = 'med', skids, smoke, sparks, debris, loose;
-// alta: MSAA + bloom + sombras suaves · media: FXAA y sombras normales · baja: render directo sin postprocesado.
+// alta: MSAA + bloom + sombras suaves · media y baja: FXAA, viñeta y gradación de color (barato: un solo paso de más).
 // Además la resolución se ajusta sola para mantener ~60 cuadros por segundo.
 const QUALITY = {
   high: () => ({ pr: Math.min(devicePixelRatio, 1.5), sh: 2048, ext: 85, soft: true, bloom: true, msaa: 4, fxaa: false, post: true, veg: 900 }),
   med: () => ({ pr: Math.min(devicePixelRatio, 1), sh: 2048, ext: 60, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 650 }),
-  low: () => ({ pr: Math.min(devicePixelRatio, 1) * 0.8, sh: 1024, ext: 45, soft: false, bloom: false, msaa: 0, fxaa: false, post: false, veg: 430 }),
+  low: () => ({ pr: Math.min(devicePixelRatio, 1) * 0.85, sh: 1024, ext: 45, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 470 }),
 };
 let QS = QUALITY.med();
 const DYN = { scale: 1, acc: 0, frames: 0, cool: 3 };
