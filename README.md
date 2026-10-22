@@ -51,7 +51,10 @@ El menú y el taller ya no muestran el auto parado a mitad de la ruta: ahora apa
 ## Gráficos
 
 - **Resplandor (bloom) y gradación de color:** siempre activos, no solo en calidad Alta; dan brillo a las luces y al cromado sin casi costar nada.
-- **Destello de sol:** al manejar hacia el sol aparece un lens flare con halos de color, como en una cámara de verdad; se apaga solo si algo lo tapa.
+- **Rayos de sol:** entre los árboles, los edificios y los cerros aparecen rayos de luz cuando el sol queda de frente, como en una foto a contraluz. En calidad Media y Alta.
+- **Destello de sol:** un resplandor suave alrededor del sol al manejar hacia él.
+- **Nitidez:** la imagen se realza un poco para que no se vea borrosa, en todas las calidades.
+- **Calzada mojada más brillante:** con lluvia, el asfalto refleja más el entorno, como de verdad.
 - **Sensación de velocidad:** a alta velocidad los bordes de la pantalla se separan un poco en colores (aberración cromática), muy sutil.
 - **Antialiasing y corrección de color en todas las calidades:** antes solo estaban en Alta; Media y Baja se veían con los bordes dentados y los colores apagados.
 

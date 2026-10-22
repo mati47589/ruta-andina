@@ -1544,18 +1544,14 @@ scene.add(hemi);
 // si algo lo tapa. Oculto en el estudio del garage (se apaga junto con `sun`, ver setStudio)
 const flareGlow = canvasTex(128, 128, (g, w, h) => {
   const r = w / 2, grd = g.createRadialGradient(r, r, 0, r, r, r);
-  grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.22, 'rgba(255,244,222,0.95)');
-  grd.addColorStop(0.55, 'rgba(255,230,180,0.22)'); grd.addColorStop(1, 'rgba(255,230,180,0)');
+  grd.addColorStop(0, 'rgba(255,255,255,0.9)'); grd.addColorStop(0.18, 'rgba(255,244,222,0.55)');
+  grd.addColorStop(0.5, 'rgba(255,230,180,0.1)'); grd.addColorStop(1, 'rgba(255,230,180,0)');
   g.fillStyle = grd; g.fillRect(0, 0, w, h);
 }, false);
-const flareRing = canvasTex(64, 64, (g, w, h) => {
-  const r = w / 2; g.strokeStyle = 'rgba(220,230,255,0.55)'; g.lineWidth = 6; g.beginPath(); g.arc(r, r, r - 7, 0, 7); g.stroke();
-}, false);
+// un solo resplandor suave alrededor del disco solar (sin la cadena de anillos fantasma: con el sol bajo
+// se veía horrible, como si lavaran la pantalla con círculos translúcidos)
 const sunFlare = new Lensflare();
-sunFlare.addElement(new LensflareElement(flareGlow, 320, 0, new THREE.Color(0xfff2d8)));
-sunFlare.addElement(new LensflareElement(flareRing, 38, 0.3, new THREE.Color(0x9fc4ff)));
-sunFlare.addElement(new LensflareElement(flareRing, 70, 0.55, new THREE.Color(0xffb98e)));
-sunFlare.addElement(new LensflareElement(flareRing, 22, 0.82, new THREE.Color(0xffffff)));
+sunFlare.addElement(new LensflareElement(flareGlow, 160, 0, new THREE.Color(0xfff2d8)));
 sun.add(sunFlare);
 
 // Horas del día. Colores de nubes/suelo en espacio lineal (HDR)
@@ -2153,7 +2149,7 @@ function applyWetness() {
   const wet = WEATHER.id === 'rain' ? 1 : 0;
   if (WET.on === wet) return; WET.on = wet;
   for (const { m, r, wr = 0.4, wc = 0.66 } of WET.road) {
-    m.roughness = wet ? Math.min(r, wr) : r; m.color.setScalar(wet ? wc : 1); m.envMapIntensity = wet ? (wr > 0.5 ? 1.1 : 1.6) : 1; m.needsUpdate = true;
+    m.roughness = wet ? Math.min(r, wr) : r; m.color.setScalar(wet ? wc : 1); m.envMapIntensity = wet ? (wr > 0.5 ? 1.3 : 2.1) : 1; m.needsUpdate = true;
   }
 }
 function stripMesh(segs, mat) {
@@ -8946,9 +8942,9 @@ let composer = null, bloomPass = null, gradePass = null, fxaaPass = null, postQ 
 // alta: MSAA + bloom + sombras suaves · media y baja: FXAA, viñeta y gradación de color (barato: un solo paso de más).
 // Además la resolución se ajusta sola para mantener ~60 cuadros por segundo.
 const QUALITY = {
-  high: () => ({ pr: Math.min(devicePixelRatio, 1.5), sh: 2048, ext: 85, soft: true, bloom: true, msaa: 4, fxaa: false, post: true, veg: 900 }),
-  med: () => ({ pr: Math.min(devicePixelRatio, 1), sh: 2048, ext: 60, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 650 }),
-  low: () => ({ pr: Math.min(devicePixelRatio, 1) * 0.85, sh: 1024, ext: 45, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 470 }),
+  high: () => ({ pr: Math.min(devicePixelRatio, 1.5), sh: 2048, ext: 85, soft: true, bloom: true, msaa: 4, fxaa: false, post: true, veg: 900, rays: true }),
+  med: () => ({ pr: Math.min(devicePixelRatio, 1), sh: 2048, ext: 60, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 650, rays: true }),
+  low: () => ({ pr: Math.min(devicePixelRatio, 1) * 0.85, sh: 1024, ext: 45, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 470, rays: false }),
 };
 let QS = QUALITY.med();
 const DYN = { scale: 1, acc: 0, frames: 0, cool: 3 };
@@ -8967,6 +8963,7 @@ function applyPixelRatio() {
   renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight);
   if (composer) { composer.setPixelRatio(pr); composer.setSize(innerWidth, innerHeight); }
   if (fxaaPass) fxaaPass.material.uniforms.resolution.value.set(1 / (innerWidth * pr), 1 / (innerHeight * pr));
+  if (gradePass) gradePass.uniforms.uTexel.value.set(1 / (innerWidth * pr), 1 / (innerHeight * pr));
 }
 // resolución dinámica: si baja de ~50 fps reduce la resolución interna; si sobra, la recupera
 function updateDynRes(realDt) {
@@ -8985,10 +8982,12 @@ const FinalShader = {
   uniforms: {
     tDiffuse: { value: null }, uExposure: { value: 0.66 }, uContrast: { value: 1.2 }, uSat: { value: 1.12 }, uVig: { value: 0.3 }, uTime: { value: 0 }, uGrain: { value: 0.02 }, uAberr: { value: 0 },
     uShadow: { value: new THREE.Vector3() }, uHigh: { value: new THREE.Vector3() },
+    uTexel: { value: new THREE.Vector2() }, uSharp: { value: 0.25 },
+    uRays: { value: 0 }, uSunUV: { value: new THREE.Vector2(0.5, 0.5) }, uSunVis: { value: 0 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float uExposure, uContrast, uSat, uVig, uTime, uGrain, uAberr; uniform vec3 uShadow, uHigh; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float uExposure, uContrast, uSat, uVig, uTime, uGrain, uAberr, uSharp, uRays, uSunVis; uniform vec2 uTexel, uSunUV; uniform vec3 uShadow, uHigh; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     vec3 rrt(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
     vec3 aces(vec3 c){
@@ -8998,10 +8997,24 @@ const FinalShader = {
     }
     vec3 srgb(vec3 c){ return mix(c * 12.92, pow(max(c, vec3(1e-6)), vec3(1.0 / 2.4)) * 1.055 - 0.055, step(vec3(0.0031308), c)); }
     void main(){
-      // aberración cromática: a alta velocidad los bordes de la imagen se separan un poco en colores (sensación de velocidad)
+      // aberración cromática: a alta velocidad los bordes se separan un poco en colores (sensación de velocidad)
       vec2 cuv = vUv - 0.5, off = cuv * uAberr;
-      float rC = texture2D(tDiffuse, vUv - off).r, gC = texture2D(tDiffuse, vUv).g, bC = texture2D(tDiffuse, vUv + off).b;
-      vec3 c = srgb(aces(vec3(rC, gC, bC)));
+      vec3 col; col.r = texture2D(tDiffuse, vUv - off).r; col.g = texture2D(tDiffuse, vUv).g; col.b = texture2D(tDiffuse, vUv + off).b;
+      // nitidez: realza el detalle comparando con el promedio de los 4 vecinos (barato, en HDR, antes del tone mapping)
+      vec3 blur4 = (texture2D(tDiffuse, vUv + vec2(uTexel.x, 0.0)).rgb + texture2D(tDiffuse, vUv - vec2(uTexel.x, 0.0)).rgb
+                  + texture2D(tDiffuse, vUv + vec2(0.0, uTexel.y)).rgb + texture2D(tDiffuse, vUv - vec2(0.0, uTexel.y)).rgb) * 0.25;
+      col += (col - blur4) * uSharp;
+      // rayos de sol: una estela de muestras hacia el sol en pantalla, a paso fijo (no proporcional a la
+      // distancia: cerca del sol un paso proporcional casi no avanza y vuelve a leer el mismo resplandor
+      // una y otra vez, lavando la pantalla con anillos). Lo que ya lo tapa —árboles, edificios, montañas—
+      // le da forma a los rayos solo, sin pase de oclusión aparte
+      if (uRays > 0.0) {
+        vec2 toSun = uSunUV - vUv; float dist = length(toSun); vec2 st = toSun / max(dist, 1e-4) * min(dist * 0.2, 0.028);
+        vec3 acc = vec3(0.0); float w = 1.0, tw = 0.0; vec2 p = vUv;
+        for (int i = 0; i < 5; i++) { p += st; acc += texture2D(tDiffuse, p).rgb * w; tw += w; w *= 0.8; }
+        col += acc / tw * (uRays * uSunVis * 0.14);
+      }
+      vec3 c = srgb(aces(col));
       vec3 sc = c * c * (3.0 - 2.0 * c);
       c = mix(c, sc, clamp(uContrast - 1.0, 0.0, 1.0) * 1.6);
       float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -9691,11 +9704,21 @@ function animateDecor(dt, t) {
   }
 }
 let last = performance.now();
+const _sunW = new THREE.Vector3(), _sunP = new THREE.Vector3(), _camF = new THREE.Vector3();
 function render() {
   const t = performance.now() / 1000;
   ATM.uTime.value = t;
   cloudDome.position.copy(camera.position); CLOUD.uCamH.value = camera.position.y - ATM.uFogBase.value;
-  if (gradePass) { gradePass.uniforms.uTime.value = t % 100; gradePass.uniforms.uAberr.value = (!STUDIO && game.car) ? clamp((game.car.speed - 16) / 230, 0, 1) * 0.0032 : 0; }
+  if (gradePass) {
+    gradePass.uniforms.uTime.value = t % 100; gradePass.uniforms.uAberr.value = (!STUDIO && game.car) ? clamp((game.car.speed - 16) / 230, 0, 1) * 0.0032 : 0;
+    // rayos de sol: posición del disco solar en pantalla y qué tanto mira la cámara hacia allá
+    if (QS.rays && sun.visible) {
+      _sunW.copy(camera.position).addScaledVector(sunDir, 3000); _sunP.copy(_sunW).project(camera);
+      _camF.set(0, 0, -1).applyQuaternion(camera.quaternion);
+      gradePass.uniforms.uRays.value = 1; gradePass.uniforms.uSunUV.value.set(_sunP.x * 0.5 + 0.5, _sunP.y * 0.5 + 0.5);
+      gradePass.uniforms.uSunVis.value = clamp(sunDir.dot(_camF) * 2.2 - 0.6, 0, 1);
+    } else gradePass.uniforms.uRays.value = 0;
+  }
   if (smoke) { const sc = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)); smoke.mat.uniforms.scale.value = sc; sparks.mat.uniforms.scale.value = sc; }
   if ((renderFrame++ & 7) === 0) { cullVegetation(QS.veg); cullDetail(); }
   if (MAP.world && !STUDIO) qtUpdate(game.state === 'menu' ? 14 : QT.budget);   // en el menú hay tiempo de sobra para armar terreno; en la vitrina no hace falta
