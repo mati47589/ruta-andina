@@ -58,6 +58,10 @@ El menú y el taller ya no muestran el auto parado a mitad de la ruta: ahora apa
 - **Sensación de velocidad:** a alta velocidad los bordes de la pantalla se separan un poco en colores (aberración cromática), muy sutil.
 - **Antialiasing y corrección de color en todas las calidades:** antes solo estaban en Alta; Media y Baja se veían con los bordes dentados y los colores apagados.
 
+## Más vegetación y detalle en los mapas
+
+Más araucarias, palmas, espinos, quiscos, arbustos, rocas, coigües, nalcas y llaretas en cada mapa (entre un 20 % y un 30 % más, según el tipo), y los árboles y arbustos se ven de más lejos antes de desaparecer. El mundo abierto también quedó más poblado: viñedos y matorrales en el valle del Aconcagua, bosque tupido en el sur, cojines de llareta en la alta cordillera.
+
 ## Rendimiento
 
 Aunque cada mapa tiene mucho más, el juego quedó más liviano que antes: los autos rivales a más de unos 16 m se dibujan con la carrocería fusionada (con las ruedas reales, que giran y doblan), las copas de los árboles proyectan sombra solo desde su núcleo, y el pasto y las flores se dibujan solo cerca de la cámara. En la largada, las llamadas de dibujo bajaron entre un 16 % y un 23 % según el mapa.

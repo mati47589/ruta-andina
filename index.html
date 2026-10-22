@@ -682,7 +682,7 @@ const MAPS = {
       return h;
     },
     pal: { dry: 0x8e7a44, dry2: 0x6c5d33, green: 0x4b5a28, dirt: 0x6a5038, rock: 0x5f5b57, rock2: 0x776c61, snow: 0xeef2f6, gravel: 0x5c564c, lake: 0x3e5925, snowLine: 820, greenH: 60, rockH: [160, 420] },
-    veg: [{ type: 'ara', n: 380 }, { type: 'palm', n: 240 }, { type: 'bush', n: 1100 }, { type: 'rock', n: 420 }, { type: 'espino', n: 320 }, { type: 'quisco', n: 340 }],
+    veg: [{ type: 'ara', n: 480 }, { type: 'palm', n: 310 }, { type: 'bush', n: 1400 }, { type: 'rock', n: 540 }, { type: 'espino', n: 420 }, { type: 'quisco', n: 440 }],
     hazards: { pothole: 6, puddle: 3, oil: 2, gravel: 4, works: 1, rockfall: 1 },
     traffic: { n: 8, kinds: ['car', 'pickup', 'car', 'truck', 'car', 'bus', 'pickup', 'car'], speed: [14, 20] },
     arch: 'CIRCUITO CORDILLERA', aiMu: 1, condors: true,
@@ -720,7 +720,7 @@ const MAPS = {
       return RIVER ? Math.max(p, RIVER.parkAt(x, z)) : p;   // + el Parque Forestal
     },
     pal: { dry: 0x8a7a50, dry2: 0x6f6440, green: 0x50692c, dirt: 0x6a5a48, rock: 0x6a6052, rock2: 0x7a6e60, snow: 0xeef2f6, gravel: 0x8f8c86, lake: 0x50692c, urban: 0x7a7a7b, urban2: 0x616163, snowLine: 2300, greenH: 400, rockH: [160, 520] },
-    veg: [{ type: 'tree', n: 420 }, { type: 'bush', n: 260 }],   // + los plátanos ya ubicados en el bandejón y el Parque Forestal
+    veg: [{ type: 'tree', n: 540 }, { type: 'bush', n: 340 }],   // + los plátanos ya ubicados en el bandejón y el Parque Forestal
     hazards: { pothole: 10, manhole: 14, puddle: 4, oil: 4, works: 3, bump: 4 },
     traffic: { n: 18, kinds: ['bus', 'bus', 'taxi', 'colectivo', 'car', 'car', 'pickup', 'car', 'taxi', 'car'], speed: [10, 15] },
     arch: 'GRAN PREMIO ALAMEDA', aiMu: 1, city: true,
@@ -750,7 +750,7 @@ const MAPS = {
       return h;
     },
     pal: { dry: 0x7d7466, dry2: 0x655d51, green: 0x6b6a45, dirt: 0x5d5246, rock: 0x48433e, rock2: 0x5e554b, snow: 0xf2f5f8, gravel: 0xc9ced3, lake: 0x5d5246, snowLine: 70, greenH: 20, rockH: [60, 200] },
-    veg: [{ type: 'rock', n: 900 }, { type: 'bush', n: 500 }, { type: 'crag', n: 260 }, { type: 'llareta', n: 420 }],
+    veg: [{ type: 'rock', n: 1150 }, { type: 'bush', n: 640 }, { type: 'crag', n: 340 }, { type: 'llareta', n: 540 }],
     hazards: { ice: 10, snow: 8, rockfall: 4, pothole: 4, gravel: 3, oil: 1 },
     traffic: { n: 10, kinds: ['truck', 'truck', 'pickup', 'truck', 'car', 'bus', 'truck', 'pickup', 'car', 'truck'], speed: [8, 12] },
     arch: 'PASO LOS LIBERTADORES', aiMu: 0.95, condors: true, snowy: true, laps: 2,
@@ -778,7 +778,7 @@ const MAPS = {
       return h;
     },
     pal: { dry: 0x3f5a28, dry2: 0x2f4a20, green: 0x355e24, dirt: 0x5a4a32, rock: 0x55574f, rock2: 0x67665c, snow: 0xeef2f6, gravel: 0x6b5f4a, lake: 0x2f4a20, snowLine: 700, greenH: 200, rockH: [120, 380] },
-    veg: [{ type: 'conifer', n: 2600 }, { type: 'nalca', n: 420 }, { type: 'bush', n: 1100 }, { type: 'rock', n: 260 }, { type: 'snag', n: 240 }],
+    veg: [{ type: 'conifer', n: 3250 }, { type: 'nalca', n: 540 }, { type: 'bush', n: 1400 }, { type: 'rock', n: 340 }, { type: 'snag', n: 310 }],
     hazards: { pothole: 18, mud: 8, puddle: 8, log: 3, gravel: 2 },
     traffic: { n: 6, kinds: ['pickup', 'pickup', 'truck', 'car', 'pickup', 'bus'], speed: [9, 13] }, cows: 6,
     arch: 'CARRETERA AUSTRAL', aiMu: 0.82, rainy: true,
@@ -4605,12 +4605,12 @@ const inZones = (...zs) => s => zs.includes(WROUTE.zoneAt(s));
 // vegetación de cada zona: [tipo, cantidad cada 10 m por lado, distancia mínima y máxima al camino]
 const WVEG = {
   santiago: [],
-  aconcagua: [['espino', 0.3, 12, 150], ['quisco', 0.16, 18, 170], ['bush', 0.55, 10, 120], ['rock', 0.2, 11, 150], ['palm', 0.05, 14, 90], ['espino', 0.12, 150, 600], ['bush', 0.2, 120, 500]],
-  caracoles: [['rock', 0.9, 8, 160], ['llareta', 0.4, 7, 70], ['crag', 0.18, 30, 320], ['bush', 0.15, 10, 100]],
-  portillo: [['rock', 0.7, 8, 160], ['llareta', 0.35, 7, 70], ['crag', 0.2, 30, 320]],
-  andes: [['rock', 0.55, 8, 150], ['crag', 0.28, 30, 420], ['llareta', 0.2, 7, 60], ['bush', 0.1, 10, 80]],
-  austral: [['conifer', 2.0, 8, 240], ['nalca', 0.6, 9, 24], ['bush', 0.8, 10, 120], ['snag', 0.15, 14, 200], ['rock', 0.1, 11, 120], ['conifer', 0.6, 240, 700]],
-  central: [['bush', 0.3, 10, 150], ['espino', 0.1, 14, 200], ['tree', 0.12, 16, 160], ['rock', 0.05, 11, 120], ['palm', 0.02, 16, 100]],
+  aconcagua: [['espino', 0.38, 12, 150], ['quisco', 0.2, 18, 170], ['bush', 0.7, 10, 120], ['rock', 0.26, 11, 150], ['palm', 0.07, 14, 90], ['espino', 0.16, 150, 600], ['bush', 0.26, 120, 500]],
+  caracoles: [['rock', 1.1, 8, 160], ['llareta', 0.5, 7, 70], ['crag', 0.23, 30, 320], ['bush', 0.2, 10, 100]],
+  portillo: [['rock', 0.88, 8, 160], ['llareta', 0.44, 7, 70], ['crag', 0.25, 30, 320]],
+  andes: [['rock', 0.7, 8, 150], ['crag', 0.35, 30, 420], ['llareta', 0.25, 7, 60], ['bush', 0.13, 10, 80]],
+  austral: [['conifer', 2.5, 8, 240], ['nalca', 0.75, 9, 24], ['bush', 1.0, 10, 120], ['snag', 0.19, 14, 200], ['rock', 0.13, 11, 120], ['conifer', 0.75, 240, 700]],
+  central: [['bush', 0.38, 10, 150], ['espino', 0.13, 14, 200], ['tree', 0.15, 16, 160], ['rock', 0.07, 11, 120], ['palm', 0.03, 16, 100]],
 };
 function worldVeg(rng, extra) {
   const out = extra, q = {}, fr = {}, SL = { crag: [0.42, 4], quisco: [0.06, 0.85], rock: [0, 0.9] };
@@ -8942,9 +8942,9 @@ let composer = null, bloomPass = null, gradePass = null, fxaaPass = null, postQ 
 // alta: MSAA + bloom + sombras suaves · media y baja: FXAA, viñeta y gradación de color (barato: un solo paso de más).
 // Además la resolución se ajusta sola para mantener ~60 cuadros por segundo.
 const QUALITY = {
-  high: () => ({ pr: Math.min(devicePixelRatio, 1.5), sh: 2048, ext: 85, soft: true, bloom: true, msaa: 4, fxaa: false, post: true, veg: 900, rays: true }),
-  med: () => ({ pr: Math.min(devicePixelRatio, 1), sh: 2048, ext: 60, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 650, rays: true }),
-  low: () => ({ pr: Math.min(devicePixelRatio, 1) * 0.85, sh: 1024, ext: 45, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 470, rays: false }),
+  high: () => ({ pr: Math.min(devicePixelRatio, 1.5), sh: 2048, ext: 85, soft: true, bloom: true, msaa: 4, fxaa: false, post: true, veg: 1080, rays: true }),
+  med: () => ({ pr: Math.min(devicePixelRatio, 1), sh: 2048, ext: 60, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 780, rays: true }),
+  low: () => ({ pr: Math.min(devicePixelRatio, 1) * 0.85, sh: 1024, ext: 45, soft: false, bloom: false, msaa: 0, fxaa: true, post: true, veg: 550, rays: false }),
 };
 let QS = QUALITY.med();
 const DYN = { scale: 1, acc: 0, frames: 0, cool: 3 };
