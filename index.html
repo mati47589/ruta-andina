@@ -394,6 +394,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
+import { Lensflare, LensflareElement } from 'three/addons/objects/Lensflare.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -1539,6 +1540,24 @@ scene.add(sun, sun.target);
 const hemi = new THREE.HemisphereLight(0x9fb6cc, 0x5a4a35, 0.1);
 scene.add(hemi);
 
+// destello del sol: sigue al disco solar (hijo de `sun`, que `followSun` reposiciona cada cuadro) y se oculta solo
+// si algo lo tapa. Oculto en el estudio del garage (se apaga junto con `sun`, ver setStudio)
+const flareGlow = canvasTex(128, 128, (g, w, h) => {
+  const r = w / 2, grd = g.createRadialGradient(r, r, 0, r, r, r);
+  grd.addColorStop(0, 'rgba(255,255,255,1)'); grd.addColorStop(0.22, 'rgba(255,244,222,0.95)');
+  grd.addColorStop(0.55, 'rgba(255,230,180,0.22)'); grd.addColorStop(1, 'rgba(255,230,180,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, w, h);
+}, false);
+const flareRing = canvasTex(64, 64, (g, w, h) => {
+  const r = w / 2; g.strokeStyle = 'rgba(220,230,255,0.55)'; g.lineWidth = 6; g.beginPath(); g.arc(r, r, r - 7, 0, 7); g.stroke();
+}, false);
+const sunFlare = new Lensflare();
+sunFlare.addElement(new LensflareElement(flareGlow, 320, 0, new THREE.Color(0xfff2d8)));
+sunFlare.addElement(new LensflareElement(flareRing, 38, 0.3, new THREE.Color(0x9fc4ff)));
+sunFlare.addElement(new LensflareElement(flareRing, 70, 0.55, new THREE.Color(0xffb98e)));
+sunFlare.addElement(new LensflareElement(flareRing, 22, 0.82, new THREE.Color(0xffffff)));
+sun.add(sunFlare);
+
 // Horas del día. Colores de nubes/suelo en espacio lineal (HDR)
 const TOD = {
   day: { elev: 50, azim: 200, sun: 0xfff0da, sunI: 4.6, hemiI: 0.12, exp: 0.66,
@@ -1588,7 +1607,7 @@ function setTimeOfDay(key) {
   sunDir.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - tod.elev), THREE.MathUtils.degToRad(tod.azim));
   sun.color.setHex(tod.sun); sun.intensity = tod.sunI;
   hemi.intensity = tod.hemiI;
-  scene.fog.color.setRGB(...tod.hor); scene.fog.density = tod.fogA;
+  scene.fog.color.setRGB(...tod.hor); scene.fog.density = STUDIO ? 0 : tod.fogA;
   ATM.uSunDir.value.copy(sunDir); ATM.uSunHaze.value.setRGB(...tod.sunHaze); ATM.uCover.value = tod.cover; ATM.uCloudShadow.value = tod.cloudShadow;
   CLOUD.uSunCol.value.setHex(tod.sun); CLOUD.uLit.value.setRGB(...tod.cLit); CLOUD.uShade.value.setRGB(...tod.cShade);
   CLOUD.uZen.value.setRGB(...tod.zen); CLOUD.uHor.value.setRGB(...tod.hor); CLOUD.uFogA.value = tod.fogA;
@@ -1598,7 +1617,7 @@ function setTimeOfDay(key) {
   CLOUD.uCamH.value = 40;
   if (envRT) envRT.dispose();
   envRT = pmrem.fromScene(envScene, 0, 1, 30000);
-  scene.environment = envRT.texture;
+  scene.environment = STUDIO ? (studioEnvTex || envRT.texture) : envRT.texture;
   if (typeof onTimeChanged === 'function') onTimeChanged();
 }
 
@@ -8837,7 +8856,7 @@ function applyWeather(id) {
   setTimeOfDay(todKey);
   applyWetness();
   colorTerrain(WEATHER.id === 'snow' ? 1 : 0);
-  if (PRECIP.rain) { PRECIP.rain.visible = WEATHER.id === 'rain'; PRECIP.snow.visible = WEATHER.id === 'snow'; }
+  if (PRECIP.rain) { PRECIP.rain.visible = !STUDIO && WEATHER.id === 'rain'; PRECIP.snow.visible = !STUDIO && WEATHER.id === 'snow'; }
 }
 const DIFF = {
   facil: { skill: 0.9, hz: 0.45, tr: 0.5 }, normal: { skill: 1, hz: 1, tr: 1 },
@@ -8964,12 +8983,12 @@ function updateDynRes(realDt) {
 // sombras frías y luces cálidas), viñeta y grano de película
 const FinalShader = {
   uniforms: {
-    tDiffuse: { value: null }, uExposure: { value: 0.66 }, uContrast: { value: 1.2 }, uSat: { value: 1.12 }, uVig: { value: 0.3 }, uTime: { value: 0 }, uGrain: { value: 0.02 },
+    tDiffuse: { value: null }, uExposure: { value: 0.66 }, uContrast: { value: 1.2 }, uSat: { value: 1.12 }, uVig: { value: 0.3 }, uTime: { value: 0 }, uGrain: { value: 0.02 }, uAberr: { value: 0 },
     uShadow: { value: new THREE.Vector3() }, uHigh: { value: new THREE.Vector3() },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float uExposure, uContrast, uSat, uVig, uTime, uGrain; uniform vec3 uShadow, uHigh; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float uExposure, uContrast, uSat, uVig, uTime, uGrain, uAberr; uniform vec3 uShadow, uHigh; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     vec3 rrt(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
     vec3 aces(vec3 c){
@@ -8979,7 +8998,10 @@ const FinalShader = {
     }
     vec3 srgb(vec3 c){ return mix(c * 12.92, pow(max(c, vec3(1e-6)), vec3(1.0 / 2.4)) * 1.055 - 0.055, step(vec3(0.0031308), c)); }
     void main(){
-      vec3 c = srgb(aces(texture2D(tDiffuse, vUv).rgb));
+      // aberración cromática: a alta velocidad los bordes de la imagen se separan un poco en colores (sensación de velocidad)
+      vec2 cuv = vUv - 0.5, off = cuv * uAberr;
+      float rC = texture2D(tDiffuse, vUv - off).r, gC = texture2D(tDiffuse, vUv).g, bC = texture2D(tDiffuse, vUv + off).b;
+      vec3 c = srgb(aces(vec3(rC, gC, bC)));
       vec3 sc = c * c * (3.0 - 2.0 * c);
       c = mix(c, sc, clamp(uContrast - 1.0, 0.0, 1.0) * 1.6);
       float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -9003,10 +9025,71 @@ function setupPost() {
   const rt = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: QS.msaa });
   composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
-  if (QS.bloom) { bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.28, 0.6, 2.2); composer.addPass(bloomPass); }
+  // el resplandor siempre se arma (barato en reposo) pero solo se prende solo en Alta o en la vitrina del garage
+  bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.62, 2.1);
+  bloomPass.enabled = QS.bloom || STUDIO;
+  composer.addPass(bloomPass);
   gradePass = new ShaderPass(FinalShader); composer.addPass(gradePass);
   if (QS.fxaa) { fxaaPass = new ShaderPass(FXAAShader); composer.addPass(fxaaPass); }
   applyGrade();
+}
+// =====================================================================
+// Vitrina del garage: en el menú y el taller se reemplaza la ruta real por un estudio fotográfico oscuro
+// (piso brillante + telón degradado + tres luces fijas) para mostrar el auto como en un catálogo, sin costar
+// nada durante la carrera (el mundo entero queda oculto, así que de hecho el menú rinde mejor que antes)
+// =====================================================================
+let STUDIO = false;
+const studioGradTex = canvasTex(64, 256, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h);
+  gr.addColorStop(0, '#171b21'); gr.addColorStop(0.55, '#0a0c10'); gr.addColorStop(1, '#030405');
+  g.fillStyle = gr; g.fillRect(0, 0, w, h);
+}, false);
+const studioBackdrop = new THREE.Mesh(new THREE.SphereGeometry(46, 24, 16), new THREE.MeshBasicMaterial({ map: studioGradTex, side: THREE.BackSide, fog: false, depthWrite: false }));
+studioBackdrop.renderOrder = -9; studioBackdrop.visible = false; studioBackdrop.frustumCulled = false; scene.add(studioBackdrop);
+const studioFloor = new THREE.Mesh(new THREE.CircleGeometry(26, 48), new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.22, metalness: 0.12, envMapIntensity: 1.6 }));
+studioFloor.rotation.x = -Math.PI / 2; studioFloor.receiveShadow = true; studioFloor.visible = false; scene.add(studioFloor);
+// mapa de entorno del estudio: una cúpula oscura con tres parches claros (las luces) para que la pintura, el
+// cromado y los vidrios reflejen focos de estudio en vez del cielo
+function buildStudioEnv() {
+  const s = new THREE.Scene();
+  s.add(new THREE.Mesh(new THREE.SphereGeometry(50, 20, 12), new THREE.MeshBasicMaterial({ map: studioGradTex, side: THREE.BackSide })));
+  const soft = (x, y, z, w, hh, color, ry) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, hh), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide })); p.position.set(x, y, z); p.rotation.y = ry; s.add(p); };
+  soft(-18, 14, 22, 14, 18, 0xfff3de, 0.5);
+  soft(20, 8, 16, 10, 14, 0x9fc4ff, -0.6);
+  soft(0, 10, -28, 20, 16, 0xcfe0ff, Math.PI);
+  const rt = pmrem.fromScene(s, 0, 0.1, 100);
+  return rt.texture;
+}
+let studioEnvTex = null;
+const studioKey = new THREE.DirectionalLight(0xfff1dc, 3.3); studioKey.castShadow = true;
+studioKey.shadow.mapSize.set(1024, 1024); Object.assign(studioKey.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11, near: 1, far: 40 });
+studioKey.shadow.camera.updateProjectionMatrix(); studioKey.shadow.bias = -0.0004; studioKey.shadow.radius = 2.5;
+const studioFill = new THREE.DirectionalLight(0x9db8ff, 0.85);
+const studioRim = new THREE.DirectionalLight(0xcfe3ff, 2.1);
+function setStudio(on) {
+  STUDIO = on;
+  world.visible = !on; cloudDome.visible = !on; sun.visible = !on; hemi.visible = !on;
+  studioBackdrop.visible = studioFloor.visible = on;
+  if (on) {
+    if (!studioEnvTex) studioEnvTex = buildStudioEnv();
+    const c = game.car, cx = c ? c.x : 0, cy = c ? c.y : 0, cz = c ? c.z : 0;
+    studioFloor.position.set(cx, cy - 0.02, cz);
+    studioBackdrop.position.set(cx, cy, cz);
+    studioKey.position.set(cx - 9, cy + 11, cz + 7); studioKey.target.position.set(cx, cy, cz);
+    studioFill.position.set(cx + 10, cy + 5, cz - 6); studioFill.target.position.set(cx, cy, cz);
+    studioRim.position.set(cx + 2, cy + 6, cz - 12); studioRim.target.position.set(cx, cy, cz);
+    scene.add(studioKey, studioKey.target, studioFill, studioFill.target, studioRim, studioRim.target);
+    studioKey.target.updateMatrixWorld(); studioFill.target.updateMatrixWorld(); studioRim.target.updateMatrixWorld();
+    scene.environment = studioEnvTex;
+    scene.fog.density = 0;
+    if (PRECIP.rain) PRECIP.rain.visible = false; if (PRECIP.snow) PRECIP.snow.visible = false;
+    if (bloomPass) bloomPass.enabled = true;
+  } else {
+    scene.remove(studioKey, studioKey.target, studioFill, studioFill.target, studioRim, studioRim.target);
+    scene.environment = envRT ? envRT.texture : null;
+    scene.fog.density = tod.fogA;
+    if (bloomPass) bloomPass.enabled = QS.bloom;
+  }
 }
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
@@ -9063,6 +9146,7 @@ onShift = (car, dir) => {
 
 function startRace() {
   document.body.classList.add('racing');
+  setStudio(false);
   if (TRIAL) { startTrial(); return; }
   sound.init(); sound.crank(); sound.music.set(MAP.world ? WR[WROUTE.zoneAt(worldStartS())].theme : MAP_ID);
   $('off4').classList.add('hidden'); $('lap-lbl').textContent = MAP.world ? 'Zona' : 'Vuelta'; $('best-lbl').textContent = MAP.world ? 'Recorrido' : 'Mejor';
@@ -9123,6 +9207,7 @@ function showMenu() {
   resetWorldDamage(); clearHazards();
   game.mode = pickMode();
   setupGarage();
+  setStudio(true);
   if (winchLine) winchLine.visible = false;
   $('menu').classList.remove('hidden'); $('hud').classList.add('hidden'); $('touch').classList.add('hidden');
   $('pause').classList.add('hidden'); $('results').classList.add('hidden');
@@ -9610,10 +9695,10 @@ function render() {
   const t = performance.now() / 1000;
   ATM.uTime.value = t;
   cloudDome.position.copy(camera.position); CLOUD.uCamH.value = camera.position.y - ATM.uFogBase.value;
-  if (gradePass) gradePass.uniforms.uTime.value = t % 100;
+  if (gradePass) { gradePass.uniforms.uTime.value = t % 100; gradePass.uniforms.uAberr.value = (!STUDIO && game.car) ? clamp((game.car.speed - 16) / 230, 0, 1) * 0.0032 : 0; }
   if (smoke) { const sc = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)); smoke.mat.uniforms.scale.value = sc; sparks.mat.uniforms.scale.value = sc; }
   if ((renderFrame++ & 7) === 0) { cullVegetation(QS.veg); cullDetail(); }
-  if (MAP.world) qtUpdate(game.state === 'menu' ? 14 : QT.budget);   // en el menú hay tiempo de sobra para armar terreno
+  if (MAP.world && !STUDIO) qtUpdate(game.state === 'menu' ? 14 : QT.budget);   // en el menú hay tiempo de sobra para armar terreno; en la vitrina no hace falta
   beginShells();
   updateCarLOD(game.model); for (const r of game.rivals) if (updateCarLOD(r.model, true) === 2) pushShell(r.model, r.spec);
   for (const t of game.traffic) if (t.kind !== 'cow' && t.model.root.visible && updateCarLOD(t.model, true) === 2) pushShell(t.model, t.spec);
@@ -9632,10 +9717,10 @@ function loop(now) {
   animateDecor(dt, now / 1000);
   updatePeople(dt); updateSignals(dt);
   if (game.state === 'menu') {
-    const c = game.car; orbitCamera(dt, c.x, c.y, c.z); followSun(c.x, c.y, c.z); render(); return;
+    const c = game.car; orbitCamera(dt, c.x, c.y, c.z); if (!STUDIO) followSun(c.x, c.y, c.z); render(); return;
   }
   if (game.state === 'taller') {
-    const c = game.car; tallerCamera(dt, c.x, c.y, c.z); followSun(c.x, c.y, c.z); render(); return;
+    const c = game.car; tallerCamera(dt, c.x, c.y, c.z); if (!STUDIO) followSun(c.x, c.y, c.z); render(); return;
   }
   if (TRIAL) stepTrial(dt); else stepGame(dt);
   render();

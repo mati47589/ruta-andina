@@ -44,6 +44,17 @@ Una sola ruta de unos 26 km que da la vuelta completa: sales por la gran avenida
 - **Montañas de verdad:** la nieve se queda en las laderas suaves y en las canaletas, y las paredes empinadas muestran la roca. La textura ya no se estira en rayas en las pendientes.
 - **Árboles nuevos:** espinos de copa ancha, quiscos (el cactus de los cerros de Chile central), álamos en hilera, árboles muertos grises en el sur y llaretas en la alta cordillera.
 
+## Vitrina del garage
+
+El menú y el taller ya no muestran el auto parado a mitad de la ruta: ahora aparece en un **estudio fotográfico** oscuro, con piso brillante que refleja la carrocería, un telón degradado y tres luces fijas (principal, relleno y contraluz) armadas como una sesión de fotos de verdad, con un mapa de reflejos propio para que la pintura, el cromado y los vidrios no reflejen el cielo sino focos de estudio. Es puro efecto: el mapa y el tránsito quedan ocultos mientras tanto, así que el menú de hecho rinde mejor que antes.
+
+## Gráficos
+
+- **Resplandor (bloom) y gradación de color:** siempre activos, no solo en calidad Alta; dan brillo a las luces y al cromado sin casi costar nada.
+- **Destello de sol:** al manejar hacia el sol aparece un lens flare con halos de color, como en una cámara de verdad; se apaga solo si algo lo tapa.
+- **Sensación de velocidad:** a alta velocidad los bordes de la pantalla se separan un poco en colores (aberración cromática), muy sutil.
+- **Antialiasing y corrección de color en todas las calidades:** antes solo estaban en Alta; Media y Baja se veían con los bordes dentados y los colores apagados.
+
 ## Rendimiento
 
 Aunque cada mapa tiene mucho más, el juego quedó más liviano que antes: los autos rivales a más de unos 16 m se dibujan con la carrocería fusionada (con las ruedas reales, que giran y doblan), las copas de los árboles proyectan sombra solo desde su núcleo, y el pasto y las flores se dibujan solo cerca de la cámara. En la largada, las llamadas de dibujo bajaron entre un 16 % y un 23 % según el mapa.
