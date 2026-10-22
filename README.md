@@ -1,6 +1,6 @@
 # Ruta Andina
 
-Juego de carreras 3D en el navegador, ambientado en Chile: la cordillera de los Andes, la Alameda de Santiago, las curvas de Los Caracoles y la Carretera Austral. Además trae un **Desafío 4x4** de cuatro etapas solo para camionetas.
+Juego de carreras 3D en el navegador, ambientado en Chile: la cordillera de los Andes, la Alameda de Santiago, las curvas de Los Caracoles y la Carretera Austral. Trae un **mundo abierto** de 26 km que une todos esos lugares en una sola ruta, y un **Desafío 4x4** de cuatro etapas solo para camionetas.
 
 Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que necesita conexión a internet.
 
@@ -8,7 +8,17 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 
 - **En línea:** https://mati47589.github.io/ruta-andina/
 - **En tu computador:** abre `index.html` con Chrome, Edge o Firefox.
-- **Ir directo a un mapa:** agrega `#mapa=alameda`, `#mapa=caracoles`, `#mapa=austral` o `#mapa=cordillera` al final de la dirección (o `#mapa=x4_rocas`, `x4_rio`, `x4_dunas`, `x4_barro` para las etapas 4x4).
+- **Ir directo a un mapa:** agrega `#mapa=mundo` (mundo abierto), `#mapa=alameda`, `#mapa=caracoles`, `#mapa=austral` o `#mapa=cordillera` al final de la dirección (o `#mapa=x4_rocas`, `x4_rio`, `x4_dunas`, `x4_barro` para las etapas 4x4).
+
+## Mundo abierto
+
+Una sola ruta de unos 26 km que da la vuelta completa: sales por la gran avenida de **Santiago** (edificios, comercio, La Moneda, la Torre Entel, la Gran Torre y la Virgen del San Cristóbal), subes por el **valle del Aconcagua** entre viñas y álamos, trepas las horquillas de **Los Caracoles**, pasas junto al Hotel **Portillo** y la Laguna del Inca, cruzas el **paso del Cristo Redentor** con sus galerías antinieve, bajas a la **Carretera Austral** (ripio, puentes de madera, vacas, las Capillas de Mármol y el lago General Carrera) y vuelves a Santiago por el **Valle Central** (peaje, letreros, puestos de empanadas y las dunas de Concón al poniente).
+
+- **Manejo libre:** sin vueltas, sin rivales y sin cronómetro de carrera. El panel muestra la zona en que vas, el tiempo manejando y los kilómetros recorridos.
+- **Partir en:** en el menú eliges dónde empezar: Santiago, Aconcagua, Portillo, el sur o el Valle Central.
+- **Cada zona con lo suyo:** el camino (asfalto, montaña o ripio), las bermas, las barandas, los peligros (hielo y derrumbes en la cordillera, barro y troncos en el sur, tapas y lomos de toro en la ciudad), la velocidad del tránsito, la música y el sonido ambiente cambian al pasar de una zona a otra.
+- **Minimapa que te sigue:** muestra unos 2 km alrededor del auto.
+- **Sin pantallas de carga en el camino:** el terreno se arma por bloques alrededor de la cámara, con más detalle cerca y menos a lo lejos, y los bloques que quedan atrás se descartan.
 
 ## Mapas
 
@@ -37,6 +47,8 @@ Funciona con un solo archivo (`index.html`). Usa Three.js desde un CDN, así que
 ## Rendimiento
 
 Aunque cada mapa tiene mucho más, el juego quedó más liviano que antes: los autos rivales a más de unos 16 m se dibujan con la carrocería fusionada (con las ruedas reales, que giran y doblan), las copas de los árboles proyectan sombra solo desde su núcleo, y el pasto y las flores se dibujan solo cerca de la cámara. En la largada, las llamadas de dibujo bajaron entre un 16 % y un 23 % según el mapa.
+
+**Más tránsito sin perder fluidez:** hay más autos, taxis, colectivos, micros, camionetas y camiones en todos los mapas, y autos estacionados en las calles y frente a las casas. Los vehículos lejanos y los estacionados se dibujan todos juntos (una carrocería simple por tipo, con su color), así que agregar autos casi no cuesta: en La Alameda, con más tránsito que antes, el dibujo bajó de 762 a 588 llamadas por cuadro. El mundo abierto cuesta lo mismo que La Alameda en Santiago y bastante menos en el resto de las zonas.
 
 ## Desafío 4x4 (solo camionetas)
 
@@ -118,7 +130,7 @@ Con la cuarta cámara manejas desde el asiento del conductor (a la izquierda, co
 
 ## Opciones
 
-- **Modo:** carrera contra 5 rivales, o contrarreloj.
+- **Modo:** carrera contra 5 rivales, o contrarreloj (en el mundo abierto, en cambio, eliges dónde partir).
 - **Dificultad:** Fácil, Normal, Difícil o Extrema (rivales más rápidos, más peligros y más tránsito).
 - **Clima:** despejado, lluvia o nieve.
 - **Hora:** mediodía, tarde dorada o arrebol (en Santiago se encienden las ventanas y los faroles).

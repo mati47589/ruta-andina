@@ -76,6 +76,8 @@ h2{font-family:var(--f-display);font-weight:700;font-size:15px;letter-spacing:.1
 #start:active{transform:translateY(2px);box-shadow:0 2px 0 #8c160d;}
 .keys{font-size:13.5px;line-height:1.6;color:#d7e6dd;max-width:560px;}
 #maps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,42vw),1fr));gap:12px;}
+#mapsW{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(210px,42vw),1fr));gap:12px;}
+#mapsW .map{grid-column:span 2;}
 .map{position:relative;text-align:left;background:#0a3f2b;color:var(--blanco);border:2px solid #ffffff2a;border-radius:10px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:5px;transition:border-color .15s,background .15s;}
 .map:hover{border-color:#ffffff80;}
 .map[aria-pressed="true"]{border-color:var(--ambar);background:#0d4f36;}
@@ -224,6 +226,9 @@ body.touch #minimap{width:110px;height:110px;}
       </div>
     </div>
 
+    <h2>Mundo abierto</h2>
+    <div id="mapsW"></div>
+
     <h2>Elige el mapa</h2>
     <div id="maps"></div>
 
@@ -238,8 +243,15 @@ body.touch #minimap{width:110px;height:110px;}
       <span id="mod-summary"></span>
     </div>
 
-    <h2>Carrera</h2>
+    <h2 id="opts-h">Carrera</h2>
     <div class="opts">
+      <div class="opt-group hidden" id="g-wstart"><span>Partir en</span><div class="seg">
+        <label class="opt"><input type="radio" name="wstart" value="santiago" checked><span>Santiago</span></label>
+        <label class="opt"><input type="radio" name="wstart" value="aconcagua"><span>Aconcagua</span></label>
+        <label class="opt"><input type="radio" name="wstart" value="portillo"><span>Portillo</span></label>
+        <label class="opt"><input type="radio" name="wstart" value="austral"><span>El sur</span></label>
+        <label class="opt"><input type="radio" name="wstart" value="central"><span>Valle Central</span></label>
+      </div></div>
       <div class="opt-group"><span>Modo</span><div class="seg">
         <label class="opt"><input type="radio" name="mode" id="m-race" value="race" checked><span id="mode-race-label">Carrera · 3 vueltas</span></label>
         <label class="opt"><input type="radio" name="mode" id="m-tt" value="tt"><span>Contrarreloj</span></label>
@@ -310,7 +322,7 @@ body.touch #minimap{width:110px;height:110px;}
     <div id="pos"></div>
     <div class="row"><span id="lap-lbl">Vuelta</span> <b id="lap">1/3</b></div>
     <div class="row">Tiempo <b id="time">0:00.000</b></div>
-    <div class="row">Mejor <b id="best">—</b></div>
+    <div class="row"><span id="best-lbl">Mejor</span> <b id="best">—</b></div>
   </div>
   <div id="place" class="box"></div>
   <div id="mapbox" class="box"><canvas id="minimap" width="340" height="340"></canvas></div>
@@ -547,6 +559,106 @@ function duneH(x, z) {
   return h + 10 * fbm(x / 420, z / 420, 2);
 }
 const NAHUEL_PITS = [[60, 100, 8, 0.5], [120, 60, 7, 0.45], [20, -170, 6, 0.4], [-50, -140, 9, 0.55], [-130, 0, 8, 0.5]];
+
+// =====================================================================
+// Mundo abierto: una ruta de unos 26 km que une Santiago, el valle del Aconcagua, Los Caracoles, Portillo, la alta
+// cordillera, el sur (lago General Carrera) y el Valle Central. El relieve se arma alrededor de la ruta: junto al
+// camino el terreno sigue la altura que se le dio a cada tramo, y más lejos manda el paisaje de cada zona
+// =====================================================================
+// zonas, en el orden de la ruta. pal: colores del terreno · road/berm: calzada y berma · surf: superficie del camino
+const WZ = ['santiago', 'aconcagua', 'caracoles', 'portillo', 'andes', 'austral', 'central'];
+const WR = {
+  santiago: { name: 'Santiago', sub: 'Región Metropolitana', road: 'carretera', berm: 'vereda', surf: 1, rails: 'curvas', rail: 'metal', theme: 'alameda', speed: [10, 15],
+    pal: { dry: 0x8a7a50, dry2: 0x6f6440, green: 0x50692c, dirt: 0x6a5a48, rock: 0x6a6052, rock2: 0x7a6e60, snow: 0xeef2f6, gravel: 0x8f8c86, lake: 0x50692c, snowLine: 1500, greenH: 300, rockH: [400, 1100] } },
+  aconcagua: { name: 'Valle del Aconcagua', sub: 'Ruta 57 · viñas y álamos', road: 'carretera', berm: 'ripio', surf: 1, rails: 'curvas', rail: 'metal', theme: 'cordillera', speed: [14, 20],
+    pal: { dry: 0x8e7a44, dry2: 0x6c5d33, green: 0x4b5a28, dirt: 0x6a5038, rock: 0x5f5b57, rock2: 0x776c61, snow: 0xeef2f6, gravel: 0x5c564c, lake: 0x3e5925, snowLine: 900, greenH: 160, rockH: [260, 800] } },
+  caracoles: { name: 'Los Caracoles', sub: 'Ruta 60 · subida a Portillo', road: 'montana', berm: 'nieve', surf: 1, rails: 'precipicio', rail: 'metal', theme: 'caracoles', speed: [8, 12],
+    pal: { dry: 0x7d7466, dry2: 0x655d51, green: 0x6b6a45, dirt: 0x5d5246, rock: 0x48433e, rock2: 0x5e554b, snow: 0xf2f5f8, gravel: 0xc9ced3, lake: 0x5d5246, snowLine: 250, greenH: 120, rockH: [420, 900] } },
+  portillo: { name: 'Portillo', sub: 'Laguna del Inca', road: 'montana', berm: 'nieve', surf: 1, rails: 'precipicio', rail: 'metal', theme: 'caracoles', speed: [9, 13],
+    pal: { dry: 0x7d7466, dry2: 0x655d51, green: 0x6b6a45, dirt: 0x5d5246, rock: 0x48433e, rock2: 0x5e554b, snow: 0xf2f5f8, gravel: 0xc9ced3, lake: 0x5d5246, snowLine: 250, greenH: 120, rockH: [420, 900] } },
+  andes: { name: 'Alta cordillera', sub: 'Paso del Cristo Redentor', road: 'montana', berm: 'nieve', surf: 1, rails: 'precipicio', rail: 'metal', theme: 'caracoles', speed: [10, 15],
+    pal: { dry: 0x7a7060, dry2: 0x625a4d, green: 0x66683f, dirt: 0x5d5246, rock: 0x4a453f, rock2: 0x60574c, snow: 0xf2f5f8, gravel: 0xb8bcc0, lake: 0x5d5246, snowLine: 290, greenH: 140, rockH: [460, 1100] } },
+  austral: { name: 'Carretera Austral', sub: 'Lago General Carrera', road: 'ripio', berm: 'tierra', surf: 8, rails: 'puentes', rail: 'madera', theme: 'austral', speed: [9, 13],
+    pal: { dry: 0x3f5a28, dry2: 0x2f4a20, green: 0x355e24, dirt: 0x5a4a32, rock: 0x55574f, rock2: 0x67665c, snow: 0xeef2f6, gravel: 0x6b5f4a, lake: 0x2f4a20, snowLine: 700, greenH: 400, rockH: [260, 800] } },
+  central: { name: 'Valle Central', sub: 'Ruta 5 · campos y frutales', road: 'carretera', berm: 'ripio', surf: 1, rails: 'curvas', rail: 'metal', theme: 'cordillera', speed: [16, 24],
+    pal: { dry: 0x8a7c48, dry2: 0x6e6238, green: 0x55702e, dirt: 0x6a5238, rock: 0x5f5b57, rock2: 0x776c61, snow: 0xeef2f6, gravel: 0x6a645a, lake: 0x55702e, snowLine: 1500, greenH: 260, rockH: [300, 900] } },
+};
+// la rampa de Los Caracoles (las horquillas suben 205 m hacia el norte) y su zona
+const WCAR = { x0: 2580, x1: 3130, z0: -3990, z1: -3380, zs: -3420, e0: 128, k: 205 / 552 };
+const wcarE = z => WCAR.e0 + clamp((WCAR.zs - z) * WCAR.k, 0, 205);
+const inWcar = (x, z) => x > WCAR.x0 && x < WCAR.x1 && z > WCAR.z0 && z < WCAR.z1;
+// peso de la rampa: 1 dentro de la zona y baja en 180 m hacia afuera (sin paredes en el borde)
+const wcarW = (x, z) => smooth(180, 0, Math.hypot(Math.max(WCAR.x0 - x, 0, x - WCAR.x1), Math.max(WCAR.z0 - z, 0, z - WCAR.z1)));
+// puntos de la ruta: [x, z, altura del camino, zona]
+const WORLD_CTRL = (() => {
+  const P = [], add = (x, z, e, r) => P.push([x, z, e, r]);
+  // Santiago: la gran avenida, de poniente a oriente
+  for (const [x, z, e] of [[-2650, 140, 28], [-2250, 30, 26], [-1700, 0, 24], [-1100, 0, 24], [-500, 0, 26], [0, -10, 30], [480, -70, 34]]) add(x, z, e, 'santiago');
+  // valle del Aconcagua, hacia el norte
+  for (const [x, z, e] of [[950, -280, 40], [1320, -650, 48], [1600, -1120, 58], [1760, -1660, 70], [2060, -2160, 86], [2400, -2600, 102], [2640, -3020, 118], [2760, -3330, 128]]) add(x, z, e, 'aconcagua');
+  // Los Caracoles: seis tramos en diagonal unidos por horquillas, subiendo la ladera hacia el norte
+  const xc = 2850, xR = 150, R = 18, dz = 62; let z = WCAR.zs;
+  for (let k = 0; k < 6; k++) {
+    const dir = k % 2 === 0 ? 1 : -1, zEnd = z - dz;
+    for (const [fx, fz] of [[-0.45, 0.28], [0.1, 0.55], [0.62, 0.82]]) { const zz = lerp(z, zEnd, fz); add(xc + dir * xR * fx, zz, wcarE(zz), 'caracoles'); }
+    if (k < 5) { const cx = xc + dir * xR, cz = zEnd - R; for (const f of [0.15, 0.5, 0.85]) { const th = f * Math.PI, zz = cz + R * Math.cos(th); add(cx + dir * (R * Math.sin(th) + 6), zz, wcarE(zz), 'caracoles'); } z = zEnd - 2 * R; }
+  }
+  // Portillo, junto a la Laguna del Inca
+  for (const [x, z, e] of [[2830, -4110, 336], [3050, -4240, 338], [3350, -4300, 340], [3700, -4280, 344]]) add(x, z, e, 'portillo');
+  // alta cordillera: el paso del Cristo Redentor y la larga bajada hacia el sur
+  for (const [x, z, e] of [[4080, -4150, 380], [4440, -3930, 420], [4700, -3500, 405], [4850, -2900, 365], [4950, -2150, 305], [4980, -1350, 245], [4880, -550, 185], [4700, 250, 125], [4420, 1000, 82]]) add(x, z, e, 'andes');
+  // el sur: ripio entre bosques, a orillas del lago General Carrera
+  for (const [x, z, e] of [[4050, 1650, 60], [3600, 2200, 52], [3100, 2620, 46], [2550, 2850, 44], [1950, 3000, 42], [1400, 3080, 40]]) add(x, z, e, 'austral');
+  // Valle Central, de vuelta a Santiago por el poniente
+  for (const [x, z, e] of [[800, 2950, 38], [150, 2700, 36], [-500, 2350, 34], [-1150, 1950, 32], [-1800, 1550, 30], [-2350, 1100, 30], [-2750, 650, 30], [-2900, 330, 29]]) add(x, z, e, 'central');
+  return P;
+})();
+// aguas del mundo: la Laguna del Inca, el lago General Carrera y los esteros del sur (cruzan la ruta bajo puentes)
+const WLAKES = [{ type: 'circle', x: 3450, z: -4560, r: 205, y: 329, name: 'Laguna del Inca', color: 0x1e9ea2, depth: 24 }, { type: 'circle', x: 2800, z: 3960, r: 950, y: 24, name: 'Lago General Carrera', color: 0x139fb2, depth: 40 }];
+const WSTREAMS = [{ x: 3880, a: 22, f: 90, z0: 1200, z1: 3300 }, { x: 2980, a: 18, f: 70, z0: 2300, z1: 3200 }, { x: 2050, a: 20, f: 75, z0: 2600, z1: 3200 }];
+const wStreamX = (s, z) => s.x + s.a * Math.sin(z / s.f);
+function wStreamDist(x, z) { let d = 1e9; for (const s of WSTREAMS) if (z > s.z0 - 40 && z < s.z1) d = Math.min(d, Math.abs(x - wStreamX(s, z))); return d; }
+// dunas de Concón, al poniente del Valle Central (se puede salir del camino a jugar en la arena)
+const WDUNE = { x: -3650, z: 900, r: 650 };
+// paisaje de cada lugar (sin la ruta)
+function worldLand(x, z) {
+  const n = fbm(x / 650, z / 650, 3), r1 = ridged(x / 1400, z / 1400, 4), r2 = ridged(x / 520 + 9, z / 520, 3);
+  let h = 28 + n * 16 + fbm(x / 170 + 5, z / 170, 2) * 4;
+  // cordones entre los valles y la cordillera: empiezan más al oriente en el sur
+  const ea = smooth(1900, 3500, x - 0.3 * Math.max(0, z));
+  h += ea * (170 + 880 * r1 * (0.6 + 0.4 * n) + 110 * r2);
+  // las altas cumbres al oriente y el Aconcagua al nororiente
+  h += smooth(5500, 8200, x) * 2500 * (0.5 + 0.5 * r1);
+  h += 3600 * Math.exp(-((x - 7000) ** 2 + (z + 6400) ** 2) / (2 * 1200 * 1200));
+  // cerros del sur, más bajos y redondeados (bosque)
+  h -= smooth(800, 2600, z) * ea * 380 * (0.6 + 0.4 * n);
+  // cordillera de la Costa al poniente y cerros islas de Santiago (San Cristóbal y Santa Lucía)
+  h += smooth(-3400, -5400, x) * 520 * (0.5 + 0.5 * ridged(x / 900, z / 900, 3));
+  h += hill(x, z, -700, -760, 420, 170) * (0.85 + 0.25 * fbm(x / 90, z / 90, 3)) + hill(x, z, -1350, -170, 85, 42);
+  // dunas
+  const dd = Math.hypot(x - WDUNE.x, z - WDUNE.z);
+  if (dd < WDUNE.r + 200) h = lerp(h, 22 + duneH(x, z) * 1.2, smooth(WDUNE.r + 200, WDUNE.r - 100, dd));
+  return h;
+}
+// altura del terreno en el mundo: junto a la ruta manda la altura del camino; los lagos y esteros se tallan al final
+function worldH(x, z, carve = true) {
+  const c = WROUTE.near(x, z);
+  let h = worldLand(x, z);
+  if (c.d < 430) {
+    const e = lerp(c.e, wcarE(z), wcarW(x, z));
+    h = lerp(e + fbm(x / 60, z / 60, 2) * 2.2 * smooth(10, 60, c.d), h, smooth(22, 430, c.d));
+  }
+  // lagos con nivel fijo: la orilla nunca queda bajo el agua y el fondo baja parejo hacia el centro
+  for (const L of WLAKES) {
+    const d = Math.hypot(x - L.x, z - L.z); if (d > L.r + 260) continue;
+    const k = smooth(14, 60, c.d);
+    if (d > L.r) h = lerp(h, Math.max(h, L.y + 1 + (d - L.r) * 0.06), k * smooth(L.r + 260, L.r + 40, d));
+    h = lerp(h, Math.min(h, L.y - 1.5 - L.depth * smooth(L.r - 20, L.r - 280, d)), k * smooth(L.r + 60, L.r - 30, d));
+  }
+  if (carve) h -= 7 * smooth(16, 4, wStreamDist(x, z));
+  return h;
+}
+
 const MAPS = {
   cordillera: {
     name: 'Circuito Cordillera', place: 'Valle del Aconcagua', tags: ['Asfalto', 'Curvas de montaña', '3,9 km'],
@@ -571,7 +683,7 @@ const MAPS = {
     pal: { dry: 0x8e7a44, dry2: 0x6c5d33, green: 0x4b5a28, dirt: 0x6a5038, rock: 0x5f5b57, rock2: 0x776c61, snow: 0xeef2f6, gravel: 0x5c564c, lake: 0x3e5925, snowLine: 820, greenH: 60, rockH: [160, 420] },
     veg: [{ type: 'ara', n: 380 }, { type: 'palm', n: 240 }, { type: 'bush', n: 1100 }, { type: 'rock', n: 420 }, { type: 'espino', n: 320 }, { type: 'quisco', n: 340 }],
     hazards: { pothole: 6, puddle: 3, oil: 2, gravel: 4, works: 1, rockfall: 1 },
-    traffic: { n: 3, kinds: ['car', 'car', 'pickup', 'truck'], speed: [14, 20] },
+    traffic: { n: 8, kinds: ['car', 'pickup', 'car', 'truck', 'car', 'bus', 'pickup', 'car'], speed: [14, 20] },
     arch: 'CIRCUITO CORDILLERA', aiMu: 1, condors: true,
     ui: { sub: 'Circuito Cordillera · Valle del Aconcagua', top: 'RUTA', shield: 'CH-60', rows: [['Los Andes', '34'], ['Portillo', '12'], ['Santiago', '112']] },
     signs: [[600, [['Portillo', '12', '↑'], ['Los Andes', '34', '↑']], 'CH-60'], [1500, [['Laguna del Inca', '3', '↗'], ['Paso Libertadores', '21', '↑']], null], [2500, [['Santiago', '112', '↑'], ['San Felipe', '41', '↑']], 'CH-57']],
@@ -609,7 +721,7 @@ const MAPS = {
     pal: { dry: 0x8a7a50, dry2: 0x6f6440, green: 0x50692c, dirt: 0x6a5a48, rock: 0x6a6052, rock2: 0x7a6e60, snow: 0xeef2f6, gravel: 0x8f8c86, lake: 0x50692c, urban: 0x7a7a7b, urban2: 0x616163, snowLine: 2300, greenH: 400, rockH: [160, 520] },
     veg: [{ type: 'tree', n: 420 }, { type: 'bush', n: 260 }],   // + los plátanos ya ubicados en el bandejón y el Parque Forestal
     hazards: { pothole: 10, manhole: 14, puddle: 4, oil: 4, works: 3, bump: 4 },
-    traffic: { n: 12, kinds: ['bus', 'bus', 'taxi', 'colectivo', 'car', 'car', 'pickup', 'car'], speed: [10, 15] },
+    traffic: { n: 18, kinds: ['bus', 'bus', 'taxi', 'colectivo', 'car', 'car', 'pickup', 'car', 'taxi', 'car'], speed: [10, 15] },
     arch: 'GRAN PREMIO ALAMEDA', aiMu: 1, city: true,
     ui: { sub: 'Gran Premio Alameda · Santiago Centro', top: 'AV.', shield: 'ALAMEDA', rows: [['La Moneda', '1'], ['Plaza Italia', '3'], ['Estación Central', '2']] },
     signs: [[420, [['Plaza Italia', '2', '↑'], ['Providencia', '4', '↑']], null], [2350, [['Estación Central', '2', '↑'], ['Costanera Norte', '1', '↗']], null]],
@@ -639,7 +751,7 @@ const MAPS = {
     pal: { dry: 0x7d7466, dry2: 0x655d51, green: 0x6b6a45, dirt: 0x5d5246, rock: 0x48433e, rock2: 0x5e554b, snow: 0xf2f5f8, gravel: 0xc9ced3, lake: 0x5d5246, snowLine: 70, greenH: 20, rockH: [60, 200] },
     veg: [{ type: 'rock', n: 900 }, { type: 'bush', n: 500 }, { type: 'crag', n: 260 }, { type: 'llareta', n: 420 }],
     hazards: { ice: 10, snow: 8, rockfall: 4, pothole: 4, gravel: 3, oil: 1 },
-    traffic: { n: 6, kinds: ['truck', 'truck', 'truck', 'pickup', 'car', 'bus'], speed: [8, 12] },
+    traffic: { n: 10, kinds: ['truck', 'truck', 'pickup', 'truck', 'car', 'bus', 'truck', 'pickup', 'car', 'truck'], speed: [8, 12] },
     arch: 'PASO LOS LIBERTADORES', aiMu: 0.95, condors: true, snowy: true, laps: 2,
     ui: { sub: 'Los Caracoles · Paso Los Libertadores', top: 'RUTA', shield: 'CH-60', rows: [['Portillo', '5'], ['Argentina', '9'], ['Los Andes', '62']] },
     signs: [[300, [['Portillo', '5', '↑'], ['Argentina', '9', '↑']], 'CH-60'], [2700, [['Laguna del Inca', '1', '↗'], ['Los Andes', '62', '↓']], null]],
@@ -667,11 +779,35 @@ const MAPS = {
     pal: { dry: 0x3f5a28, dry2: 0x2f4a20, green: 0x355e24, dirt: 0x5a4a32, rock: 0x55574f, rock2: 0x67665c, snow: 0xeef2f6, gravel: 0x6b5f4a, lake: 0x2f4a20, snowLine: 700, greenH: 200, rockH: [120, 380] },
     veg: [{ type: 'conifer', n: 2600 }, { type: 'nalca', n: 420 }, { type: 'bush', n: 1100 }, { type: 'rock', n: 260 }, { type: 'snag', n: 240 }],
     hazards: { pothole: 18, mud: 8, puddle: 8, log: 3, gravel: 2 },
-    traffic: { n: 3, kinds: ['pickup', 'pickup', 'truck', 'car'], speed: [9, 13] }, cows: 5,
+    traffic: { n: 6, kinds: ['pickup', 'pickup', 'truck', 'car', 'pickup', 'bus'], speed: [9, 13] }, cows: 6,
     arch: 'CARRETERA AUSTRAL', aiMu: 0.82, rainy: true,
     ui: { sub: 'Carretera Austral · Lago General Carrera', top: 'RUTA', shield: '7', rows: [['Pto. Río Tranquilo', '12'], ['Coyhaique', '224'], ['Cochrane', '115']] },
     signs: [[350, [['Pto. Río Tranquilo', '12', '↑'], ['Coyhaique', '224', '↑']], 'R-7'], [2150, [['Cochrane', '115', '↑'], ['Pto. Guadal', '38', '↑']], 'R-7']],
     speeds: [60, 40], loading: 'Abriendo camino entre los coigües…',
+  },
+  // ===================== Mundo abierto =====================
+  mundo: {
+    world: true, name: 'Mundo abierto', place: 'De Santiago a la Patagonia', tags: ['Libre', 'Todas las zonas', '26 km'],
+    desc: 'Una sola ruta que une Santiago, el valle del Aconcagua, Los Caracoles, Portillo, el paso del Cristo Redentor, el lago General Carrera y el Valle Central. Maneja donde quieras, sin vueltas ni rivales, con tránsito en todas partes.',
+    pts: WORLD_CTRL.map(([x, z]) => [x, z]),
+    get startS() { return WROUTE ? WROUTE.ctrlS[2] : 960; },
+    roadHalf: 5, flatExtra: 2.5, blend: 30, lanes: 1, road: 'carretera', berm: 'ripio', rails: 'curvas', railStyle: 'metal', railGap: 1.7, kerbs: false, smoothY: 18,
+    water: null, waters: WLAKES,
+    streams: WSTREAMS, streamDist: wStreamDist,
+    baseH: (x, z) => worldH(x, z),
+    roadH: (x, z) => worldH(x, z, false),
+    pal: WR.aconcagua.pal,
+    veg: [],
+    hazards: { pothole: 34, puddle: 10, oil: 6, ice: 14, snow: 10, mud: 12, gravel: 10, manhole: 8, bump: 6, works: 4, rockfall: 6, log: 5 },
+    // cada peligro donde corresponde: hielo y derrumbes en la cordillera, barro y troncos en el sur, tapas y lomos en la ciudad
+    hzOk(type, s) {
+      const z = WROUTE.zoneAt(s), alta = z === 'caracoles' || z === 'portillo' || z === 'andes';
+      return { ice: alta, snow: alta, rockfall: alta || z === 'aconcagua', mud: z === 'austral', log: z === 'austral', manhole: z === 'santiago', bump: z === 'santiago' || z === 'central', works: z === 'aconcagua' || z === 'central', oil: z !== 'austral' }[type] ?? true;
+    },
+    traffic: { n: 22, kinds: ['car', 'pickup', 'car', 'truck', 'bus', 'taxi', 'car', 'pickup', 'colectivo', 'car', 'truck'], speed: [12, 18] }, cows: 6,
+    arch: 'MUNDO ABIERTO', aiMu: 1, condors: true, laps: 1,
+    ui: { sub: 'Mundo abierto · de Santiago a la Patagonia', top: 'RUTA', shield: 'CHILE', rows: [['Santiago', '0'], ['Portillo', '9'], ['Lago Gral. Carrera', '17']] },
+    signs: [], speeds: [60, 80], loading: 'Uniendo Santiago con la cordillera y el sur…',
   },
   // ===================== Desafío 4x4 =====================
   x4_rocas: {
@@ -842,6 +978,84 @@ const MAP_ID = (() => {
 })();
 const MAP = MAPS[MAP_ID];
 { const el = document.querySelector('#loading div'); if (el) el.innerHTML = '<b>Ruta Andina</b>' + MAP.name + ' · ' + MAP.loading; }
+// ruta del mundo abierto en planta (antes de armar la pista): muestras cada 8 m con su avance, la altura de diseño del
+// camino y su zona, y grillas para encontrar rápido el punto de la ruta más cercano a cualquier lugar
+const WROUTE = (() => {
+  if (!MAP.world) return null;
+  const C = WORLD_CTRL, curve = new THREE.CatmullRomCurve3(C.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, 'centripetal');
+  const L = curve.getLength(), n = Math.round(L / 8), pts = curve.getSpacedPoints(n); pts.pop();
+  const ds = L / n, X = new Float32Array(n), Z = new Float32Array(n), E = new Float32Array(n), RG = new Uint8Array(n);
+  for (let i = 0; i < n; i++) { X[i] = pts[i].x; Z[i] = pts[i].z; }
+  // muestra de cada punto de control (buscando hacia adelante: la curva pasa justo por ellos)
+  const ctrlI = []; let j0 = 0;
+  for (const [x, z] of C) { let best = 1e18, bi = j0; for (let k = 0; k < n / 3; k++) { const j = (j0 + k) % n, d = (X[j] - x) ** 2 + (Z[j] - z) ** 2; if (d < best) { best = d; bi = j; } } ctrlI.push(bi); j0 = bi; }
+  const ctrlS = ctrlI.map(i => i * ds), m = C.length;
+  // altura de diseño y zona de cada muestra, entre un punto de control y el siguiente
+  for (let c = 0; c < m; c++) {
+    const a = ctrlI[c], b = ctrlI[(c + 1) % m], cnt = ((b - a) + n) % n || n, e0 = C[c][2], e1 = C[(c + 1) % m][2], rg = WZ.indexOf(C[c][3]);
+    for (let k = 0; k < cnt; k++) { const i = (a + k) % n; E[i] = lerp(e0, e1, k / cnt); RG[i] = rg; }
+  }
+  // comienzo de cada zona (en metros de ruta)
+  const zoneS = WZ.map(z => ctrlS[C.findIndex(p => p[3] === z)]);
+  // grilla fina (64 m) con las muestras de cada celda
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (let i = 0; i < n; i++) { x0 = Math.min(x0, X[i]); x1 = Math.max(x1, X[i]); z0 = Math.min(z0, Z[i]); z1 = Math.max(z1, Z[i]); }
+  const CELL = 64, gx0 = x0 - 600, gz0 = z0 - 600, gw = Math.ceil((x1 + 600 - gx0) / CELL), gh = Math.ceil((z1 + 600 - gz0) / CELL);
+  const cells = Array.from({ length: gw * gh }, () => []);
+  for (let i = 0; i < n; i++) cells[Math.floor((Z[i] - gz0) / CELL) * gw + Math.floor((X[i] - gx0) / CELL)].push(i);
+  // grilla gruesa (256 m, hasta 9 km de la ruta): la muestra más cercana, para la zona de los lugares lejanos
+  const CC = 256, cx0 = x0 - 9000, cz0 = z0 - 9000, cw = Math.ceil((x1 + 9000 - cx0) / CC), ch = Math.ceil((z1 + 9000 - cz0) / CC), coarse = new Int32Array(cw * ch);
+  for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) {
+    const x = cx0 + (i + 0.5) * CC, z = cz0 + (j + 0.5) * CC; let best = 1e18, bi = 0;
+    for (let k = 0; k < n; k += 6) { const d = (X[k] - x) ** 2 + (Z[k] - z) ** 2; if (d < best) { best = d; bi = k; } }
+    coarse[j * cw + i] = bi;
+  }
+  const out = { d: 1e9, e: 0, s: 0, i: 0, rg: 0, x: 0, z: 0 };
+  // punto de la ruta más cercano a (x,z): d (distancia; 1e9 si está a más de ~450 m), e (altura del camino), s, zona
+  function near(x, z) {
+    const cx = Math.floor((x - gx0) / CELL), cz = Math.floor((z - gz0) / CELL);
+    let best = 1e18, bi = -1;
+    for (let r = 0; r <= 7; r++) {
+      for (let j = cz - r; j <= cz + r; j++) {
+        if (j < 0 || j >= gh) continue;
+        const edge = j === cz - r || j === cz + r;
+        for (let i = cx - r; i <= cx + r; i += edge ? 1 : 2 * r || 1) {
+          if (i < 0 || i >= gw) continue;
+          const c = cells[j * gw + i];
+          for (let k = 0; k < c.length; k++) { const id = c[k], d = (X[id] - x) ** 2 + (Z[id] - z) ** 2; if (d < best) { best = d; bi = id; } }
+        }
+      }
+      if (bi >= 0 && best < (r * CELL) ** 2) break;
+    }
+    if (bi < 0) {
+      const i = clamp(Math.floor((x - cx0) / CC), 0, cw - 1), j = clamp(Math.floor((z - cz0) / CC), 0, ch - 1), k = coarse[j * cw + i];
+      out.d = 1e9; out.i = k; out.s = k * ds; out.e = E[k]; out.rg = RG[k]; out.x = X[k]; out.z = Z[k]; return out;
+    }
+    // proyección sobre los dos tramos vecinos
+    let bd = best, bs = bi, be = E[bi];
+    for (const a of [(bi - 1 + n) % n, bi]) {
+      const b = (a + 1) % n, abx = X[b] - X[a], abz = Z[b] - Z[a], t = clamp(((x - X[a]) * abx + (z - Z[a]) * abz) / (abx * abx + abz * abz), 0, 1);
+      const d = (x - X[a] - abx * t) ** 2 + (z - Z[a] - abz * t) ** 2;
+      if (d < bd) { bd = d; bs = a + t; be = lerp(E[a], E[b], t); }
+    }
+    out.d = Math.sqrt(bd); out.i = bi; out.s = bs * ds; out.e = be; out.rg = RG[bi]; out.x = X[bi]; out.z = Z[bi];
+    return out;
+  }
+  // zona en un punto de la ruta y mezcla con la vecina cerca del límite (a, b, t: peso de b)
+  const mix = { a: 0, b: 0, t: 0 };
+  function zoneMix(s) {
+    s = ((s % L) + L) % L;
+    const a = RG[Math.floor(s / ds) % n], s0 = zoneS[a], s1 = zoneS[(a + 1) % WZ.length] || L;
+    const dS = ((s - s0) % L + L) % L, dE = ((s1 - s) % L + L) % L;
+    mix.a = a; mix.b = a; mix.t = 0;
+    if (dS < 250) { mix.b = (a + WZ.length - 1) % WZ.length; mix.t = 0.5 * (1 - dS / 250); }
+    else if (dE < 250) { mix.b = (a + 1) % WZ.length; mix.t = 0.5 * (1 - dE / 250); }
+    return mix;
+  }
+  const zoneAt = s => WZ[RG[Math.floor((((s % L) + L) % L) / ds) % n]];
+  // last: el resultado de la última búsqueda (groundAt ya la hizo para ese punto)
+  return { L, n, ds, X, Z, E, RG, ctrlS, zoneS, near, zoneMix, zoneAt, last: out };
+})();
 const TRACK_PTS = MAP.pts;
 // el Mapocho corre junto a la Costanera: su eje va a MAP.riverside.off metros a la derecha de la pista, así que se arma
 // siguiendo el trazado (solo en planta: las alturas de la pista se calculan después y ya ven el cauce)
@@ -911,25 +1125,29 @@ const track = (() => {
   const rawL = new Uint8Array(n), rawR = new Uint8Array(n), bridge = new Uint8Array(n);
   const dilate = (src, dst, r) => { for (let i = 0; i < n; i++) if (src[i]) for (let k = -r; k <= r; k++) dst[(i + k + n) % n] = 1; };
   if (MAP.streamDist) for (let i = 0; i < n; i++) if (MAP.streamDist(X[i], Z[i]) < 15) bridge[i] = 1;
+  // en el mundo abierto cada zona tiene su regla (y su baranda: de madera en el sur)
+  const zone = new Uint8Array(n);
+  if (MAP.world) for (let i = 0; i < n; i++) zone[i] = WZ.indexOf(WROUTE.zoneAt(i * ds));
+  const ruleAt = i => (MAP.world ? WR[WZ[zone[i]]].rails : MAP.rails), DIL = { todo: 0, puentes: 4, precipicio: 12, curvas: 22 };
   for (let i = 0; i < n; i++) {
-    const lx = TZ[i], lz = -TX[i];
+    const lx = TZ[i], lz = -TX[i], rule = ruleAt(i);
     const dropL = Y[i] - baseH(X[i] + lx * 15, Z[i] + lz * 15);
     const dropR = Y[i] - baseH(X[i] - lx * 15, Z[i] - lz * 15);
-    if (MAP.rails === 'curvas') {
+    if (rule === 'curvas') {
       if (K[i] < -1 / 230 || dropL > 3.5) rawL[i] = 1;   // curva a la derecha → exterior izquierdo
       if (K[i] > 1 / 230 || dropR > 3.5) rawR[i] = 1;
-    } else if (MAP.rails === 'todo') { rawL[i] = rawR[i] = 1; }
-    else if (MAP.rails === 'precipicio') {
+    } else if (rule === 'todo') { rawL[i] = rawR[i] = 1; }
+    else if (rule === 'precipicio') {
       if (K[i] < -1 / 70 || dropL > 2.5) rawL[i] = 1;
       if (K[i] > 1 / 70 || dropR > 2.5) rawR[i] = 1;
-    } else if (MAP.rails === 'puentes') {
+    } else if (rule === 'puentes') {
       if (bridge[i] || dropL > 6) rawL[i] = 1;
       if (bridge[i] || dropR > 6) rawR[i] = 1;
     }
     if (MAP.kerbs && Math.abs(K[i]) > 1 / 110) { kerbL[i] = 1; kerbR[i] = 1; }
   }
-  const dil = MAP.rails === 'todo' ? 0 : MAP.rails === 'puentes' ? 4 : MAP.rails === 'precipicio' ? 12 : 22;
-  dilate(rawL, railL, dil); dilate(rawR, railR, dil);
+  if (MAP.world) for (let i = 0; i < n; i++) { const r = DIL[ruleAt(i)]; if (rawL[i]) for (let k = -r; k <= r; k++) railL[(i + k + n) % n] = 1; if (rawR[i]) for (let k = -r; k <= r; k++) railR[(i + k + n) % n] = 1; }
+  else { const dil = DIL[MAP.rails] ?? 22; dilate(rawL, railL, dil); dilate(rawR, railR, dil); }
   const START_S = MAP.startS;
   const startI = Math.round(START_S / ds);
   if (MAP.rails === 'curvas' || MAP.rails === 'precipicio') for (let k = -70; k < 40; k++) { railL[(startI + k + n) % n] = 0; railR[(startI + k + n) % n] = 0; }
@@ -982,8 +1200,12 @@ const track = (() => {
     out.tx = tx / l; out.tz = tz / l; out.k = lerp(K[i], K[b], t);
     return out;
   }
-  return { n, ds, length, X, Y, Z, TX, TZ, K, railL, railR, kerbL, kerbR, bridge, query, at, START_S, startI };
+  return { n, ds, length, X, Y, Z, TX, TZ, K, railL, railR, kerbL, kerbR, bridge, zone, query, at, START_S, startI };
 })();
+// superficie del camino y de la berma en cada muestra (en el mundo abierto cambian con la zona)
+const RSURF = MAP.world ? Uint8Array.from(track.zone, z => WR[WZ[z]].surf) : null;
+const BSURF = MAP.world ? Uint8Array.from(track.zone, z => ({ ripio: 2, vereda: 10, nieve: 9, tierra: 0 })[WR[WZ[z]].berm] ?? 2) : null;
+const zoneOfI = i => WR[WZ[track.zone[i]]];
 
 const RAIL_D = ROAD_HALF + MAP.railGap;
 // avenida partida (la Alameda): tramo de la pista donde la carrera va por una calzada de un sentido y, a la izquierda,
@@ -1051,14 +1273,14 @@ function groundBaseAt(x, z, q = Q) {
     if (q.d > -(RIVER.wallS + 0.3)) { q.surf = BERM_SURF; return q.y + BERM_RAISE + 0.01; }
     q.surf = q.d < -RIVER.sm0 && q.d > -RIVER.sm1 ? ROAD_SURF : BERM_SURF; return hb;
   }
-  if (!hit || q.dist > ROAD_HALF + FLAT_EXTRA + BLEND) { q.surf = TERRAIN_SURF; q.ok = false; return hb; }
+  if (!hit || q.dist > ROAD_HALF + FLAT_EXTRA + BLEND) { q.surf = MAP.world ? worldSurf(x, z) : TERRAIN_SURF; q.ok = false; return hb; }
   const onBridge = track.bridge[q.i];
   // fuera del tablero de un puente no hay suelo: se cae a la quebrada
   if (onBridge && q.dist >= ROAD_HALF + 0.05) { q.surf = 0; return hb; }
   const w = smooth(ROAD_HALF + FLAT_EXTRA, ROAD_HALF + FLAT_EXTRA + BLEND, q.dist);
   let y = lerp(q.y, hb, w);
   if (q.dist < ROAD_HALF + 0.05) {
-    q.surf = onBridge ? 11 : ROAD_SURF;
+    q.surf = onBridge ? 11 : RSURF ? RSURF[q.i] : ROAD_SURF;
     const list = HZ && HZ[q.i];
     if (list) for (let k = 0; k < list.length; k++) {
       const h = list[k];
@@ -1069,10 +1291,12 @@ function groundBaseAt(x, z, q = Q) {
       if (h.surf !== undefined) q.surf = h.surf;
       q.hz = h;
     }
-  } else if (q.dist < ROAD_HALF + FLAT_EXTRA) { q.surf = BERM_SURF; y += BERM_RAISE; }
-  else q.surf = TERRAIN_SURF;
+  } else if (q.dist < ROAD_HALF + FLAT_EXTRA) { q.surf = BSURF ? BSURF[q.i] : BERM_SURF; y += BERM_RAISE; }
+  else q.surf = MAP.world ? worldSurf(x, z) : TERRAIN_SURF;
   return y;
 }
+// suelo fuera del camino en el mundo abierto: arena en las dunas, pasto o tierra en el resto
+function worldSurf(x, z) { return Math.hypot(x - WDUNE.x, z - WDUNE.z) < WDUNE.r ? 17 : 0; }
 // ---- Desafío 4x4: caché del terreno (baldosas de 16 m cada 0,5 m) + obstáculos con forma exacta ----
 let OB4 = null;
 const HC4 = new Map(), _hq = {};
@@ -1117,21 +1341,29 @@ function ground4(x, z, q) {
 }
 
 // agua del mapa: laguna (círculo), río (polilínea) o lago (plano)
-const WATER = MAP.water || null;
-if (WATER && WATER.type === 'circle') {
+const WATER = MAP.water || (MAP.waters ? MAP.waters[0] : null);
+// todas las aguas del mapa (el mundo abierto tiene varias)
+const WATERS = MAP.waters || (WATER ? [WATER] : []);
+for (const W of WATERS) if (W.type === 'circle' && W.y === undefined) {
   let wy = 1e9;
-  for (let a = 0; a < 64; a++) { const ang = a / 64 * Math.PI * 2; wy = Math.min(wy, baseH(WATER.x + Math.cos(ang) * WATER.r, WATER.z + Math.sin(ang) * WATER.r)); }
-  WATER.y = wy - 0.6;
+  for (let a = 0; a < 64; a++) { const ang = a / 64 * Math.PI * 2; wy = Math.min(wy, baseH(W.x + Math.cos(ang) * W.r, W.z + Math.sin(ang) * W.r)); }
+  W.y = wy - 0.6;
 }
 let WATER_Y = WATER && WATER.y !== undefined ? WATER.y : -1e9;
-// nivel del agua en (x,z) o -Infinity si no hay agua ahí
-function waterAt(x, z) {
-  if (!WATER) return -Infinity;
-  if (WATER.type === 'circle') return Math.hypot(x - WATER.x, z - WATER.z) < WATER.r + 40 ? WATER.y : -Infinity;
-  if (WATER.type === 'plane') return x > WATER.x0 && x < WATER.x1 && z > WATER.z0 - 40 && z < WATER.z1 ? WATER.y : -Infinity;
-  if (WATER.type === 'river') { const p = polyNearest(WATER.pts, x, z); return p.d < WATER.width / 2 ? baseH(p.x, p.z) + (WATER.depthAt ? WATER.depthAt(p.x, p.z) : 2.2) : -Infinity; }
+function waterAt1(W, x, z) {
+  if (W.type === 'circle') return Math.hypot(x - W.x, z - W.z) < W.r + 40 ? W.y : -Infinity;
+  if (W.type === 'plane') return x > W.x0 && x < W.x1 && z > W.z0 - 40 && z < W.z1 ? W.y : -Infinity;
+  if (W.type === 'river') { const p = polyNearest(W.pts, x, z); return p.d < W.width / 2 ? baseH(p.x, p.z) + (W.depthAt ? W.depthAt(p.x, p.z) : 2.2) : -Infinity; }
   return -Infinity;
 }
+// nivel del agua en (x,z) o -Infinity si no hay agua ahí
+function waterAt(x, z) {
+  let y = -Infinity;
+  for (const W of WATERS) y = Math.max(y, waterAt1(W, x, z));
+  return y;
+}
+// el agua (con su nombre) en la que está (x,z)
+const waterNameAt = (x, z) => { for (const W of WATERS) if (waterAt1(W, x, z) > -Infinity) return W.name; return WATER ? WATER.name : ''; };
 // corriente del río (m/s) en (x,z), a lo largo del cauce
 function waterFlow(x, z, out) {
   out.x = 0; out.z = 0;
@@ -1526,9 +1758,8 @@ function onewayTex(width, flip) {
     g.fillText('BUS', 0, -px(0.55)); g.fillText('SOLO', 0, px(0.55)); g.restore();
   });
 }
-// (se crean en buildRoad, cuando la tipografía ya cargó)
-let texRoadDash = null, texRoadSolid = null;
-// bermas: ripio, vereda de baldosas, nieve acumulada o tierra con pasto
+// bermas: ripio, vereda de baldosas, nieve acumulada o tierra con pasto (las calzadas se crean en buildRoad, cuando
+// la tipografía ya cargó)
 const texSidewalk = canvasTex(256, 256, (g, w, h) => {
   noiseFill(g, w, h, 170, 20, 51, [2, 0, -3]);
   const nx = Math.round((FLAT_EXTRA + 0.45) / 0.5), ny = 12;
@@ -1602,6 +1833,141 @@ function warp(u, c, hw) {
   return c + s * (hw + 300 * t + 2500 * t * t + 3500 * t * t * t);
 }
 let TERR = null;
+function terrainMat() {
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: texGround, bumpMap: texGround, bumpScale: 0.8, roughness: 0.96, metalness: 0 });
+  // en las laderas empinadas la textura se proyecta de costado: si no, se estira en rayas verticales
+  mat.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying vec3 vTW;\nvarying vec3 vTN;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vTW = position; vTN = normal;');
+    sh.fragmentShader = 'varying vec3 vTW;\nvarying vec3 vTN;\n' + sh.fragmentShader.replace('#include <map_fragment>', `
+      vec4 sampledDiffuseColor = texture2D(map, vMapUv);
+      float stp = smoothstep(0.8, 0.55, abs(vTN.y));
+      if (stp > 0.0) sampledDiffuseColor = mix(sampledDiffuseColor, texture2D(map, (abs(vTN.x) > abs(vTN.z) ? vTW.zy : vTW.xy) / 7.0), stp);
+      diffuseColor *= sampledDiffuseColor;`);
+  };
+  mat.customProgramCacheKey = () => 'terrain-side';
+  return mat;
+}
+// =====================================================================
+// Terreno del mundo abierto: bloques en un árbol de cuadrantes alrededor de la cámara. Cerca, bloques de 128 m con un
+// vértice cada 4 m; lejos, bloques más grandes con la misma cantidad de vértices. Se arman de a poco (unos ms por
+// cuadro) y quedan guardados; un bloque se reemplaza por sus cuatro hijos recién cuando los cuatro están listos, así
+// nunca hay huecos. Un faldón alrededor de cada bloque tapa las grietas entre bloques de distinto detalle
+// =====================================================================
+const QT = { N: 32, root: 16384, min: 128, K: 1.6, top: 2, tiles: new Map(), group: null, mat: null, idx: null, cx: 0, cz: 0, budget: 3, frame: 0, jobs: [] };
+const qtSize = L => QT.root / (1 << L);
+const qtKey = (L, i, j) => L * 1e8 + i * 1e4 + j;
+function qtInit() {
+  const N = QT.N, V = N + 1, idx = [];
+  QT.cx = (WB.x0 + WB.x1) / 2; QT.cz = (WB.z0 + WB.z1) / 2;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = j * V + i, b = a + 1, c = a + V, d = c + 1; idx.push(a, c, b, b, c, d); }
+  // faldón: el borde del bloque repetido más abajo, con las dos caras (no importa de qué lado se mire)
+  const per = [];
+  for (let i = 0; i < N; i++) per.push(i); for (let j = 0; j < N; j++) per.push(j * V + N);
+  for (let i = N; i > 0; i--) per.push(N * V + i); for (let j = N; j > 0; j--) per.push(j * V);
+  const P = per.length, s0 = V * V;
+  for (let k = 0; k < P; k++) { const a = per[k], b = per[(k + 1) % P], sa = s0 + k, sb = s0 + (k + 1) % P; idx.push(a, b, sa, b, sb, sa, a, sa, b, b, sa, sb); }
+  QT.idx = new THREE.BufferAttribute(new Uint32Array(idx), 1); QT.per = per;
+  QT.group = new THREE.Group(); QT.mat = terrainMat(); QT.snow = WEATHER.id === 'snow' ? 1 : 0;
+  // nivel de respaldo: todo el mundo en bloques de 4096 m, armados al cargar
+  const n = 1 << QT.top;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) qtRun(qtJob(QT.top, i, j), Infinity);
+  return QT.group;
+}
+// trabajo de armado de un bloque: alturas (con un borde extra para las normales), luego normales y colores
+function qtJob(L, i, j) {
+  const key = qtKey(L, i, j);
+  let t = QT.tiles.get(key);
+  if (!t) { const N = QT.N, S = qtSize(L); t = { L, i, j, key, S, x0: QT.cx - QT.root / 2 + i * S, z0: QT.cz - QT.root / 2 + j * S, row: 0, H: new Float32Array((N + 3) * (N + 3)), RD: new Float32Array((N + 3) * (N + 3)), ZN: new Float32Array((N + 3) * (N + 3) * 3), mesh: null, used: 0 }; QT.tiles.set(key, t); }
+  return t;
+}
+const _qq = {}, _qc = new THREE.Color(), _qc2 = new THREE.Color();
+// avanza el armado del bloque hasta que se acabe el tiempo (ms); devuelve true si quedó listo
+function qtRun(t, budget) {
+  if (t.mesh) return true;
+  const N = QT.N, W = N + 3, step = t.S / N, t0 = performance.now();
+  while (t.row < W) {
+    const j = t.row, z = t.z0 + (j - 1) * step;
+    for (let i = 0; i < W; i++) {
+      const x = t.x0 + (i - 1) * step, k = j * W + i;
+      let h = groundAt(x, z, _qq);
+      const nr = WROUTE.last, zm = WROUTE.zoneMix(nr.s);
+      const d = _qq.ok ? _qq.dist : 1e9;
+      // bajo el tablero de los puentes el terreno sigue la quebrada; bajo la calzada queda un poco más abajo
+      if (_qq.ok && track.bridge[_qq.i] && d < ROAD_HALF + 0.05) h = baseH(x, z);
+      else h -= 0.35 * smooth(ROAD_HALF + FLAT_EXTRA + 0.5, ROAD_HALF, d);
+      t.H[k] = h; t.RD[k] = d; t.ZN[k * 3] = zm.a + zm.b * 8 + 64 * Math.round(zm.t * 100); t.ZN[k * 3 + 1] = nr.d; t.ZN[k * 3 + 2] = nr.rg;
+    }
+    t.row++;
+    if (performance.now() - t0 > budget) return false;
+  }
+  // geometría: posiciones, normales (diferencias centradas), colores por zona y faldón
+  const V = N + 1, nv = V * V + QT.per.length, pos = new Float32Array(nv * 3), nrm = new Float32Array(nv * 3), col = new Float32Array(nv * 3), uv = new Float32Array(nv * 2);
+  const snowW = WEATHER.id === 'snow' ? 1 : 0;
+  let lo = 1e9, hi = -1e9;
+  for (let j = 0; j < V; j++) for (let i = 0; i < V; i++) {
+    const k = (j + 1) * W + i + 1, v = j * V + i, x = t.x0 + i * step, z = t.z0 + j * step, h = t.H[k];
+    const nx = t.H[k - 1] - t.H[k + 1], nz = t.H[k - W] - t.H[k + W], ny = 2 * step, l = Math.hypot(nx, ny, nz);
+    pos[v * 3] = x; pos[v * 3 + 1] = h; pos[v * 3 + 2] = z; nrm[v * 3] = nx / l; nrm[v * 3 + 1] = ny / l; nrm[v * 3 + 2] = nz / l;
+    uv[v * 2] = x / 7; uv[v * 2 + 1] = z / 7;
+    const code = t.ZN[k * 3], za = code % 8, zb = Math.floor(code / 8) % 8, zt = Math.floor(code / 64) / 100, rd = t.ZN[k * 3 + 1];
+    // Santiago: gris de ciudad cerca de la ruta
+    const urb = (za === 0 ? 1 - zt : zb === 0 ? zt : 0) * smooth(650, 280, rd);
+    terrColor(x, z, h, ny / l, t.RD[k], snowW, WR[WZ[za]].pal, urb, 0, _qc);
+    if (zt > 0.01 && zb !== za) { terrColor(x, z, h, ny / l, t.RD[k], snowW, WR[WZ[zb]].pal, urb, 0, _qc2); _qc.lerp(_qc2, zt); }
+    col[v * 3] = _qc.r; col[v * 3 + 1] = _qc.g; col[v * 3 + 2] = _qc.b;
+    lo = Math.min(lo, h); hi = Math.max(hi, h);
+  }
+  const skirt = 2 + step * 1.2;
+  QT.per.forEach((p, k) => { const v = V * V + k; for (let c = 0; c < 3; c++) { pos[v * 3 + c] = pos[p * 3 + c]; nrm[v * 3 + c] = nrm[p * 3 + c]; col[v * 3 + c] = col[p * 3 + c]; } pos[v * 3 + 1] -= skirt; uv[v * 2] = uv[p * 2]; uv[v * 2 + 1] = uv[p * 2 + 1]; });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setIndex(QT.idx);
+  g.boundingBox = new THREE.Box3(new THREE.Vector3(t.x0, lo - skirt, t.z0), new THREE.Vector3(t.x0 + t.S, hi, t.z0 + t.S));
+  g.boundingSphere = g.boundingBox.getBoundingSphere(new THREE.Sphere());
+  const m = new THREE.Mesh(g, QT.mat); m.receiveShadow = true; m.matrixAutoUpdate = false; m.visible = false;
+  QT.group.add(m); t.mesh = m; t.H = t.RD = t.ZN = null;
+  return true;
+}
+// elige qué bloques se ven desde la cámara y avanza el armado de los que faltan (los más cercanos primero)
+function qtUpdate(budget = QT.budget) {
+  if (!QT.group) return;
+  const cx = camera.position.x, cz = camera.position.z, f = ++QT.frame, want = [];
+  for (const t of QT.tiles.values()) if (t.mesh) t.mesh.visible = false;
+  const visit = (L, i, j) => {
+    const t = QT.tiles.get(qtKey(L, i, j)), S = qtSize(L), x0 = QT.cx - QT.root / 2 + i * S, z0 = QT.cz - QT.root / 2 + j * S;
+    const d = Math.max(0, Math.hypot(cx - (x0 + S / 2), cz - (z0 + S / 2)) - S * 0.71);
+    if (d > 11000) return;   // más allá de la bruma
+    if (S > QT.min && d < S * QT.K) {
+      let ready = true;
+      for (let b = 0; b < 4; b++) { const c = QT.tiles.get(qtKey(L + 1, i * 2 + (b & 1), j * 2 + (b >> 1))); if (!c || !c.mesh) { ready = false; want.push([d, L + 1, i * 2 + (b & 1), j * 2 + (b >> 1)]); } }
+      if (ready) { for (let b = 0; b < 4; b++) visit(L + 1, i * 2 + (b & 1), j * 2 + (b >> 1)); return; }
+    }
+    if (t && t.mesh) { t.mesh.visible = true; t.used = f; }
+  };
+  const n = 1 << QT.top;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) visit(QT.top, i, j);
+  // armado: los bloques que faltan, del más cercano al más lejano, mientras alcance el tiempo
+  want.sort((a, b) => a[0] - b[0]);
+  const t0 = performance.now();
+  for (const [, L, i, j] of want) {
+    const left = budget - (performance.now() - t0); if (left <= 0) break;
+    qtRun(qtJob(L, i, j), left);
+  }
+  QT.pending = want.length;
+  // se descartan los bloques que hace rato no se usan
+  if (QT.tiles.size > 520 && (f & 31) === 0) {
+    const old = [...QT.tiles.values()].filter(t => t.L > QT.top && t.mesh && f - t.used > 240).sort((a, b) => a.used - b.used);
+    for (const t of old.slice(0, QT.tiles.size - 420)) { QT.group.remove(t.mesh); t.mesh.geometry.dispose(); QT.tiles.delete(t.key); }
+  }
+}
+// cambió el clima (nieve): se rehacen los colores, armando todo de nuevo
+function qtReset() {
+  if (!QT.group) return;
+  for (const t of QT.tiles.values()) if (t.mesh) { QT.group.remove(t.mesh); t.mesh.geometry.dispose(); }
+  QT.tiles.clear();
+  const n = 1 << QT.top;
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) qtRun(qtJob(QT.top, i, j), Infinity);
+}
 function buildTerrain(N) {
   const V = N + 1, pos = new Float32Array(V * V * 3), uv = new Float32Array(V * V * 2), roadD = new Float32Array(V * V);
   const q = {};
@@ -1638,17 +2004,7 @@ function buildTerrain(N) {
   geo.setIndex(null);
   TERR = { geo, pos, roadD, n: V * V, snow: -1 };
   colorTerrain(WEATHER.id === 'snow' ? 1 : 0);
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: texGround, bumpMap: texGround, bumpScale: 0.8, roughness: 0.96, metalness: 0 });
-  // en las laderas empinadas la textura se proyecta de costado: si no, se estira en rayas verticales
-  mat.onBeforeCompile = sh => {
-    sh.vertexShader = 'varying vec3 vTW;\nvarying vec3 vTN;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vTW = position; vTN = normal;');
-    sh.fragmentShader = 'varying vec3 vTW;\nvarying vec3 vTN;\n' + sh.fragmentShader.replace('#include <map_fragment>', `
-      vec4 sampledDiffuseColor = texture2D(map, vMapUv);
-      float stp = smoothstep(0.8, 0.55, abs(vTN.y));
-      if (stp > 0.0) sampledDiffuseColor = mix(sampledDiffuseColor, texture2D(map, (abs(vTN.x) > abs(vTN.z) ? vTW.zy : vTW.xy) / 7.0), stp);
-      diffuseColor *= sampledDiffuseColor;`);
-  };
-  mat.customProgramCacheKey = () => 'terrain-side';
+  const mat = terrainMat();
   // en bloques que comparten los mismos vértices, normales y colores: la cámara descarta los que no ve
   // (antes se dibujaban siempre los ~350.000 triángulos, aunque la mitad quedara detrás)
   const grp = new THREE.Group(), step = Math.ceil(N / 7), lo = new THREE.Vector3(), hi = new THREE.Vector3();
@@ -1676,8 +2032,8 @@ function buildTerrain(N) {
 }
 // nieve en el terreno (0..1): sobre la línea de nieve se queda en las laderas suaves y en manchones; las paredes
 // empinadas muestran la roca. Más arriba cubre casi todo. La misma regla pinta el terreno y decide dónde crecen plantas
-function snowCover(x, z, h, ny, n1 = fbm(x / 90, z / 90, 3), n2 = fbm(x / 23 + 7, z / 23, 2)) {
-  const P = MAP.pal, line = P.snowLine + fbm(x / 260, z / 260, 3) * Math.min(260, P.snowLine * 0.45), hi = smooth(line, line + 700, h);
+function snowCover(x, z, h, ny, n1 = fbm(x / 90, z / 90, 3), n2 = fbm(x / 23 + 7, z / 23, 2), P = MAP.pal) {
+  const line = P.snowLine + fbm(x / 260, z / 260, 3) * Math.min(260, P.snowLine * 0.45), hi = smooth(line, line + 700, h);
   // umbral de pendiente alterado por el ruido: costillas de roca oscura y canaletas llenas de nieve, con borde marcado
   const t = lerp(0.74, 0.6, hi) - (n1 * 0.2 + n2 * 0.1);
   return smooth(line - 60, line + 90, h) * smooth(t - 0.06, t + 0.06, ny) * smooth(-0.12, 0.12, n1 + n2 * 0.45 + 0.18 + hi * 0.8);
@@ -1692,31 +2048,39 @@ function fieldAt(x, z) {
   }
   return a;
 }
+// colores de una paleta, convertidos una sola vez
+function palColors(P) {
+  if (P._c) return P._c;
+  const C = h => new THREE.Color(h);
+  return (P._c = { dry: C(P.dry), dry2: C(P.dry2), green: C(P.green), dirt: C(P.dirt), rock: C(P.rock), rock2: C(P.rock2), snow: C(P.snow), gravel: C(P.gravel), lake: C(P.lake), urb: C(P.urban || P.dry), urb2: C(P.urban2 || P.dry2) });
+}
+// color de un punto del terreno: tierra seca y pasto, ciudad, parque, orilla de lagos, laderas, roca, nieve, campos,
+// nevazón del clima (snowW) y ripio junto al camino. urb/park: cuánto de ciudad o de parque hay ahí
+function terrColor(x, z, h, ny, roadD, snowW, P, urb, park, out) {
+  const c = palColors(P), [rk0, rk1] = P.rockH;
+  const n1 = fbm(x / 90, z / 90, 3), n2 = fbm(x / 23 + 7, z / 23, 2);
+  out.copy(c.dry).lerp(c.dry2, clamp(0.5 + n2, 0, 1));
+  out.lerp(c.green, clamp(smooth(0.05, 0.45, n1) * smooth(P.greenH, P.greenH * 0.15, h), 0, 0.85));
+  if (urb > 0) { out.lerp(c.urb, urb * 0.92); out.lerp(c.urb2, urb * clamp(0.5 + n2, 0, 1) * 0.5); }
+  if (park > 0) out.lerp(c.green, park * (0.75 + 0.2 * n1));
+  for (const W of WATERS) if (W.type === 'circle') out.lerp(c.lake, smooth(W.r + 90, W.r, Math.hypot(x - W.x, z - W.z)) * 0.8);
+  out.lerp(c.dirt, smooth(0.93, 0.8, ny) * 0.7);
+  out.lerp(n2 > 0 ? c.rock : c.rock2, clamp(smooth(0.82, 0.62, ny) + smooth(rk0, rk1, h) * 0.85, 0, 1));
+  out.lerp(c.snow, snowCover(x, z, h, ny, n1, n2, P));
+  if (FIELDS.length) { const fa = fieldAt(x, z); if (fa > 0) out.lerp(c.dirt, fa * 0.8); }   // tierra arada entre las hileras del viñedo
+  if (snowW > 0) out.lerp(c.snow, snowW * smooth(0.5, 0.8, ny) * (0.55 + 0.4 * clamp(0.5 + n2, 0, 1)) * smooth(ROAD_HALF + 0.5, ROAD_HALF + FLAT_EXTRA + 3, roadD));
+  if (roadD < 12) out.lerp(c.gravel, smooth(12, ROAD_HALF + FLAT_EXTRA, roadD) * 0.9);
+  return out;
+}
 // colores del terreno según la paleta del mapa; snowW > 0 agrega la nevazón del clima "Nieve"
 function colorTerrain(snowW) {
+  if (MAP.world) { if (QT.snow !== snowW) { QT.snow = snowW; qtReset(); } return; }
   if (!TERR || TERR.snow === snowW) return;
   TERR.snow = snowW;
-  const { pos, roadD, geo } = TERR, nrm = geo.attributes.normal.array, col = geo.attributes.color.array, P = MAP.pal;
-  const C = h => new THREE.Color(h);
-  const cDry = C(P.dry), cDry2 = C(P.dry2), cGreen = C(P.green), cDirt = C(P.dirt), cRock = C(P.rock), cRock2 = C(P.rock2),
-    cSnow = C(P.snow), cGravel = C(P.gravel), cLake = C(P.lake), cUrb = C(P.urban || P.dry), cUrb2 = C(P.urban2 || P.dry2), tmp = new THREE.Color();
-  const [rk0, rk1] = P.rockH;
+  const { pos, roadD, geo } = TERR, nrm = geo.attributes.normal.array, col = geo.attributes.color.array, P = MAP.pal, tmp = new THREE.Color();
   for (let k = 0; k < TERR.n; k++) {
-    const x = pos[k * 3], h = pos[k * 3 + 1], z = pos[k * 3 + 2], ny = nrm[k * 3 + 1];
-    const n1 = fbm(x / 90, z / 90, 3), n2 = fbm(x / 23 + 7, z / 23, 2);
-    tmp.copy(cDry).lerp(cDry2, clamp(0.5 + n2, 0, 1));
-    tmp.lerp(cGreen, clamp(smooth(0.05, 0.45, n1) * smooth(P.greenH, P.greenH * 0.15, h), 0, 0.85));
-    if (MAP.urbanAt) { const u = MAP.urbanAt(x, z); tmp.lerp(cUrb, u * 0.92); if (u > 0) tmp.lerp(cUrb2, u * clamp(0.5 + n2, 0, 1) * 0.5); }
-    if (MAP.parkAt) tmp.lerp(cGreen, MAP.parkAt(x, z) * (0.75 + 0.2 * n1));
-    const dl = Math.hypot(x - LAKE.x, z - LAKE.z);
-    tmp.lerp(cLake, smooth(LAKE.r + 90, LAKE.r, dl) * 0.8);
-    tmp.lerp(cDirt, smooth(0.93, 0.8, ny) * 0.7);
-    const rockAmt = clamp(smooth(0.82, 0.62, ny) + smooth(rk0, rk1, h) * 0.85, 0, 1);
-    tmp.lerp(n2 > 0 ? cRock : cRock2, rockAmt);
-    tmp.lerp(cSnow, snowCover(x, z, h, ny, n1, n2));
-    if (FIELDS.length) { const fa = fieldAt(x, z); if (fa > 0) tmp.lerp(cDirt, fa * 0.8); }   // tierra arada entre las hileras del viñedo
-    if (snowW > 0) tmp.lerp(cSnow, snowW * smooth(0.5, 0.8, ny) * (0.55 + 0.4 * clamp(0.5 + n2, 0, 1)) * smooth(ROAD_HALF + 0.5, ROAD_HALF + FLAT_EXTRA + 3, roadD[k]));
-    if (roadD[k] < 12) tmp.lerp(cGravel, smooth(12, ROAD_HALF + FLAT_EXTRA, roadD[k]) * 0.9);
+    const x = pos[k * 3], h = pos[k * 3 + 1], z = pos[k * 3 + 2];
+    terrColor(x, z, h, nrm[k * 3 + 1], roadD[k], snowW, P, MAP.urbanAt ? MAP.urbanAt(x, z) : 0, MAP.parkAt ? MAP.parkAt(x, z) : 0, tmp);
     col[k * 3] = tmp.r; col[k * 3 + 1] = tmp.g; col[k * 3 + 2] = tmp.b;
   }
   geo.attributes.color.needsUpdate = true;
@@ -1737,28 +2101,29 @@ function buildRoad() {
     pos.push(x - lx * H, y + 0.03, z - lz * H); uv.push(0.995, v);
     pos.push(x - lx * (H + 0.3), y - 0.6, z - lz * (H + 0.3)); uv.push(0.995, v);
   }
+  // un grupo por calzada (en el mundo abierto cambia con la zona) y por línea central (segmentada o continua en curva)
+  const lists = new Map(), styleAt = k => (MAP.world ? zoneOfI(k % n).road : MAP.road);
+  const put = (key, ids) => { let l = lists.get(key); if (!l) lists.set(key, l = []); for (const v of ids) l.push(v); };
   for (let k = 0; k < n; k++) {
-    const a = k * 4, b = a + 4;
+    const a = k * 4, b = a + 4, st = styleAt(k), gr = st === 'ripio' || st === 'huella';
     const solid = Math.abs(track.K[k]) > 1 / 320, one = inSplit((k + 0.5) * track.ds);
-    (one ? idxOne : solid ? idxSolid : idxDash).push(a + 1, a + 2, b + 1, a + 2, b + 2, b + 1);
-    idxSkirt.push(a, a + 1, b, a + 1, b + 1, b, a + 2, a + 3, b + 2, a + 3, b + 3, b + 2);
+    put(one ? 'one' : st + (solid && !gr ? ':s' : ':d'), [a + 1, a + 2, b + 1, a + 2, b + 2, b + 1]);
+    put(st + ':d', [a, a + 1, b, a + 1, b + 1, b, a + 2, a + 3, b + 2, a + 3, b + 3, b + 2]);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  const all = [...idxDash, ...idxSolid, ...idxSkirt, ...idxOne];
+  const all = [], mats = [];
+  for (const [key, l] of lists) {
+    geo.addGroup(all.length, l.length, mats.length);
+    for (const v of l) all.push(v);
+    const [st, kind] = key.split(':'), gr = st === 'ripio' || st === 'huella';
+    const t = key === 'one' ? onewayTex(2 * ROAD_HALF, false) : roadTex(st, kind === 's');
+    const m = new THREE.MeshStandardMaterial({ map: t, bumpMap: t, bumpScale: gr ? 1.2 : 0.5, roughness: gr ? 0.97 : 0.8, metalness: 0 });
+    mats.push(m); WET.road.push({ m, r: m.roughness, wr: gr ? 0.66 : 0.32, wc: gr ? 0.55 : 0.66 });
+  }
   geo.setIndex(all);
-  geo.addGroup(0, idxDash.length, 0);
-  geo.addGroup(idxDash.length, idxSolid.length, 1);
-  geo.addGroup(idxDash.length + idxSolid.length, idxSkirt.length, 0);
-  if (idxOne.length) geo.addGroup(idxDash.length + idxSolid.length + idxSkirt.length, idxOne.length, 2);
   geo.computeVertexNormals();
-  const gravel = MAP.road === 'ripio' || MAP.road === 'huella';
-  texRoadDash = roadTex(MAP.road, false); texRoadSolid = gravel ? texRoadDash : roadTex(MAP.road, true);
-  const mk = t => new THREE.MeshStandardMaterial({ map: t, bumpMap: t, bumpScale: gravel ? 1.2 : 0.5, roughness: gravel ? 0.97 : 0.8, metalness: 0 });
-  const mats = [mk(texRoadDash), mk(texRoadSolid)];
-  if (idxOne.length) mats.push(mk(onewayTex(2 * ROAD_HALF, false)));
-  WET.road.push(...mats.map(m => ({ m, r: m.roughness, wr: gravel ? 0.66 : 0.32, wc: gravel ? 0.55 : 0.66 })));
   const mesh = new THREE.Mesh(geo, mats);
   mesh.receiveShadow = true;
   return mesh;
@@ -1799,25 +2164,31 @@ function runsOf(flags) {
 }
 function buildRoadside(group) {
   const n = track.n, H = ROAD_HALF;
-  // bermas (ripio, vereda, nieve o tierra); en los puentes no hay berma
-  const berm = [[], []], curb = [[], []];
+  // bermas (ripio, vereda, nieve o tierra; en el mundo abierto, la de cada zona); en los puentes no hay berma
+  const strips = new Map(), curb = [], bermAt = i => (MAP.world ? zoneOfI(i).berm : MAP.berm);
   const raised = BERM_RAISE > 0, inner = raised ? H : H - 0.05;
   for (const run of runsOf(track.bridge.map(b => b ? 0 : 1))) {
-    const r0 = [], r1 = [], c0 = [], c1 = [];
+    let r0 = [], r1 = [], c0 = [], c1 = [], cur = null;
+    const flush = () => { if (r0.length > 1) { if (!strips.has(cur)) strips.set(cur, []); strips.get(cur).push(r0, r1); } if (raised) curb.push(c0, c1); };
     for (let k = run[0]; k <= run[1]; k++) {
       const i = k % n, [lx, lz] = leftOf(i), x = track.X[i], z = track.Z[i], y0 = track.Y[i], y = y0 + 0.012 + BERM_RAISE, v = k * track.ds / 6;
       const outL = inSplit(k * track.ds) ? SPLIT.med0 : H + FLAT_EXTRA + 0.4;   // en la Alameda, a la izquierda empieza el bandejón
-      r0.push([x + lx * outL, y, z + lz * outL, x + lx * inner, y, z + lz * inner, v]);
-      r1.push([x - lx * inner, y, z - lz * inner, x - lx * (H + FLAT_EXTRA + 0.4), y, z - lz * (H + FLAT_EXTRA + 0.4), v]);
+      const a = [x + lx * outL, y, z + lz * outL, x + lx * inner, y, z + lz * inner, v], b = [x - lx * inner, y, z - lz * inner, x - lx * (H + FLAT_EXTRA + 0.4), y, z - lz * (H + FLAT_EXTRA + 0.4), v];
+      const type = bermAt(i);
+      // cambia la berma: la franja anterior termina en esta fila y la nueva empieza en ella
+      if (type !== cur) { if (cur !== null) { r0.push(a); r1.push(b); flush(); r0 = []; r1 = []; c0 = []; c1 = []; } cur = type; }
+      r0.push(a); r1.push(b);
       if (raised) { c0.push([x + lx * H, y, z + lz * H, x + lx * H, y0, z + lz * H, v]); c1.push([x - lx * H, y0, z - lz * H, x - lx * H, y, z - lz * H, v]); }
     }
-    berm[0].push(r0); berm[1].push(r1); if (raised) curb.push(c0, c1);
+    flush();
   }
-  const bermTex = { vereda: texSidewalk, nieve: texSnowBerm, tierra: texDirtBerm, arena: texSandBerm }[MAP.berm] || texGravel;
-  const bermMat = new THREE.MeshStandardMaterial({ map: bermTex, roughness: MAP.berm === 'nieve' ? 0.7 : 1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
   texGravel.repeat.set(1, 1);
-  group.add(stripMesh([...berm[0], ...berm[1]], bermMat));
-  WET.road.push({ m: bermMat, r: bermMat.roughness });
+  for (const [type, segs] of strips) {
+    const bermTex = { vereda: texSidewalk, nieve: texSnowBerm, tierra: texDirtBerm, arena: texSandBerm }[type] || texGravel;
+    const bermMat = new THREE.MeshStandardMaterial({ map: bermTex, roughness: type === 'nieve' ? 0.7 : 1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+    group.add(stripMesh(segs, bermMat));
+    WET.road.push({ m: bermMat, r: bermMat.roughness });
+  }
   if (raised) group.add(stripMesh(curb.filter(c => c.length), new THREE.MeshStandardMaterial({ map: texConcrete, roughness: 0.9, side: THREE.DoubleSide })));
   // soleras (kerbs) rojo y blanco
   const kerbSegs = [];
@@ -1838,33 +2209,39 @@ function buildRoadside(group) {
   group.add(stripMesh(kerbSegs, kerbMat));
   // defensas: muros de concreto tipo New Jersey (ciudad), baranda metálica o baranda de madera
   if (MAP.railStyle === 'concreto') { buildJersey(group); return; }
-  const wood = MAP.railStyle === 'madera';
-  const railSegs = [], postPos = [];
-  let vc = 0;
-  for (const [flags, side] of [[track.railL, 1], [track.railR, -1]]) {
-    const vmap = side > 0 ? RAIL.vmapL : RAIL.vmapR, pmap = side > 0 ? RAIL.pmapL : RAIL.pmapR;
-    for (const [a, b] of runsOf(flags)) {
-      const lo = [];
-      for (let k = a; k <= b; k++) {
-        const i = k % n, [lx, lz] = leftOf(i), x = track.X[i] + side * lx * RAIL_D, z = track.Z[i] + side * lz * RAIL_D, y = track.Y[i];
-        lo.push(wood ? [x, y + 0.4, z, x, y + 0.92, z, k * track.ds / 3] : [x, y + 0.48, z, x, y + 0.82, z, 0]);
-        if (vmap[i] < 0) vmap[i] = vc; vc += 2;
-        if ((k - a) % 2 === 0) { if (pmap[i] < 0) pmap[i] = postPos.length / 3; postPos.push(x - side * lx * 0.1, y, z - side * lz * 0.1); }
+  // en el mundo abierto hay baranda metálica y de madera (en el sur), y no se abollan (las mallas van por tramos)
+  const styles = MAP.world ? ['metal', 'madera'] : [MAP.railStyle === 'madera' ? 'madera' : 'metal'];
+  for (const st of styles) {
+    const wood = st === 'madera';
+    const flagsL = MAP.world ? track.railL.map((v, i) => (v && zoneOfI(i).rail === st ? 1 : 0)) : track.railL;
+    const flagsR = MAP.world ? track.railR.map((v, i) => (v && zoneOfI(i).rail === st ? 1 : 0)) : track.railR;
+    if (MAP.world && !flagsL.some(v => v) && !flagsR.some(v => v)) continue;
+    const railSegs = [], postPos = [];
+    let vc = 0;
+    for (const [flags, side] of [[flagsL, 1], [flagsR, -1]]) {
+      const vmap = side > 0 ? RAIL.vmapL : RAIL.vmapR, pmap = side > 0 ? RAIL.pmapL : RAIL.pmapR;
+      for (const [a, b] of runsOf(flags)) {
+        const lo = [];
+        for (let k = a; k <= b; k++) {
+          const i = k % n, [lx, lz] = leftOf(i), x = track.X[i] + side * lx * RAIL_D, z = track.Z[i] + side * lz * RAIL_D, y = track.Y[i];
+          lo.push(wood ? [x, y + 0.4, z, x, y + 0.92, z, k * track.ds / 3] : [x, y + 0.48, z, x, y + 0.82, z, 0]);
+          if (!MAP.world && vmap[i] < 0) vmap[i] = vc; vc += 2;
+          if ((k - a) % 2 === 0) { if (!MAP.world && pmap[i] < 0) pmap[i] = postPos.length / 3; postPos.push(x - side * lx * 0.1, y, z - side * lz * 0.1); }
+        }
+        railSegs.push(lo);
       }
-      railSegs.push(lo);
     }
+    const railMat = wood ? new THREE.MeshStandardMaterial({ map: texWoodRail, alphaTest: 0.5, roughness: 0.92, side: THREE.DoubleSide })
+      : new THREE.MeshStandardMaterial({ color: 0xc4c8cc, metalness: 0.85, roughness: 0.32, side: THREE.DoubleSide });
+    const rails = stripMesh(railSegs, railMat); rails.castShadow = true; group.add(rails);
+    const postGeo = wood ? new THREE.BoxGeometry(0.17, 1.05, 0.17) : new THREE.BoxGeometry(0.12, 0.85, 0.12); postGeo.translate(0, wood ? 0.5 : 0.42, 0);
+    const posts = new THREE.InstancedMesh(postGeo, wood ? new THREE.MeshStandardMaterial({ color: 0x5a3c22, roughness: 0.95 }) : new THREE.MeshStandardMaterial({ color: 0x8d9195, metalness: 0.7, roughness: 0.5 }), postPos.length / 3);
+    const m4 = new THREE.Matrix4();
+    for (let k = 0; k < postPos.length / 3; k++) { m4.makeTranslation(postPos[k * 3], postPos[k * 3 + 1], postPos[k * 3 + 2]); posts.setMatrixAt(k, m4); }
+    posts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    posts.castShadow = false; group.add(posts);
+    if (!MAP.world) { RAIL.geo = rails.geometry; RAIL.base = rails.geometry.attributes.position.array.slice(); RAIL.posts = posts; RAIL.postPos = postPos; }
   }
-  const railMat = wood ? new THREE.MeshStandardMaterial({ map: texWoodRail, alphaTest: 0.5, roughness: 0.92, side: THREE.DoubleSide })
-    : new THREE.MeshStandardMaterial({ color: 0xc4c8cc, metalness: 0.85, roughness: 0.32, side: THREE.DoubleSide });
-  const rails = stripMesh(railSegs, railMat); rails.castShadow = true; group.add(rails);
-  const postGeo = wood ? new THREE.BoxGeometry(0.17, 1.05, 0.17) : new THREE.BoxGeometry(0.12, 0.85, 0.12); postGeo.translate(0, wood ? 0.5 : 0.42, 0);
-  const posts = new THREE.InstancedMesh(postGeo, wood ? new THREE.MeshStandardMaterial({ color: 0x5a3c22, roughness: 0.95 }) : new THREE.MeshStandardMaterial({ color: 0x8d9195, metalness: 0.7, roughness: 0.5 }), postPos.length / 3);
-  const m4 = new THREE.Matrix4();
-  for (let k = 0; k < postPos.length / 3; k++) { m4.makeTranslation(postPos[k * 3], postPos[k * 3 + 1], postPos[k * 3 + 2]); posts.setMatrixAt(k, m4); }
-  posts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  posts.castShadow = false; group.add(posts);
-  RAIL.geo = rails.geometry; RAIL.base = rails.geometry.attributes.position.array.slice();
-  RAIL.posts = posts; RAIL.postPos = postPos;
 }
 // muro New Jersey: perfil barrido a lo largo de las defensas (no se abolla)
 function buildJersey(group) {
@@ -2065,10 +2442,10 @@ function waterRibbon(pts, width, mat) {
   const m = new THREE.Mesh(g, mat); m.receiveShadow = true; return m;
 }
 function buildWater() {
-  if (WATER) {
+  for (const WATER of WATERS) {
     let m;
     if (WATER.type === 'circle') {
-      m = new THREE.Mesh(new THREE.CircleGeometry(WATER.r + 75, 80), waterMat(0x1e9ea2, [14, 14]));
+      m = new THREE.Mesh(new THREE.CircleGeometry(WATER.r + 75, 80), waterMat(WATER.color || 0x1e9ea2, MAP.world ? [(WATER.r + 75) / 14, (WATER.r + 75) / 14] : [14, 14]));
       m.rotation.x = -Math.PI / 2; m.position.set(WATER.x, WATER.y, WATER.z);
     } else if (WATER.type === 'plane') {
       // lago de color turquesa (General Carrera)
@@ -2089,7 +2466,8 @@ function buildWater() {
   // esteros (Carretera Austral): agua clara al fondo de cada quebrada
   for (const s of MAP.streams || []) {
     const pts = [];
-    for (let z = -820; z <= 335; z += 6) { const x = streamX(s, z); pts.push([x, MAP.roadH(x, z) - 8 + 0.9, z]); }
+    if (MAP.world) for (let z = s.z0; z <= s.z1; z += 6) { const x = wStreamX(s, z); pts.push([x, MAP.roadH(x, z) - 7 + 0.9, z]); }
+    else for (let z = -820; z <= 335; z += 6) { const x = streamX(s, z); pts.push([x, MAP.roadH(x, z) - 8 + 0.9, z]); }
     world.add(waterRibbon(pts, 7.5, waterMat(0x2a8c96, [1, 1], 0.9)));
     decor.water = decor.water || true;
   }
@@ -2336,7 +2714,11 @@ function buildVegetation(opts = {}) {
   inst(nalcaGeo, frondM, out.nalca, ([x, y, z, a, b, c]) => { const s = 0.9 + a * 1.1; ps.set(x, y - 0.1, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s, s, s); col.setHex(0x37661f).lerp(new THREE.Color(0x56832b), b); }, false);
   // Espinos y arbustos
   const bushCol = MAP_ID === 'austral' ? [0x2a4a1c, 0x45622a] : MAP_ID === 'caracoles' ? [0x5a5a38, 0x75704a] : [0x394220, 0x626030];
-  inst(bushGeo, foliage, out.bush, ([x, y, z, a, b, c]) => { const s = 0.8 + a * 2.0; ps.set(x, y - 0.25, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s * (0.8 + b * 0.5), s * (0.7 + c * 0.6), s); col.setHex(bushCol[0]).lerp(new THREE.Color(bushCol[1]), b); }, false);
+  const BUSHC = { austral: [0x2a4a1c, 0x45622a], caracoles: [0x5a5a38, 0x75704a], portillo: [0x5a5a38, 0x75704a], andes: [0x5a5a38, 0x75704a] };
+  inst(bushGeo, foliage, out.bush, ([x, y, z, a, b, c]) => {
+    const s = 0.8 + a * 2.0, bc = MAP.world ? BUSHC[WZ[WROUTE.near(x, z).rg]] || [0x394220, 0x626030] : bushCol;
+    ps.set(x, y - 0.25, z); qq.setFromEuler(e.set(0, c * 6, 0)); sc.set(s * (0.8 + b * 0.5), s * (0.7 + c * 0.6), s); col.setHex(bc[0]).lerp(new THREE.Color(bc[1]), b);
+  }, false);
   // Rocas (las chicas y medianas: icosaedro facetado, la mitad de caras que la roca grande)
   const rockS = jitterGeo(new THREE.IcosahedronGeometry(1, 1), 0.3, 13).scale(1, 0.62, 1);
   inst(rockS, rockM, out.rock, ([x, y, z, a, b, c]) => { const s = 0.4 + a * a * 2.6; ps.set(x, y - s * 0.2, z); qq.setFromEuler(e.set(b, c * 6, a)); sc.set(s, s, s * (0.7 + b * 0.6)); col.setHex(0x7c766f).lerp(new THREE.Color(0x9a8e80), c); }, false);
@@ -2381,6 +2763,9 @@ function cullVegetation(maxDist) {
   // matas junto al camino: solo cerca (de lejos ni se distinguen) y no cuando nieva
   const n2 = WEATHER.id === 'snow' ? -1 : (maxDist * 0.24) ** 2;
   for (const v of NEARV) v.mesh.visible = (v.x - cx) ** 2 + (v.z - cz) ** 2 < n2;
+  // mundo abierto: los tramos de calzada, bermas y edificios más allá de la bruma
+  const c2 = (maxDist * 4) ** 2;
+  for (const c of CHUNKS) c.mesh.visible = (c.x - cx) ** 2 + (c.z - cz) ** 2 < c2 + c.r * c.r * 4;
 }
 // objetos chicos (letreros, conos, paraderos, animitas…): de lejos no se ven y solo gastan llamadas de dibujo
 const DETAIL = [];
@@ -2557,6 +2942,7 @@ function woodSignTex(text) {
   return canvasTex(512, 160, (c, w, h) => { c.fillStyle = '#6b3f1f'; c.fillRect(0, 0, w, h); c.fillStyle = '#f4ead2'; c.font = `800 ${text.length > 16 ? 56 : 72}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, w / 2, h / 2 + 4); });
 }
 function buildDecor() {
+  if (MAP.world) { worldDecor(); return; }
   const city = MAP_ID === 'alameda' ? decorAlameda() : campoPre();
   buildWater();
   if (MAP.mode === '4x4') city.blocked = (x, z) => ob4Near(x, z, 1.5);
@@ -2585,15 +2971,18 @@ function buildDecor() {
   }
   const fe = roadFrame(track.START_S + 420, -1, ROAD_HALF + 13);
   puestoEmpanadas({ ...fe, s: track.START_S + 420, side: -1, off: ROAD_HALF + 13 });
+  // clientes del puesto: estacionados a la orilla del camino
+  for (const k of [-15, 11]) { const f = roadFrame(track.START_S + 420 + k, -1, ROAD_HALF + 8.6); parkCar(f.x, f.z, f.heading + (k < 0 ? 0 : Math.PI), k < 0 ? 'pickup' : 'car'); }
   if (MAP.condors) buildCondors();
   // letrero a la orilla de la laguna
-  if (WATER && WATER.type === 'circle') {
-    const lx = WATER.x + WATER.r + 14, lz = WATER.z;
-    const b = board(3.2, 1.0, woodSignTex(WATER.name.toUpperCase()), 1.2, 2); b.position.set(lx, groundAt(lx, lz, {}), lz); b.rotation.y = Math.PI / 2; world.add(b);
+  for (const W of WATERS) if (W.type === 'circle') {
+    const lx = W.x + W.r + 14, lz = W.z;
+    const b = board(3.2, 1.0, woodSignTex(W.name.toUpperCase()), 1.2, 2); b.position.set(lx, groundAt(lx, lz, {}), lz); b.rotation.y = Math.PI / 2; world.add(b);
   }
   if (MAP_ID === 'caracoles') decorCaracoles();
   if (MAP_ID === 'austral') decorAustral();
   if (MAP_ID !== 'alameda') campoPost();
+  flushParked();
 }
 
 // ---------- edificios: cajas con fachada (ventanas que se encienden de noche) fusionadas por material ----------
@@ -3615,30 +4004,42 @@ function decor4x4() {
 
 // ---------- Los Caracoles: estacas, curvas numeradas, galerías antinieve, hotel Portillo ----------
 function decorCaracoles() {
-  const n = track.n, q = {};
+  snowPoles(0, track.length);
+  curveSigns(track.START_S, track.length);
+  snowSheds(50, 2, track.START_S, track.length);
+  hotelPortillo(-175, -398, 0.25, -110, -440, 9, -72);
+}
+// estacas de nieve (amarillas y negras) a ambos lados, cada 24 m, desde s0 a lo largo de len metros
+function snowPoles(s0, len) {
   const poleTex = canvasTex(16, 128, (g, w, h) => { for (let k = 0; k < 8; k++) { g.fillStyle = k % 2 ? '#141414' : '#f2a81b'; g.fillRect(0, k * h / 8, w, h / 8); } });
   const pg = new THREE.CylinderGeometry(0.04, 0.05, 2.4, 6); pg.translate(0, 1.2, 0);
   const list = [];
-  for (let s = 0; s < track.length; s += 24) for (const side of [1, -1]) { const f = roadFrame(s, side, RAIL_D + 0.9); list.push(f); }
+  for (let s = s0; s < s0 + len; s += 24) for (const side of [1, -1]) { const f = roadFrame(s, side, RAIL_D + 0.9); list.push(f); }
   const im = new THREE.InstancedMesh(pg, new THREE.MeshStandardMaterial({ map: poleTex, roughness: 0.6 }), list.length), m4 = new THREE.Matrix4();
   list.forEach((f, k) => im.setMatrixAt(k, m4.makeTranslation(f.x, f.y, f.z))); world.add(im);
-  // carteles "CURVA N°" en cada horquilla (contadas desde la partida, subiendo)
+}
+// carteles "CURVA N°" en cada horquilla (contadas desde s0, subiendo) a lo largo de len metros
+function curveSigns(s0, len) {
+  const n = track.n, i0 = Math.round(s0 / track.ds), cnt = Math.round(len / track.ds);
   const curveTex = num => canvasTex(256, 160, (g, w, h) => { g.fillStyle = '#0b6b46'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f2f4f2'; g.lineWidth = 8; g.strokeRect(8, 8, w - 16, h - 16); g.fillStyle = '#f2f4f2'; g.textAlign = 'center'; g.font = `700 40px ${FONT}`; g.fillText('CURVA', w / 2, 62); g.font = `800 64px ${FONT}`; g.fillText('N° ' + num, w / 2, 128); });
   let num = 0, inC = false;
-  for (let k = 0; k < n; k++) {
-    const i = (track.startI + k) % n, kk = Math.abs(track.K[i]);
+  for (let k = 0; k < cnt; k++) {
+    const i = (i0 + k) % n, kk = Math.abs(track.K[i]);
     if (!inC && kk > 1 / 40) {
       inC = true; num++;
       const side = track.K[i] > 0 ? -1 : 1, f = roadFrame(i * track.ds - 22, side, RAIL_D + 1.4);
       const b = board(1.15, 0.72, curveTex(num), 1.3, 1); b.position.set(f.x, f.y, f.z); faceTraffic(b, f); world.add(b); addObstacle(f.x, f.z, 0.15, b);
     } else if (inC && kk < 1 / 90) inC = false;
   }
-  // galerías antinieve en dos rectas de la parte alta
+}
+// galerías antinieve (hasta "max") en rectas que pasan de la altura minY, desde s0 a lo largo de len metros
+function snowSheds(minY, max, s0, len) {
+  const n = track.n, i0 = Math.round(s0 / track.ds), cnt = Math.round(len / track.ds);
   const conc = new THREE.MeshStandardMaterial({ color: 0x9d9a94, roughness: 0.95 }), snowM = new THREE.MeshStandardMaterial({ color: 0xf2f5f8, roughness: 0.8 });
   let made = 0, run = 0;
-  for (let k = 0; k < n && made < 2; k++) {
-    const i = (track.startI + k) % n;
-    if (Math.abs(track.K[i]) < 1 / 220 && track.Y[i] > 50) run++; else run = 0;
+  for (let k = 0; k < cnt && made < max; k++) {
+    const i = (i0 + k) % n;
+    if (Math.abs(track.K[i]) < 1 / 220 && track.Y[i] > minY) run++; else run = 0;
     if (run === Math.round(80 / track.ds)) {
       const b = i - Math.round(10 / track.ds), a = b - Math.round(60 / track.ds), mid = Math.round((a + b) / 2);
       const lx = track.TZ[mid], lz = -track.TX[mid];
@@ -3657,15 +4058,18 @@ function decorCaracoles() {
       made++; run = -Math.round(300 / track.ds);
     }
   }
-  // Hotel Portillo (el edificio amarillo frente a la Laguna del Inca) y su andarivel
-  const S = newBuildings(), hx = -175, hz = -398, rot = 0.25, gy = minGround(hx, hz, rot, 92, 17) - 0.5;
+}
+// Hotel Portillo (el edificio amarillo frente a la Laguna del Inca) y su andarivel, que sube desde (lx, lz) en pasos (dx, dz)
+function hotelPortillo(hx, hz, rot, lx, lz, dx, dz) {
+  const S = newBuildings(), gy = minGround(hx, hz, rot, 92, 17) - 0.5;
   pushBox(S, 'amarillo', hx, hz, rot, 92, 17, gy, gy + 27.2);
   pushBox(S, 'amarillo', hx + 38, hz - 18, rot + Math.PI / 2, 34, 14, gy, gy + 13.6);
   flushBuildings(S, 0x3f3530);
+  for (const [a, b] of [[-46, 0], [46, 0], [0, -8.5], [0, 8.5], [-25, 0], [25, 0]]) addObstacle(hx + a * Math.cos(rot) + b * Math.sin(rot), hz - a * Math.sin(rot) + b * Math.cos(rot), 8, null, 'concrete');
   const lift = new THREE.MeshStandardMaterial({ color: 0x3a3d40, metalness: 0.5, roughness: 0.6 }), tops = [];
   const pyl = [];
   for (let k = 0; k < 8; k++) {
-    const x = -110 + k * 9, z = -440 - k * 72, y = baseH(x, z);
+    const x = lx + k * dx, z = lz + k * dz, y = baseH(x, z);
     pyl.push(new THREE.CylinderGeometry(0.25, 0.4, 11, 8).translate(x, y + 5.5, z), new THREE.BoxGeometry(4.2, 0.3, 0.3).translate(x, y + 11, z));
     tops.push([x, y + 10.8, z]);
   }
@@ -3684,7 +4088,50 @@ function decorCaracoles() {
 
 // ---------- Carretera Austral: puentes de madera, Capillas de Mármol, casas con estufa a leña ----------
 function decorAustral() {
-  const n = track.n, H = ROAD_HALF, r = mulberry32(77);
+  const r = mulberry32(77);
+  woodBridges();
+  capillasMarmol(-230, 318, 52, 0, WATER.y, r);
+  { const f = roadFrame(track.length * 0.08, 1, RAIL_D + 2); const b = board(3.2, 0.9, woodSignTex('CAPILLAS DE MÁRMOL'), 1.2, 2); b.position.set(f.x, f.y, f.z); faceTraffic(b, f); world.add(b); addObstacle(f.x, f.z, 0.6, b); }
+  // casas de madera con techo de zinc y humo de la estufa a leña
+  for (let k = 0; k < 6; k++) {
+    const s = track.START_S + 250 + k * (track.length - 500) / 6, side = k % 2 ? 1 : -1;
+    const f = roadFrame(s, side, ROAD_HALF + 26 + r() * 14);
+    if (waterAt(f.x, f.z) > f.y - 0.5 || streamDistA(f.x, f.z) < 26) continue;
+    casaSur(f, s, side, k);
+  }
+}
+// casa de madera del sur (colores, techo de zinc, estufa a leña), mirando al camino
+function casaSur(f, s, side, k) {
+  const cols = [0xb23a2a, 0x2f6a4a, 0xd9b44a, 0x8a6a4a, 0x3a5f8a];
+  const g = new THREE.Group(), wall = new THREE.MeshStandardMaterial({ color: cols[k % cols.length], map: texPlanks, roughness: 0.9 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(7, 3.2, 5), wall); body.position.y = 1.6;
+  const roof = new THREE.Mesh(gableGeo(7.8, 6, 2.2), new THREE.MeshStandardMaterial({ color: k % 2 ? 0x8c2b22 : 0x7d8590, metalness: 0.5, roughness: 0.45 })); roof.position.y = 3.2; roof.rotation.y = Math.PI / 2;
+  const chim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.2, 0.5), M.dark); chim.position.set(1.8, 4.4, 0.8);
+  const door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.9), new THREE.MeshStandardMaterial({ color: 0x3a2616 })); door.position.set(0, 0.95, 2.51);
+  g.add(body, roof, chim, door); g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  g.position.set(f.x, f.y - 0.2, f.z); faceRoad(g, f, side); world.add(g);
+  addObstacle(f.x, f.z, 3.4, null, 'concrete');
+  g.updateMatrixWorld(true);
+  decor.chimneys.push(new THREE.Vector3(1.8, 5.6, 0.8).applyMatrix4(g.matrixWorld));
+  CAMPO.houses.push({ x: f.x, z: f.z, s, side, rot: g.rotation.y, w: 7 });
+}
+// Capillas de Mármol: islotes de mármol veteado en el lago, en fila desde (x0, z0) cada (dx, dz)
+function capillasMarmol(x0, z0, dx, dz, wy, r) {
+  for (let k = 0; k < 6; k++) {
+    const x = x0 + k * dx + (r() - 0.5) * 20, z = z0 + k * dz + r() * 34, sc = 6 + r() * 6;
+    const g = rockGeo().clone(), p = g.attributes.position, col = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i), band = 0.5 + 0.5 * Math.sin(y * 9 + p.getX(i) * 2), blue = smooth(-0.1, -0.5, y);
+      col[i * 3] = lerp(0.82, 0.62, band * 0.6) - blue * 0.3; col[i * 3 + 1] = lerp(0.84, 0.64, band * 0.6) - blue * 0.12; col[i * 3 + 2] = lerp(0.86, 0.68, band * 0.6) + blue * 0.05;
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, flatShading: true }));
+    m.scale.set(sc * 1.2, sc * 1.5, sc); m.position.set(x, wy - sc * 0.15, z); m.rotation.y = r() * 6; m.castShadow = true; world.add(m);
+  }
+}
+// puentes de madera sobre los esteros: tablero, vigas, pilotes y el letrero con el nombre
+function woodBridges() {
+  const n = track.n, H = ROAD_HALF;
   const plankMat = new THREE.MeshStandardMaterial({ map: texPlanks, roughness: 0.9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
   WET.road.push({ m: plankMat, r: 0.9 });
   const woodM = new THREE.MeshStandardMaterial({ color: 0x5a3c22, roughness: 0.95 });
@@ -3707,37 +4154,6 @@ function decorAustral() {
     const pm = new THREE.Mesh(mergeGeometries(parts.map(p => p.index ? p.toNonIndexed() : p)), woodM); pm.castShadow = true; world.add(pm);
     const f = roadFrame(a * track.ds - 14, -1, RAIL_D + 1.6), name = names[bi++ % names.length];
     const sb = board(3.0, 0.7, woodSignTex(name), 1.2, 2); sb.position.set(f.x, f.y, f.z); faceTraffic(sb, f); world.add(sb); addObstacle(f.x, f.z, 0.6, sb);
-  }
-  // Capillas de Mármol: islotes de mármol veteado en el lago
-  for (let k = 0; k < 6; k++) {
-    const x = -230 + k * 52 + (r() - 0.5) * 20, z = 318 + r() * 34, sc = 6 + r() * 6;
-    const g = rockGeo().clone(), p = g.attributes.position, col = new Float32Array(p.count * 3);
-    for (let i = 0; i < p.count; i++) {
-      const y = p.getY(i), band = 0.5 + 0.5 * Math.sin(y * 9 + p.getX(i) * 2), blue = smooth(-0.1, -0.5, y);
-      col[i * 3] = lerp(0.82, 0.62, band * 0.6) - blue * 0.3; col[i * 3 + 1] = lerp(0.84, 0.64, band * 0.6) - blue * 0.12; col[i * 3 + 2] = lerp(0.86, 0.68, band * 0.6) + blue * 0.05;
-    }
-    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, flatShading: true }));
-    m.scale.set(sc * 1.2, sc * 1.5, sc); m.position.set(x, WATER.y - sc * 0.15, z); m.rotation.y = r() * 6; m.castShadow = true; world.add(m);
-  }
-  { const f = roadFrame(track.length * 0.08, 1, RAIL_D + 2); const b = board(3.2, 0.9, woodSignTex('CAPILLAS DE MÁRMOL'), 1.2, 2); b.position.set(f.x, f.y, f.z); faceTraffic(b, f); world.add(b); addObstacle(f.x, f.z, 0.6, b); }
-  // casas de madera con techo de zinc y humo de la estufa a leña
-  const cols = [0xb23a2a, 0x2f6a4a, 0xd9b44a, 0x8a6a4a, 0x3a5f8a];
-  for (let k = 0; k < 6; k++) {
-    const s = track.START_S + 250 + k * (track.length - 500) / 6, side = k % 2 ? 1 : -1;
-    const f = roadFrame(s, side, ROAD_HALF + 26 + r() * 14);
-    if (waterAt(f.x, f.z) > f.y - 0.5 || streamDistA(f.x, f.z) < 26) continue;
-    const g = new THREE.Group(), wall = new THREE.MeshStandardMaterial({ color: cols[k % cols.length], map: texPlanks, roughness: 0.9 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(7, 3.2, 5), wall); body.position.y = 1.6;
-    const roof = new THREE.Mesh(gableGeo(7.8, 6, 2.2), new THREE.MeshStandardMaterial({ color: k % 2 ? 0x8c2b22 : 0x7d8590, metalness: 0.5, roughness: 0.45 })); roof.position.y = 3.2; roof.rotation.y = Math.PI / 2;
-    const chim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.2, 0.5), M.dark); chim.position.set(1.8, 4.4, 0.8);
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.9), new THREE.MeshStandardMaterial({ color: 0x3a2616 })); door.position.set(0, 0.95, 2.51);
-    g.add(body, roof, chim, door); g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-    g.position.set(f.x, f.y - 0.2, f.z); faceRoad(g, f, side); world.add(g);
-    addObstacle(f.x, f.z, 3.4, null, 'concrete');
-    g.updateMatrixWorld(true);
-    decor.chimneys.push(new THREE.Vector3(1.8, 5.6, 0.8).applyMatrix4(g.matrixWorld));
-    CAMPO.houses.push({ x: f.x, z: f.z, s, side, off: f.off });
   }
 }
 
@@ -3862,7 +4278,7 @@ function nearPlants(pick, dens = 1) {
     const x = fr.x + fr.tz * side * d, z = fr.z - fr.tx * side * d, h = groundAt(x, z, q);
     if (!q.ok || q.dist < d0 - 0.3 || (track.bridge[q.i] && q.dist < ROAD_HALF + 4)) continue;
     if (waterAt(x, z) > h - 0.15 || nearObstacle(x, z, 0.3) || onOb4(x, z)) continue;
-    const p = pick(x, z, h, d, rng, col); if (!p) continue;
+    const p = pick(x, z, h, d, rng, col, s); if (!p) continue;
     const key = Math.floor(s / 80);
     if (!buckets.has(key)) buckets.set(key, []);
     buckets.get(key).push([x, h, z, p[0], p[1], col.r, col.g, col.b, rng() * 6.28]);
@@ -3884,7 +4300,7 @@ function nearPlants(pick, dens = 1) {
   }
 }
 // ---- postes y alambres: se juntan en listas y al final queda una malla instanciada por tipo de poste y una sola de cables ----
-const WIRES = [], POSTS = { fence: [], pole: [], wood: [], delin: [] };
+const WIRES = [], POSTS = { fence: [], pole: [], wood: [], delin: [], lamp: [] };
 function wireSpan(a, b, sag, segs) {
   for (let k = 0; k < segs; k++) for (const t of [k / segs, (k + 1) / segs]) WIRES.push(lerp(a[0], b[0], t), lerp(a[1], b[1], t) - sag * 4 * t * (1 - t), lerp(a[2], b[2], t));
 }
@@ -3902,12 +4318,13 @@ function fence(s0, s1, side, off, gap = null) {
     prev = f;
   }
 }
-// tendido eléctrico a un costado de la ruta: postes de hormigón (o de madera en el sur) con cables que cuelgan
-function powerLine(side, off, span, wood) {
-  const L = track.length, n = Math.max(3, Math.round(L / span)), step = L / n, q = {}, pts = [];
+// tendido eléctrico a un costado de la ruta: postes de hormigón (o de madera en el sur) con cables que cuelgan.
+// Toda la vuelta, o desde s0 a lo largo de len metros
+function powerLine(side, off, span, wood, s0 = 0, len = track.length) {
+  const closed = len >= track.length, n = Math.max(3, Math.round(len / span)), step = len / n, q = {}, pts = [];
   const H = wood ? 7.3 : 8.8, arms = wood ? [-0.55, 0.55] : [-0.9, -0.3, 0.9];
-  for (let k = 0; k < n; k++) {
-    const f = roadFrame(k * step, side, off);
+  for (let k = 0; k < n + (closed ? 0 : 1); k++) {
+    const f = roadFrame(s0 + k * step, side, off);
     track.query(f.x, f.z, q);
     const ok = q.dist > off - 2.5 && waterAt(f.x, f.z) < f.y - 0.3 && !nearObstacle(f.x, f.z, 1.0) && Math.hypot(f.x - LAKE.x, f.z - LAKE.z) > LAKE.r + 4 && !(FIELDS.length && fieldAt(f.x, f.z) > 0);
     if (!ok) { pts.push(null); continue; }
@@ -3915,12 +4332,13 @@ function powerLine(side, off, span, wood) {
     addObstacle(f.x, f.z, 0.22, null, wood ? 'tree' : 'concrete');
     pts.push(arms.map(o => [f.x + f.tz * o, f.y - 0.2 + H, f.z - f.tx * o]));
   }
-  for (let k = 0; k < n; k++) { const a = pts[k], b = pts[(k + 1) % n]; if (a && b) for (let j = 0; j < a.length; j++) wireSpan(a[j], b[j], span * 0.022, 6); }
+  for (let k = 0; k < pts.length - (closed ? 0 : 1); k++) { const a = pts[k], b = pts[(k + 1) % pts.length]; if (a && b) for (let j = 0; j < a.length; j++) wireSpan(a[j], b[j], span * 0.022, 6); }
 }
-// delineadores: postes blancos con franja negra y reflectante, cada "every" metros a ambos lados
-function delineators(every) {
+// delineadores: postes blancos con franja negra y reflectante, cada "every" metros a ambos lados (donde okS(s))
+function delineators(every, okS = () => true) {
   const q = {};
   for (let s = 0; s < track.length; s += every) for (const side of [1, -1]) {
+    if (!okS(s)) continue;
     const f = roadFrame(s + (side > 0 ? every / 2 : 0), side, RAIL_D + 0.75);
     track.query(f.x, f.z, q);
     if (track.bridge[q.i] || q.dist < RAIL_D + 0.3 || waterAt(f.x, f.z) > f.y - 0.2 || nearObstacle(f.x, f.z, 0.4)) continue;
@@ -3944,6 +4362,13 @@ function flushPosts() {
     new THREE.MeshStandardMaterial({ color: 0x5b4532, roughness: 0.95 }), true);
   const dt = canvasTex(32, 128, (g, w, h) => { g.fillStyle = '#f2f2ee'; g.fillRect(0, 0, w, h); g.fillStyle = '#151515'; g.fillRect(0, h * 0.1, w, h * 0.2); g.fillStyle = '#f2b01e'; g.fillRect(w * 0.2, h * 0.14, w * 0.6, h * 0.12); });
   make(POSTS.delin, new THREE.BoxGeometry(0.1, 1.0, 0.07).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ map: dt, roughness: 0.5 }), false);
+  // faroles de la ciudad: poste con brazo hacia la calle y la luminaria, que se enciende al atardecer
+  if (POSTS.lamp.length) {
+    make(POSTS.lamp, mergeGeometries([new THREE.CylinderGeometry(0.08, 0.12, 8, 6, 1, true).translate(0, 4, 0), new THREE.BoxGeometry(0.1, 0.1, 1.6).translate(0, 7.9, 0.8)]), new THREE.MeshStandardMaterial({ color: 0x5a5f64, metalness: 0.6, roughness: 0.5 }), true);
+    const headM = new THREE.MeshStandardMaterial({ color: 0xdedad0, emissive: 0xffd9a0, emissiveIntensity: 0, roughness: 0.4 });
+    CITY_EMI.push({ mat: headM, k: 2.5 });
+    make(POSTS.lamp, new THREE.BoxGeometry(0.45, 0.14, 0.7).translate(0, 7.82, 1.55), headM, false);
+  }
   if (WIRES.length) {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(WIRES, 3));
     world.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x262626 })));
@@ -4000,11 +4425,13 @@ function casaAdobe(x, y, z, rot) {
 }
 // ---- viñedos del valle del Aconcagua: bloques planos, lejos de la ruta, con hileras paralelas al camino ----
 function planFields() {
-  if (MAP_ID !== 'cordillera') return [];
+  if (MAP_ID !== 'cordillera' && !MAP.world) return [];
+  // en el mundo abierto: en el valle del Aconcagua y en el Valle Central
+  const okS = MAP.world ? s => ['aconcagua', 'central'].includes(WROUTE.zoneAt(s)) : () => true, max = MAP.world ? 14 : 6;
   const out = [], rng = mulberry32(1987), q = {}, fr = {}, L = track.length;
-  for (let tries = 0; tries < 500 && out.length < 6; tries++) {
+  for (let tries = 0; tries < 900 && out.length < max; tries++) {
     const s = rng() * L, gs = wrapGap(s - track.START_S), side = rng() < 0.5 ? 1 : -1;
-    if (gs > -120 && gs < 480) continue;
+    if ((gs > -120 && gs < 480) || !okS(s)) continue;
     track.at(s, fr);
     const l = 50 + rng() * 30, w = 30 + rng() * 22, off = ROAD_HALF + 22 + w / 2 + rng() * 30;
     const cx = fr.x + fr.tz * side * off, cz = fr.z - fr.tx * side * off, ux = fr.tx, uz = fr.tz;
@@ -4046,23 +4473,23 @@ function buildVines() {
   }
 }
 // ---- Cordillera: casas de campo y álamos, ubicados antes de plantar el resto de la vegetación ----
-function planHouses(n, rng) {
+function planHouses(n, rng, okS = () => true) {
   const out = [], q = {};
-  for (let tries = 0; tries < 400 && out.length < n; tries++) {
+  for (let tries = 0; tries < 400 + n * 60 && out.length < n; tries++) {
     const s = rng() * track.length, gs = wrapGap(s - track.START_S);
-    if (gs > -120 && gs < 480) continue;
+    if ((gs > -120 && gs < 480) || !okS(s)) continue;
     const side = rng() < 0.5 ? 1 : -1, off = ROAD_HALF + 20 + rng() * 8, f = roadFrame(s, side, off);
     track.query(f.x, f.z, q); if (q.dist < off - 3) continue;
     if (Math.hypot(f.x - LAKE.x, f.z - LAKE.z) < LAKE.r + 25 || FIELDS.some(F => Math.hypot(F.cx - f.x, F.cz - f.z) < Math.max(F.l, F.w) / 2 + 22)) continue;
     const rot = Math.atan2(-side * f.tz, side * f.tx), c = Math.cos(rot), sn = Math.sin(rot);
     let lo = 1e9, hi = -1e9;
     for (const [a, b] of [[-9, -5], [9, -5], [9, 7], [-9, 7], [0, 0]]) { const h = groundAt(f.x + a * c + b * sn, f.z - a * sn + b * c, q); lo = Math.min(lo, h); hi = Math.max(hi, h); }
-    if (hi - lo > 2.2 || out.some(o => Math.hypot(o.x - f.x, o.z - f.z) < 300)) continue;
+    if (hi - lo > 2.2 || out.some(o => Math.hypot(o.x - f.x, o.z - f.z) < 300) || waterAt(f.x, f.z) > lo - 1) continue;
     out.push({ x: f.x, z: f.z, y: lo - 0.05, rot, s, side, off });
   }
   return out;
 }
-function planAlamos(rng, houses) {
+function planAlamos(rng, houses, okS = () => true, rowsMax = 5) {
   const out = [], q = {}, fr = {};
   const put = (x, z) => {
     const h = groundAt(x, z, q);
@@ -4071,9 +4498,9 @@ function planAlamos(rng, houses) {
   };
   // hileras a lo largo de las rectas del camino
   let rows = 0;
-  for (let tries = 0; tries < 300 && rows < 5; tries++) {
+  for (let tries = 0; tries < 300 + rowsMax * 60 && rows < rowsMax; tries++) {
     const s0 = rng() * track.length, gs = wrapGap(s0 - track.START_S), len = 90 + rng() * 80;
-    if (gs > -150 && gs < 480) continue;
+    if ((gs > -150 && gs < 480) || !okS(s0) || !okS(s0 + len)) continue;
     let straight = true;
     for (let s = s0; s < s0 + len && straight; s += 10) if (Math.abs(track.at(s, fr).k) > 1 / 350) straight = false;
     if (!straight) continue;
@@ -4096,6 +4523,31 @@ function campoPre() {
   return { extra: { alamo: planAlamos(rng, houses) }, blocked: (x, z) => fieldAt(x, z) > 0 || houses.some(H => (H.x - x) ** 2 + (H.z - z) ** 2 < 225) };
 }
 // después de la vegetación y la decoración: viñas, cercos, postes, animales y, al final, las matas junto al camino
+// cómo son las matas de cada lugar (para nearPlants): pasto seco y flores amarillas del valle central, coirón donde
+// la nieve deja ver el suelo y lupinos, pasto verde y helechos en el sur
+function pickCampo(P) {
+  const dry = new THREE.Color(P.dry), dry2 = new THREE.Color(P.dry2), green = new THREE.Color(P.green);
+  return (x, z, h, d, r, c) => {
+    if (fbm(x / 35 + 4, z / 35, 2) > 0.28 && r() < 0.4) { c.setScalar(0.85 + r() * 0.15); return [5, 0.35 + r() * 0.3]; }   // manchones de flores amarillas
+    c.copy(dry).lerp(dry2, r() * 0.7).lerp(green, clamp(smooth(0.05, 0.45, fbm(x / 90, z / 90, 3)) * 0.8, 0, 0.8)).multiplyScalar(1.0 + r() * 0.25);
+    return [r() < 0.2 ? 1 : 0, 0.3 + r() * 0.4];
+  };
+}
+function pickCoiron(P) {
+  return (x, z, h, d, r, c) => {
+    if (snowCover(x, z, h, 0.92, undefined, undefined, P) > 0.3 || r() < 0.4) return null;
+    c.setHex(0xcfc29a).multiplyScalar(0.8 + r() * 0.25); return [6, 0.35 + r() * 0.4];
+  };
+}
+function pickSur(P) {
+  const green = new THREE.Color(P.green);
+  return (x, z, h, d, r, c) => {
+    const near = d < ROAD_HALF + FLAT_EXTRA + 9;
+    if (near && fbm(x / 26 + 9, z / 26, 2) > 0.05 && r() < 0.85) { const t = r(); c.setScalar(0.9 + r() * 0.15); return [t < 0.5 ? 2 : t < 0.82 ? 3 : 4, 0.9 + r() * 0.55]; }
+    if (!near && r() < 0.3) { c.setScalar(0.75 + r() * 0.2); return [7, 0.8 + r() * 0.7]; }
+    c.copy(green).multiplyScalar(1.15 + r() * 0.3); return [1, 0.4 + r() * 0.45];
+  };
+}
 function campoPost() {
   const rng = mulberry32(777 + MAP_IDS.indexOf(MAP_ID)), P = MAP.pal;
   const dry = new THREE.Color(P.dry), dry2 = new THREE.Color(P.dry2), green = new THREE.Color(P.green);
@@ -4106,27 +4558,13 @@ function campoPost() {
     for (const H of CAMPO.houses) { fence(H.s - 40, H.s + 40, H.side, ROAD_HALF + 9, H.s); yard(H); }
     powerLine(-1, ROAD_HALF + 13, 42, false);
     delineators(25);
-    nearPlants((x, z, h, d, r, c) => {
-      if (fbm(x / 35 + 4, z / 35, 2) > 0.28 && r() < 0.4) { c.setScalar(0.85 + r() * 0.15); return [5, 0.35 + r() * 0.3]; }   // manchones de flores amarillas
-      c.copy(dry).lerp(dry2, r() * 0.7).lerp(green, clamp(smooth(0.05, 0.45, fbm(x / 90, z / 90, 3)) * 0.8, 0, 0.8)).multiplyScalar(1.0 + r() * 0.25);
-      return [r() < 0.2 ? 1 : 0, 0.3 + r() * 0.4];
-    });
+    nearPlants(pickCampo(P));
   } else if (MAP_ID === 'caracoles') {
-    // coirón: champas pajizas donde la nieve deja ver el suelo
-    nearPlants((x, z, h, d, r, c) => {
-      if (snowCover(x, z, h, 0.92) > 0.3 || r() < 0.4) return null;
-      c.setHex(0xcfc29a).multiplyScalar(0.8 + r() * 0.25); return [6, 0.35 + r() * 0.4];
-    }, 0.8);
+    nearPlants(pickCoiron(P), 0.8);
   } else if (MAP_ID === 'austral') {
     for (const H of CAMPO.houses) { fence(H.s - 34, H.s + 34, H.side, ROAD_HALF + 8, H.s); yard(H); }
     powerLine(1, ROAD_HALF + 7, 38, true);
-    // lupinos en manchones a la orilla del ripio, pasto verde y helechos más adentro
-    nearPlants((x, z, h, d, r, c) => {
-      const near = d < ROAD_HALF + FLAT_EXTRA + 9;
-      if (near && fbm(x / 26 + 9, z / 26, 2) > 0.05 && r() < 0.85) { const t = r(); c.setScalar(0.9 + r() * 0.15); return [t < 0.5 ? 2 : t < 0.82 ? 3 : 4, 0.9 + r() * 0.55]; }
-      if (!near && r() < 0.3) { c.setScalar(0.75 + r() * 0.2); return [7, 0.8 + r() * 0.7]; }
-      c.copy(green).multiplyScalar(1.15 + r() * 0.3); return [1, 0.4 + r() * 0.45];
-    });
+    nearPlants(pickSur(P));
   } else if (MAP.mode === '4x4' && MAP_ID !== 'x4_dunas') {
     const wet = MAP_ID !== 'x4_rocas';
     nearPlants((x, z, h, d, r, c) => {
@@ -4135,7 +4573,247 @@ function campoPost() {
       c.copy(wet ? green : dry).lerp(dry2, r() * 0.4).multiplyScalar(1.6 + r() * 0.3); return [wet ? 1 : 0, 0.35 + r() * 0.45];
     }, 0.7);
   }
+  // un auto o una camioneta estacionados al costado de cada casa, mirando al camino
+  for (const H of CAMPO.houses) {
+    const c = Math.cos(H.rot), s = Math.sin(H.rot), lx = (H.w || 12) / 2 + 3.2, lz = 2.5;
+    parkCar(H.x + lx * c + lz * s, H.z - lx * s + lz * c, H.rot + (rng() - 0.5) * 0.4, rng() < 0.6 ? 'pickup' : 'car');
+  }
   flushPosts(); flushCows();
+}
+
+// =====================================================================
+// Mundo abierto: decoración de cada zona, vegetación a lo largo de toda la ruta y mallas cortadas por tramos
+// =====================================================================
+// tramo de la ruta de una zona: [comienzo, largo] en metros
+const zoneRange = z => { const i = WZ.indexOf(z), a = WROUTE.zoneS[i], b = i + 1 < WZ.length ? WROUTE.zoneS[i + 1] : track.length; return [a, b - a]; };
+const inZones = (...zs) => s => zs.includes(WROUTE.zoneAt(s));
+// vegetación de cada zona: [tipo, cantidad cada 10 m por lado, distancia mínima y máxima al camino]
+const WVEG = {
+  santiago: [],
+  aconcagua: [['espino', 0.3, 12, 150], ['quisco', 0.16, 18, 170], ['bush', 0.55, 10, 120], ['rock', 0.2, 11, 150], ['palm', 0.05, 14, 90], ['espino', 0.12, 150, 600], ['bush', 0.2, 120, 500]],
+  caracoles: [['rock', 0.9, 8, 160], ['llareta', 0.4, 7, 70], ['crag', 0.18, 30, 320], ['bush', 0.15, 10, 100]],
+  portillo: [['rock', 0.7, 8, 160], ['llareta', 0.35, 7, 70], ['crag', 0.2, 30, 320]],
+  andes: [['rock', 0.55, 8, 150], ['crag', 0.28, 30, 420], ['llareta', 0.2, 7, 60], ['bush', 0.1, 10, 80]],
+  austral: [['conifer', 2.0, 8, 240], ['nalca', 0.6, 9, 24], ['bush', 0.8, 10, 120], ['snag', 0.15, 14, 200], ['rock', 0.1, 11, 120], ['conifer', 0.6, 240, 700]],
+  central: [['bush', 0.3, 10, 150], ['espino', 0.1, 14, 200], ['tree', 0.12, 16, 160], ['rock', 0.05, 11, 120], ['palm', 0.02, 16, 100]],
+};
+function worldVeg(rng, extra) {
+  const out = extra, q = {}, fr = {}, SL = { crag: [0.42, 4], quisco: [0.06, 0.85], rock: [0, 0.9] };
+  for (let s = 0; s < track.length; s += 10) {
+    for (const [type, per10, d0, d1] of WVEG[WROUTE.zoneAt(s)]) {
+      for (let cnt = per10 * 2; cnt > 0; cnt--) {
+        if (cnt < 1 && rng() > cnt) break;
+        const side = rng() < 0.5 ? 1 : -1, d = d0 + rng() * (d1 - d0);
+        track.at(s + rng() * 10, fr);
+        const x = fr.x + fr.tz * side * d, z = fr.z - fr.tx * side * d;
+        if (track.query(x, z, q) && q.dist < d0 - 0.5) continue;
+        const h = groundAt(x, z, q); if (waterAt(x, z) > h - 0.3 || FIELDS.length && fieldAt(x, z) > 0) continue;
+        const slope = Math.hypot(groundAt(x + 2, z, q) - h, groundAt(x, z + 2, q) - h) / 2, lim = SL[type] || [0, 0.6];
+        if (slope < lim[0] || slope > lim[1] || nearObstacle(x, z, 2)) continue;
+        (out[type] || (out[type] = [])).push([x, h, z, rng(), rng(), rng()]);
+      }
+    }
+  }
+  return out;
+}
+// ---- Santiago: cuadras de edificios con locales a la calle, árboles, faroles, calles que cruzan y sus íconos ----
+function worldCity(rng, extra) {
+  const [s0, len] = zoneRange('santiago'), S = newBuildings(), fronts = [], q = {};
+  const kinds = ['moderno', 'vidrio', 'clasico', 'ladrillo', 'moderno', 'clasico', 'amarillo'];
+  const asphalt = new THREE.MeshStandardMaterial({ map: roadTex('carretera', false), roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 });
+  extra.tree = extra.tree || [];
+  for (const side of [1, -1]) {
+    let s = s0 + 80;
+    while (s < s0 + len - 160) {
+      const blockLen = 70 + rng() * 55;
+      // una cuadra: edificios pegados uno al lado del otro, de 3 a 18 pisos (y alguna torre de vidrio)
+      for (let b = s; b < s + blockLen - 12;) {
+        const w = 12 + rng() * 14, d = 16 + rng() * 14, off = ROAD_HALF + FLAT_EXTRA + 3 + d / 2, f = roadFrame(b + w / 2, side, off);
+        if (side > 0 && Math.abs(b + w / 2 - (s0 + len * 0.5)) < 72) { b += w + 0.3; continue; }   // ahí va La Moneda
+        const rot = Math.atan2(-f.tz, f.tx), tower = rng() < 0.12, kind = tower ? 'vidrio' : kinds[(rng() * kinds.length) | 0];
+        const floors = tower ? 18 + rng() * 22 : 3 + rng() * 12, gy = minGround(f.x, f.z, rot, w, d) - 0.5;
+        pushBox(S, kind, f.x, f.z, rot, w, d, gy, gy + floors * 3.4);
+        if (rng() < 0.85) fronts.push({ x: f.x, z: f.z, rot, w, d, face: side > 0 ? 1 : -1 });
+        for (const k of [-0.3, 0.3]) addObstacle(f.x + f.tx * k * w, f.z + f.tz * k * w, Math.min(w, d) * 0.45, null, 'concrete');
+        b += w + 0.3;
+      }
+      // la calle que cruza: asfalto hacia afuera, autos estacionados y semáforo en la esquina
+      const sc = s + blockLen + 6, fc = roadFrame(sc, side, ROAD_HALF + FLAT_EXTRA + 40), rotC = Math.atan2(fc.tx, fc.tz);
+      groundPatch(fc.x, fc.z, 9, 76, asphalt, rotC + Math.PI / 2, 0.05, 12);
+      for (let k = 0; k < 3; k++) { const p = roadFrame(sc + 4.2, side, ROAD_HALF + FLAT_EXTRA + 14 + k * 6); parkCar(p.x, p.z, Math.atan2(-side * p.tz, side * p.tx), rng() < 0.15 ? 'taxi' : 'car'); }
+      s += blockLen + 12;
+    }
+    // plátanos y faroles en la vereda
+    for (let t = s0 + 30; t < s0 + len - 30; t += 13) {
+      const f = roadFrame(t, side, ROAD_HALF + FLAT_EXTRA - 0.4);
+      if (nearObstacle(f.x, f.z, 1)) continue;
+      extra.tree.push([f.x, f.y, f.z, rng(), rng(), rng()]);
+    }
+    for (let t = s0 + 20 + (side > 0 ? 0 : 16); t < s0 + len - 20; t += 32) { const f = roadFrame(t, side, ROAD_HALF + 0.9); POSTS.lamp.push([f.x, f.y, f.z, Math.atan2(-side * f.tz, side * f.tx), 0]); addObstacle(f.x, f.z, 0.15, null, 'metal'); }
+  }
+  flushBuildings(S);
+  shopFronts(fronts, rng);
+  // íconos: la Torre Entel, La Moneda, la Gran Torre Santiago y la Virgen en la cumbre del San Cristóbal
+  const fe = roadFrame(s0 + len * 0.34, -1, ROAD_HALF + 60), ge = groundAt(fe.x, fe.z, q), gm = new THREE.MeshStandardMaterial({ color: 0xc9c8c2, roughness: 0.7 });
+  const entel = mergeGeometries([new THREE.CylinderGeometry(6, 8, 100, 16).translate(0, 50, 0), new THREE.CylinderGeometry(11, 11, 14, 16).translate(0, 104, 0), new THREE.CylinderGeometry(8, 9, 6, 16).translate(0, 114, 0), new THREE.CylinderGeometry(0.6, 1.4, 26, 6).translate(0, 130, 0)]);
+  const em = new THREE.Mesh(entel, gm); em.position.set(fe.x, ge, fe.z); em.castShadow = true; world.add(em); addObstacle(fe.x, fe.z, 9, null, 'concrete');
+  const fm = roadFrame(s0 + len * 0.5, 1, ROAD_HALF + FLAT_EXTRA + 3 + 30), rm = Math.atan2(-fm.tz, fm.tx), S2 = newBuildings(), gy2 = minGround(fm.x, fm.z, rm, 110, 60) - 0.3;
+  pushBox(S2, 'moneda', fm.x, fm.z, rm, 110, 60, gy2, gy2 + 13.6); flushBuildings(S2, 0x6d6a64);
+  chileanFlag(roadFrame(s0 + len * 0.5, 1, ROAD_HALF + FLAT_EXTRA + 2).x, groundAt(fm.x, fm.z, q), roadFrame(s0 + len * 0.5, 1, ROAD_HALF + FLAT_EXTRA + 2).z, 14, 1.6);
+  for (const k of [-40, 0, 40]) addObstacle(fm.x + fm.tx * k, fm.z + fm.tz * k, 22, null, 'concrete');
+  const gt = new THREE.Mesh(mergeGeometries([new THREE.BoxGeometry(46, 260, 46).translate(0, 130, 0), new THREE.BoxGeometry(38, 30, 38).translate(0, 275, 0), new THREE.BoxGeometry(26, 14, 26).translate(0, 297, 0)]), facadeMat('vidrio'));
+  const gx = 650, gz = -700; gt.position.set(gx, groundAt(gx, gz, q) - 1, gz); gt.rotation.y = 0.3; gt.castShadow = true; world.add(gt);
+  const vx = -700, vz = -760, vy = groundAt(vx, vz, q), vm = new THREE.MeshStandardMaterial({ color: 0xf2f0ea, roughness: 0.5, emissive: 0xfff2d8, emissiveIntensity: 0 });
+  CITY_EMI.push({ mat: vm, k: 1.4 });
+  const virgen = new THREE.Mesh(mergeGeometries([new THREE.CylinderGeometry(3, 4, 10, 10).translate(0, 5, 0), new THREE.CylinderGeometry(1.2, 2.6, 12, 10).translate(0, 16, 0), new THREE.SphereGeometry(1.2, 10, 8).translate(0, 23, 0)]), vm);
+  virgen.position.set(vx, vy - 0.5, vz); world.add(virgen);
+  // plaza con el monumento a caballo, al oriente
+  const fp = roadFrame(s0 + len - 90, -1, ROAD_HALF + FLAT_EXTRA + 26); equestrian(fp.x, groundAt(fp.x, fp.z, q), fp.z, Math.atan2(fp.tx, fp.tz), 1.4);
+}
+// ---- Portillo y la alta cordillera: el hotel junto a la Laguna del Inca, autos en su estacionamiento y el Cristo Redentor ----
+function worldAndes(rng) {
+  const [sc, lc] = zoneRange('caracoles'), [sa, la] = zoneRange('andes');
+  snowPoles(sc, zoneRange('austral')[0] - sc);
+  curveSigns(sc, lc);
+  snowSheds(260, 2, sa, la);
+  const hx = 3180, hz = -4345, rot = 0.25;
+  hotelPortillo(hx, hz, rot, 3080, -4420, -18, -70);
+  for (let k = 0; k < 9; k++) { const a = -32 + k * 8, b = 16; parkCar(hx + a * Math.cos(rot) + b * Math.sin(rot), hz - a * Math.sin(rot) + b * Math.cos(rot), rot + Math.PI / 2 + (rng() - 0.5) * 0.2, rng() < 0.4 ? 'pickup' : 'car'); }
+  // el Cristo Redentor de los Andes, en el paso, mirando al camino desde un cerrito
+  const sp = WROUTE.ctrlS[WORLD_CTRL.findIndex(p => p[0] === 4440 && p[1] === -3930)], f = roadFrame(sp, 1, ROAD_HALF + 46), y = groundAt(f.x, f.z, {});
+  const bronze = new THREE.MeshStandardMaterial({ color: 0x4f5a4a, metalness: 0.6, roughness: 0.5 }), stone = new THREE.MeshStandardMaterial({ color: 0x8f8a80, roughness: 0.95 });
+  const ped = new THREE.Mesh(mergeGeometries([new THREE.CylinderGeometry(5, 6.5, 4, 8).translate(0, 2, 0), new THREE.CylinderGeometry(2.2, 3.2, 9, 8).translate(0, 8.5, 0)]), stone);
+  const cristo = new THREE.Mesh(mergeGeometries([new THREE.CylinderGeometry(0.9, 1.5, 6.2, 10).translate(0, 16.1, 0), new THREE.SphereGeometry(0.62, 10, 8).translate(0, 19.8, 0), new THREE.BoxGeometry(5.2, 0.42, 0.42).translate(0, 18.6, 0), new THREE.BoxGeometry(0.18, 3.2, 0.18).translate(-2.2, 18.9, 0.3), new THREE.BoxGeometry(1.4, 0.16, 0.16).translate(-2.2, 19.6, 0.3)]), bronze);
+  for (const m of [ped, cristo]) { m.position.set(f.x, y - 0.5, f.z); m.rotation.y = Math.atan2(-f.tz, f.tx); m.castShadow = true; world.add(m); }
+  addObstacle(f.x, f.z, 6.5, null, 'concrete');
+  const b = board(3.6, 1.0, woodSignTex('CRISTO REDENTOR'), 1.3, 2), fb = roadFrame(sp - 40, 1, RAIL_D + 2.4); b.position.set(fb.x, fb.y, fb.z); faceTraffic(b, fb); world.add(b);
+}
+// ---- el sur: casas con estufa, las Capillas de Mármol en el lago General Carrera y el letrero ----
+function worldSur(rng) {
+  const [s0, len] = zoneRange('austral');
+  woodBridges();
+  const L = WLAKES[1];
+  capillasMarmol(L.x - 220, L.z - L.r + 60, 60, 4, L.y, rng);
+  let k = 0;
+  for (let t = s0 + 300; t < s0 + len - 200 && k < 6; t += (len - 500) / 6) {
+    const side = k % 2 ? 1 : -1, f = roadFrame(t, side, ROAD_HALF + 26 + rng() * 12);
+    k++; if (waterAt(f.x, f.z) > f.y - 0.5 || wStreamDist(f.x, f.z) < 26) continue;
+    casaSur(f, t, side, k);
+  }
+  { const f = roadFrame(s0 + len * 0.45, -1, RAIL_D + 2); const b = board(3.2, 0.9, woodSignTex('CAPILLAS DE MÁRMOL'), 1.2, 2); b.position.set(f.x, f.y, f.z); faceTraffic(b, f); world.add(b); addObstacle(f.x, f.z, 0.6, b); }
+}
+// ---- Valle Central: la plaza de peaje, letreros camineros y puestos de fruta ----
+function worldCentral(rng) {
+  const [s0, len] = zoneRange('central');
+  // peaje: techo sobre la calzada, casetas a los costados y la isla central con su letrero
+  const sp = s0 + len * 0.42, f = roadFrame(sp, 1, 0), g = new THREE.Group(), conc = M.concrete, red = new THREE.MeshStandardMaterial({ color: 0xc8231b, roughness: 0.5 });
+  g.position.set(f.x, f.y, f.z); g.rotation.y = f.heading;
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+  add(new THREE.BoxGeometry(2 * ROAD_HALF + 12, 0.6, 9), new THREE.MeshStandardMaterial({ color: 0xe9e9e4, roughness: 0.6 }), 0, 6.2, 0);
+  add(new THREE.BoxGeometry(2 * ROAD_HALF + 12.2, 0.9, 0.3), red, 0, 6.6, 4.6); add(new THREE.BoxGeometry(2 * ROAD_HALF + 12.2, 0.9, 0.3), red, 0, 6.6, -4.6);
+  for (const x of [-(ROAD_HALF + 3.2), ROAD_HALF + 3.2]) { add(new THREE.BoxGeometry(2.4, 2.6, 4), conc, x, 1.3, 0); add(new THREE.BoxGeometry(2.2, 1.0, 3.8), CM.glassDark, x, 1.9, 0); for (const z of [-4, 4]) add(new THREE.BoxGeometry(0.35, 6, 0.35), M.metal, x, 3, z); }
+  const sign = canvasTex(1024, 128, (c, w, h) => { c.fillStyle = '#0b6b46'; c.fillRect(0, 0, w, h); c.fillStyle = '#f2f4f2'; c.font = `800 84px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('PEAJE · RUTA 5', w / 2, h / 2 + 4); });
+  const sm = new THREE.MeshStandardMaterial({ map: sign, roughness: 0.5, emissive: 0xffffff, emissiveMap: sign, emissiveIntensity: 0.05 });
+  for (const z of [4.8, -4.8]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.0), sm); p.position.set(0, 6.6, z); if (z < 0) p.rotation.y = Math.PI; g.add(p); }
+  world.add(g);
+  for (const s of [1, -1]) { const p = roadFrame(sp, s, ROAD_HALF + 3.2); addObstacle(p.x, p.z, 2.0, null, 'concrete'); }
+  // letreros camineros (avisos grandes junto a la ruta)
+  const ads = [['FRUTILLAS DE LAMPA', '#c8231b', '#ffffff'], ['VINOS DEL VALLE', '#5a1830', '#f2d8a6'], ['EMPANADAS · 3 KM', '#f2c21b', '#1a1a1a'], ['NEUMÁTICOS ANDES', '#1a2a4a', '#f2f2f2']];
+  ads.forEach(([txt, bg, fg], k) => {
+    const s = s0 + len * (0.15 + k * 0.2), side = k % 2 ? 1 : -1, p = roadFrame(s, side, ROAD_HALF + 18);
+    const t = canvasTex(1024, 384, (c, w, h) => { c.fillStyle = bg; c.fillRect(0, 0, w, h); c.strokeStyle = fg; c.lineWidth = 14; c.strokeRect(10, 10, w - 20, h - 20); c.fillStyle = fg; c.font = `800 ${txt.length > 16 ? 96 : 120}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, w / 2, h / 2 + 6); });
+    const b = board(9, 3.4, t, 4.6, 2); b.position.set(p.x, p.y, p.z); faceTraffic(b, p); if (side > 0) b.rotation.y += 0.35; else b.rotation.y -= 0.35; world.add(b); addObstacle(p.x, p.z, 1.2, null, 'metal');
+  });
+  // puestos de empanadas y fruta, con clientes estacionados
+  for (const [z, frac] of [['central', 0.62], ['aconcagua', 0.5]]) {
+    const [a, l] = zoneRange(z), s = a + l * frac, fe = roadFrame(s, -1, ROAD_HALF + 13);
+    puestoEmpanadas({ ...fe, s, side: -1, off: ROAD_HALF + 13 });
+    for (const k of [-15, 11]) { const p = roadFrame(s + k, -1, ROAD_HALF + 8.6); parkCar(p.x, p.z, p.heading + (k < 0 ? 0 : Math.PI), k < 0 ? 'pickup' : 'car'); }
+  }
+}
+// letreros de destino al entrar a cada zona
+function worldGuideSigns() {
+  const next = { santiago: [['Los Andes', '18'], ['Portillo', '28']], aconcagua: [['Los Andes', '6'], ['Portillo', '12']], caracoles: [['Portillo', '3'], ['Paso Libertadores', '9']], portillo: [['Laguna del Inca', '1'], ['Cristo Redentor', '4']],
+    andes: [['Cristo Redentor', '1'], ['Lago Gral. Carrera', '12']], austral: [['Pto. Río Tranquilo', '8'], ['Coyhaique', '224']], central: [['Santiago', '12'], ['Rancagua', '64']] };
+  for (const z of WZ) {
+    const s = WROUTE.zoneS[WZ.indexOf(z)] + 60, f = roadFrame(s, -1, RAIL_D + 2.4);
+    const b = board(4.2, 2.1, guideSignTex(next[z], z === 'central' ? 'R-5' : z === 'austral' ? 'R-7' : z === 'santiago' ? null : 'CH-60'), 2.2, 2); b.position.set(f.x, f.y, f.z); faceTraffic(b, f); world.add(b);
+    addObstacle(f.x, f.z, 1.2, null, 'metal');
+  }
+}
+function worldDecor() {
+  const rng = mulberry32(2026), extra = {};
+  worldCity(rng, extra);
+  // campo: casas de adobe y álamos en el valle del Aconcagua y en el Valle Central
+  const okCampo = inZones('aconcagua', 'central'), houses = planHouses(9, rng, okCampo);
+  for (const H of houses) { casaAdobe(H.x, H.y, H.z, H.rot); CAMPO.houses.push(H); }
+  extra.alamo = planAlamos(rng, houses, okCampo, 10);
+  buildWater();
+  worldVeg(rng, extra);
+  buildVegetation({ extra, blocked: (x, z) => fieldAt(x, z) > 0 });
+  buildVines();
+  buildSigns(); worldGuideSigns();
+  worldAndes(rng); worldSur(rng); worldCentral(rng);
+  // animitas en el exterior de las curvas fuertes (no en la ciudad)
+  let cnt = 0, lastS = -1e9;
+  for (let i = 0; i < track.n && cnt < 14; i++) {
+    if (Math.abs(track.K[i]) > 1 / 100 && i * track.ds - lastS > 900 && !track.bridge[i] && WROUTE.zoneAt(i * track.ds) !== 'santiago') {
+      const side = track.K[i] > 0 ? -1 : 1, f = roadFrame(i * track.ds + 12, side, RAIL_D + 2.2); animita({ ...f, side }); lastS = i * track.ds; cnt++;
+    }
+  }
+  buildCondors();
+  for (const W of WATERS) if (W.type === 'circle') { const lx = W.x, lz = W.z - W.r - 14; const b = board(3.2, 1.0, woodSignTex(W.name.toUpperCase()), 1.2, 2); b.position.set(lx, groundAt(lx, lz, {}), lz); world.add(b); }
+  // cercos, vacas y autos en las casas; tendidos eléctricos, delineadores y matas junto al camino
+  for (const H of CAMPO.houses) {
+    const sur = WROUTE.zoneAt(H.s) === 'austral';
+    fence(H.s - 38, H.s + 38, H.side, ROAD_HALF + (sur ? 8 : 9), H.s);
+    const f = roadFrame(H.s, H.side, (H.off || ROAD_HALF + 28) + 18); herd(f.x, f.z, 2 + (rng() * 3 | 0), rng);
+    const c = Math.cos(H.rot), s = Math.sin(H.rot), lx = (H.w || 12) / 2 + 3.2, lz = 2.5;
+    parkCar(H.x + lx * c + lz * s, H.z - lx * s + lz * c, H.rot + (rng() - 0.5) * 0.4, rng() < 0.6 ? 'pickup' : 'car');
+  }
+  for (const z of ['aconcagua', 'central']) { const [a, l] = zoneRange(z); powerLine(-1, ROAD_HALF + 13, 42, false, a, l); }
+  { const [a, l] = zoneRange('austral'); powerLine(1, ROAD_HALF + 7, 38, true, a, l); }
+  delineators(25, okCampo);
+  const picks = {}; for (const z of WZ) picks[z] = z === 'santiago' ? null : z === 'austral' ? pickSur(WR[z].pal) : ['caracoles', 'portillo', 'andes'].includes(z) ? pickCoiron(WR[z].pal) : pickCampo(WR[z].pal);
+  nearPlants((x, z, h, d, r, c, s) => { const p = picks[WROUTE.zoneAt(s)]; return p ? p(x, z, h, d, r, c) : null; }, 0.7);
+  flushPosts(); flushCows(); flushParked();
+  chunkWorld();
+}
+// las mallas largas (calzada, bermas, barandas, edificios fusionados…) se cortan en trozos de 400 m: así la cámara
+// descarta lo que no ve, y los trozos lejanos se ocultan
+const CHUNKS = [];
+function chunkWorld() {
+  const CELL = 400, big = [];
+  world.traverse(o => {
+    if (!o.isMesh || o.isInstancedMesh || !o.geometry || !o.geometry.index || o.parent !== world) return;
+    const g = o.geometry; if (!g.boundingSphere) g.computeBoundingSphere();
+    o.updateMatrix(); if (g.boundingSphere.radius > 500 && o.matrix.equals(new THREE.Matrix4())) big.push(o);
+  });
+  for (const o of big) {
+    const g = o.geometry, idx = g.index.array, pos = g.attributes.position.array, groups = g.groups.length ? g.groups : [{ start: 0, count: idx.length, materialIndex: 0 }];
+    const cells = new Map();
+    for (const gr of groups) for (let t = gr.start; t < gr.start + gr.count; t += 3) {
+      const a = idx[t], b = idx[t + 1], c = idx[t + 2];
+      const key = Math.floor((pos[a * 3] + pos[b * 3] + pos[c * 3]) / 3 / CELL) + ',' + Math.floor((pos[a * 3 + 2] + pos[b * 3 + 2] + pos[c * 3 + 2]) / 3 / CELL);
+      let m = cells.get(key); if (!m) cells.set(key, m = new Map());
+      let l = m.get(gr.materialIndex); if (!l) m.set(gr.materialIndex, l = []);
+      l.push(a, b, c);
+    }
+    for (const m of cells.values()) {
+      const remap = new Map(), ix = [], ng = new THREE.BufferGeometry();
+      let start = 0;
+      for (const [mi, l] of m) { for (const v of l) { let r = remap.get(v); if (r === undefined) { r = remap.size; remap.set(v, r); } ix.push(r); } ng.addGroup(start, l.length, mi); start += l.length; }
+      for (const [name, at] of Object.entries(g.attributes)) {
+        const isz = at.itemSize, arr = new Float32Array(remap.size * isz);
+        for (const [v, r] of remap) for (let c = 0; c < isz; c++) arr[r * isz + c] = at.array[v * isz + c];
+        ng.setAttribute(name, new THREE.BufferAttribute(arr, isz));
+      }
+      ng.setIndex(ix); ng.computeBoundingSphere();
+      const mesh = new THREE.Mesh(ng, o.material); mesh.castShadow = o.castShadow; mesh.receiveShadow = o.receiveShadow; mesh.renderOrder = o.renderOrder;
+      world.add(mesh); CHUNKS.push({ mesh, x: ng.boundingSphere.center.x, z: ng.boundingSphere.center.z, r: ng.boundingSphere.radius });
+    }
+    world.remove(o); g.dispose();
+  }
 }
 
 // =====================================================================
@@ -4813,31 +5491,30 @@ function setCockpit(m, on) {
   }
 }
 // de lejos se ocultan interior, molduras y calipers (no se notan y ahorran dibujo). Rivales y tránsito tienen además
-// copias fusionadas del auto (un dibujo por material en vez de 20–46 piezas sueltas), que es lo que más carga al
-// procesador: nivel 1 (rivales a más de ~16 m), la carrocería con su interior y las ruedas de verdad, que giran y
-// doblan; nivel 2 (más de ~55 m), todo junto, ruedas incluidas. En la largada los cinco rivales están cerca
+// versiones más livianas, que es lo que más alivia al procesador y a la gráfica: nivel 1 (rivales a más de ~16 m),
+// la carrocería fusionada con su interior (un dibujo por material) y las ruedas de verdad, que giran y doblan;
+// nivel 2 (rivales a más de ~60 m, tránsito a más de ~30 m), la carrocería simplificada en la malla compartida de
+// su tipo (ver pushShell). Devuelve el nivel: con 2, quien llama agrega el auto a esa malla
 function updateCarLOD(m, allowFar = false) {
-  if (!m) return;
+  if (!m) return 0;
   const d2 = m.root.position.distanceToSquared(camera.position), lv0 = m.lv || 0;
   let lv = 0;
   if (allowFar) {
-    lv = d2 > (lv0 === 2 ? 52 : 58) ** 2 ? 2 : 0;
+    const far = m.simple ? (lv0 === 2 ? 26 : 30) : (lv0 === 2 ? 56 : 62);
+    lv = d2 > far * far ? 2 : 0;
     // recién chocado se ve completo un rato: la copia se rehace después, con las abolladuras, vidrios y piezas sueltas
     if (!lv && !m.simple && d2 > (lv0 === 1 ? 14 : 18) ** 2 && !(m.hitT && performance.now() - m.hitT < 1500)) lv = 1;
   }
   const det = lv === 0 && d2 < 75 * 75;
   if (m.lodNear !== det) { m.lodNear = det; for (const o of m.lod) o.visible = det; }
   if (lv !== lv0) {
-    if (lv === 2 && (!m.far || m.farDirty)) buildFarLOD(m, false);
     if (lv === 1 && (!m.mid || m.midDirty)) buildFarLOD(m, true);
     m.lv = lv; m.body.visible = lv === 0;
-    if (m.far) m.far.visible = lv === 2;
     if (m.mid) m.mid.visible = lv === 1;
     for (const w of m.wheels) { if (lv === 2) { w.wasVis = w.pivot.visible; w.pivot.visible = false; } else if (lv0 === 2) w.pivot.visible = w.wasVis ?? true; }
-  } else if (lv === 2 && m.farDirty && performance.now() - m.farT > 400) { buildFarLOD(m, false); m.far.visible = true; }
-  else if (lv === 1 && m.midDirty) { buildFarLOD(m, true); m.mid.visible = true; }
-  const cp = lv === 2 ? m.far : lv === 1 ? m.mid : null;
-  if (cp) { cp.position.copy(m.body.position); cp.quaternion.copy(m.body.quaternion); }
+  } else if (lv === 1 && m.midDirty) { buildFarLOD(m, true); m.mid.visible = true; }
+  if (lv === 1) { m.mid.position.copy(m.body.position); m.mid.quaternion.copy(m.body.quaternion); }
+  return lv;
 }
 const _farInv = new THREE.Matrix4(), _farM = new THREE.Matrix4();
 // mid: copia de nivel 1 (con interior y sin ruedas); si no, la de nivel 2
@@ -6194,6 +6871,167 @@ function simplifyModel(model) {
   for (const { mat, kind, geos } of lightGroups.values()) { const mesh = new THREE.Mesh(mergeList(geos), mat); body.add(mesh); model.lights.push({ mesh, mat, kind, broken: false }); }
   model.lod = []; model.parts = []; model.glass = []; model.simple = true;
 }
+// =====================================================================
+// Autos lejanos: la misma forma con pocas secciones (unos 700 triángulos en vez de 18.000–32.000), con los colores
+// por vértice, en una malla instanciada por tipo de auto: todos los autos lejanos de un tipo se dibujan de una vez.
+// aPaint marca lo que lleva la pintura de cada auto (color de la instancia) y aEmit los focos (se encienden de noche)
+// =====================================================================
+const SHELL_MAT = (() => {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.42, metalness: 0.2, envMapIntensity: 1.1 });
+  m.userData.uNight = { value: 0 };
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uNight = m.userData.uNight;
+    sh.vertexShader = 'attribute float aPaint;\nattribute float aEmit;\nvarying vec3 vEmit;\n' + sh.vertexShader.replace('#include <color_vertex>', `
+      vColor = color;
+      #ifdef USE_INSTANCING_COLOR
+        vColor = mix(color, color * instanceColor, aPaint);
+      #endif
+      vEmit = color * aEmit;`);
+    sh.fragmentShader = 'uniform float uNight;\nvarying vec3 vEmit;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += vEmit * uNight;');
+  };
+  m.customProgramCacheKey = () => 'carShell';
+  return m;
+})();
+// pieza simple (caja, cilindro) con su color, si lleva pintura y cuánto brilla de noche
+function shellPrim(g, hex, paint = 0, emit = 0) {
+  g = g.index ? g.toNonIndexed() : g;
+  const n = g.attributes.position.count, c = new THREE.Color(hex), col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('aPaint', new THREE.BufferAttribute(new Float32Array(n).fill(paint), 1));
+  g.setAttribute('aEmit', new THREE.BufferAttribute(new Float32Array(n).fill(emit), 1));
+  if (g.attributes.uv) g.deleteAttribute('uv');
+  return g;
+}
+// superficie hecha con loft (normales suaves); colorOf(grupo) → [color, pintura, brillo]
+function shellLoft(L, colorOf) {
+  const ig = new THREE.BufferGeometry(); ig.setAttribute('position', new THREE.Float32BufferAttribute(L.pos, 3)); ig.setIndex(L.groups.flat()); ig.computeVertexNormals();
+  const N = ig.attributes.normal.array, pos = [], nrm = [], col = [], pa = [], em = [], c = new THREE.Color();
+  L.groups.forEach((list, gi) => {
+    const [hex, p, e] = colorOf(gi); c.setHex(hex);
+    for (const v of list) { pos.push(L.pos[v * 3], L.pos[v * 3 + 1], L.pos[v * 3 + 2]); nrm.push(N[v * 3], N[v * 3 + 1], N[v * 3 + 2]); col.push(c.r, c.g, c.b); pa.push(p); em.push(e); }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setAttribute('aPaint', new THREE.Float32BufferAttribute(pa, 1)); g.setAttribute('aEmit', new THREE.Float32BufferAttribute(em, 1));
+  return g;
+}
+function carShellGeo(spec) {
+  const pr = profile(spec), P = pr.P, parts = [], GLASS = 0x0e1518;
+  // carrocería: 18 secciones con un anillo de 12 puntos (el mismo perfil y las mismas curvas que el auto completo)
+  const [lz0, lz1] = polyRangeZ(pr.lower), zs = [];
+  for (let s = 0; s < 18; s++) zs.push(lerp(lz0 + 0.004, lz1 - 0.004, s / 17));
+  const half = Array.from({ length: 13 }, () => [0, 0]), K = [0, 2, 4, 5, 8, 10, 12];
+  const lowIdx = i => (i <= 6 ? i : 12 - i);
+  const low = loft(zs, (z, ring) => {
+    const sp = polySpan(pr.lower, z) || [P.yb, P.yb + 0.05];
+    lowerHalf(bodyHW(spec, pr, z), sp[0], sp[1], half);
+    for (let i = 0; i < 7; i++) { ring[i][0] = half[K[i]][0]; ring[i][1] = half[K[i]][1]; }
+    for (let i = 1; i < 6; i++) { ring[6 + i][0] = -half[K[6 - i]][0]; ring[6 + i][1] = half[K[6 - i]][1]; }
+  }, 12, true, i => (lowIdx(i) >= 5 && lowIdx((i + 1) % 12) >= 5 ? 1 : 0), 2, 0);
+  parts.push(shellLoft(low, gi => (gi ? [0x1a1a1c, 0, 0] : [0xffffff, 1, 0])));
+  // cabina: techo, parabrisas, luneta y ventanas (10 secciones)
+  const gh = pr.gh, B0 = gh[0], B1 = gh[1], T1 = gh[2], T0 = gh[gh.length - 1];
+  const zWsTop = T1[0], zRoofR = T0[0], zA = y => lineZ(B1, T1, y), zC = y => lineZ(B0, T0, y);
+  const [cz0, cz1] = polyRangeZ(gh), czs = [];
+  for (let s = 0; s < 10; s++) czs.push(lerp(cz0 + 0.004, cz1 - 0.004, s / 9));
+  const cab = loft(czs, (z, ring) => {
+    const sp = polySpan(gh, z) || [P.belt, P.belt + 0.02];
+    const yt = sp[1], hwB = bodyHW(spec, pr, z) - 0.07, h = Math.max(yt - P.belt, 0.02), hwT = hwB - h * 0.16, rc = Math.min(0.09, h * 0.3);
+    const p = [[0, yt], [hwT - rc, yt], [hwT, yt - rc], [hwB, P.belt + 0.015], [hwB + 0.012, P.belt - 0.06]];
+    for (let i = 0; i < 4; i++) { ring[i][0] = -p[4 - i][0]; ring[i][1] = p[4 - i][1]; }
+    for (let i = 0; i < 5; i++) { ring[4 + i][0] = p[i][0]; ring[4 + i][1] = p[i][1]; }
+  }, 9, false, (i, cx, cy, cz) => {
+    const k = i < 4 ? 3 - i : i - 4;   // 0 techo · 1 borde del techo · 2 costado (ventanas) · 3 bajo la ventana
+    if (k <= 1) return cz > zWsTop + 0.02 || cz < zRoofR - 0.02 ? 2 : 1;
+    if (k === 2) return cz > zC(cy) + 0.05 && cz < zA(cy) - 0.05 ? 2 : 0;
+    return 0;
+  }, 3);
+  parts.push(shellLoft(cab, gi => (gi === 2 ? [GLASS, 0, 0] : gi === 1 && spec.roof ? [spec.roof, 0, 0] : [0xffffff, 1, 0])));
+  // focos y ruedas
+  const yF = P.hoodF - 0.1, yR = (pr.deckY || P.belt) - 0.14;
+  for (const s of [-1, 1]) {
+    const xf = s * bodyHW(spec, pr, pr.zFront - 0.2) * 0.66, xr = s * bodyHW(spec, pr, pr.zRear + 0.2) * 0.7;
+    parts.push(shellPrim(new THREE.BoxGeometry(0.34, 0.12, 0.08).translate(xf, yF, endZ(spec, pr, yF, xf, true) - 0.015), 0xf4f1e6, 0, 1.6));
+    parts.push(shellPrim(new THREE.BoxGeometry(0.3, 0.13, 0.08).translate(xr, yR, endZ(spec, pr, yR, xr, false) + 0.015), 0xb3150f, 0, 1.0));
+  }
+  const R = spec.R, tx = (spec.tw || 1.55) / 2;
+  for (const z of [pr.zF, pr.zR]) for (const s of [-1, 1]) {
+    parts.push(shellPrim(new THREE.CylinderGeometry(R, R, 0.22, 10, 1).rotateZ(Math.PI / 2).translate(s * tx, R, z), 0x161616));
+    parts.push(shellPrim(new THREE.CylinderGeometry(R * 0.58, R * 0.58, 0.23, 8, 1).rotateZ(Math.PI / 2).translate(s * tx, R, z), 0x9a9ea2));
+  }
+  return mergeGeometries(parts);
+}
+function bigShellGeo(kind) {
+  const parts = [], wheel = (x, z, R) => { parts.push(shellPrim(new THREE.CylinderGeometry(R, R, 0.34, 10, 1).rotateZ(Math.PI / 2).translate(x, R, z), 0x151515)); parts.push(shellPrim(new THREE.CylinderGeometry(R * 0.6, R * 0.6, 0.36, 8, 1).rotateZ(Math.PI / 2).translate(x, R, z), 0xbfc2c6)); };
+  if (kind === 'bus') {
+    // micro blanca con la franja roja, ventanas oscuras y parabrisas
+    parts.push(shellPrim(new THREE.BoxGeometry(2.55, 2.8, 12).translate(0, 1.82, 0), 0xffffff, 1));
+    parts.push(shellPrim(new THREE.BoxGeometry(2.58, 1.0, 11.3).translate(0, 2.35, -0.2), 0x1b2228));
+    parts.push(shellPrim(new THREE.BoxGeometry(2.58, 0.32, 11.9).translate(0, 1.0, 0), 0xd52b1e));
+    parts.push(shellPrim(new THREE.BoxGeometry(2.3, 1.3, 0.05).translate(0, 2.25, 6.01), 0x1b2228));
+    for (const s of [-1, 1]) { parts.push(shellPrim(new THREE.BoxGeometry(0.35, 0.16, 0.05).translate(s * 0.9, 0.85, 6.03), 0xf4f1e6, 0, 1.6)); parts.push(shellPrim(new THREE.BoxGeometry(0.22, 0.4, 0.05).translate(s * 1.0, 1.0, -6.03), 0xb3150f, 0, 1)); }
+    for (const s of [-1, 1]) { wheel(s * 1.02, 3.6, 0.5); wheel(s * 1.0, -2.6, 0.5); }
+  } else {
+    // camión: cabina con la pintura, parabrisas, chasis y contenedor
+    parts.push(shellPrim(new THREE.BoxGeometry(2.5, 2.7, 2.3).translate(0, 2.3, 6.4), 0xffffff, 1));
+    parts.push(shellPrim(new THREE.BoxGeometry(2.2, 1.0, 0.05).translate(0, 2.85, 7.57), 0x0e1518));
+    parts.push(shellPrim(new THREE.BoxGeometry(1.2, 0.35, 15).translate(0, 0.8, 0.2), 0x1a1a1a));
+    parts.push(shellPrim(new THREE.BoxGeometry(2.5, 2.7, 12.2).translate(0, 2.5, -1.4), 0x8a909a));
+    for (const s of [-1, 1]) { parts.push(shellPrim(new THREE.BoxGeometry(0.32, 0.18, 0.05).translate(s * 0.95, 1.2, 7.6), 0xf4f1e6, 0, 1.6)); parts.push(shellPrim(new THREE.BoxGeometry(0.24, 0.24, 0.05).translate(s * 1.05, 1.0, -7.53), 0xb3150f, 0, 1)); }
+    for (const s of [-1, 1]) for (const z of [6.3, 3.6, -4.6, -5.9]) wheel(s * 1.0, z, 0.52);
+  }
+  return mergeGeometries(parts);
+}
+const shellKey = spec => (spec.body === 'bus' || spec.body === 'truck' ? spec.body : spec.id + (spec.roof ? 'R' : ''));
+// una malla instanciada por tipo con los autos lejanos (se llena en cada cuadro); los estacionados van aparte (fijos)
+const SHELL_GEO = new Map(), SHELLS = new Map(), PARKED = [];
+function shellGeo(spec) {
+  const k = shellKey(spec);
+  let g = SHELL_GEO.get(k);
+  if (!g) { g = spec.body === 'bus' || spec.body === 'truck' ? bigShellGeo(spec.body) : carShellGeo(spec); SHELL_GEO.set(k, g); }
+  return g;
+}
+function shellMesh(spec) {
+  const k = shellKey(spec);
+  let S = SHELLS.get(k);
+  if (!S) {
+    const mesh = new THREE.InstancedMesh(shellGeo(spec), SHELL_MAT, 64);
+    mesh.count = 0; mesh.frustumCulled = false; mesh.receiveShadow = true;
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.setColorAt(0, new THREE.Color()); scene.add(mesh);
+    S = { mesh, n: 0, cap: 64 }; SHELLS.set(k, S);
+  }
+  return S;
+}
+const _shM = new THREE.Matrix4();
+function beginShells() { for (const S of SHELLS.values()) S.n = 0; SHELL_MAT.userData.uNight.value = tod.lights ? 2.2 : 0; }
+// el auto se dibuja con la malla liviana de su tipo, en su posición y con su pintura
+function pushShell(model, spec) {
+  const S = shellMesh(spec); if (S.n >= S.cap) return false;
+  model.root.updateMatrix(); model.body.updateMatrix();
+  S.mesh.setMatrixAt(S.n, _shM.multiplyMatrices(model.root.matrix, model.body.matrix)); S.mesh.setColorAt(S.n, model.paint.color); S.n++;
+  return true;
+}
+function endShells() {
+  for (const S of SHELLS.values()) { S.mesh.count = S.n; S.mesh.instanceMatrix.needsUpdate = true; if (S.mesh.instanceColor) S.mesh.instanceColor.needsUpdate = true; }
+}
+// autos estacionados (decoración): se juntan en PARKED y al final quedan en una malla por tipo
+const PARK_COLS = [0xc9ccd0, 0xf2f2f0, 0x8c9196, 0x2b2f35, 0x7a1f1a, 0x1f3f6b, 0x4b5a3a, 0xa08060, 0x9a9a8a, 0x0b0c0e];
+function parkCar(x, z, rot, kind = 'car', color = null) {
+  const spec = kind === 'pickup' ? { ...CARS[2], roof: null } : kind === 'taxi' ? CARS[0] : { ...CARS[0], roof: null };
+  PARKED.push({ x, z, rot, spec, color: color ?? (kind === 'taxi' ? 0x0b0c0e : PARK_COLS[Math.floor(Math.random() * PARK_COLS.length)]) });
+  addObstacle(x + Math.sin(rot) * 1.2, z + Math.cos(rot) * 1.2, 1.0, null, 'metal'); addObstacle(x - Math.sin(rot) * 1.2, z - Math.cos(rot) * 1.2, 1.0, null, 'metal');
+}
+function flushParked() {
+  const groups = new Map(), q = {}, qq = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), ps = new THREE.Vector3(), sc = new THREE.Vector3(1, 1, 1), col = new THREE.Color();
+  for (const p of PARKED) { const k = shellKey(p.spec); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+  for (const list of groups.values()) {
+    const mesh = new THREE.InstancedMesh(shellGeo(list[0].spec), SHELL_MAT, list.length);
+    list.forEach((p, i) => { mesh.setMatrixAt(i, _shM.compose(ps.set(p.x, groundAt(p.x, p.z, q), p.z), qq.setFromAxisAngle(up, p.rot), sc)); mesh.setColorAt(i, col.setHex(p.color)); });
+    mesh.castShadow = true; mesh.receiveShadow = true; mesh.computeBoundingSphere(); world.add(mesh);
+  }
+}
 const TRAFFIC_LANE = ROAD_HALF > 7 ? [1.5, 4.5, 7.5] : [ROAD_HALF * 0.48];
 // pistas de la calzada de un sentido (mismas medidas que onewayTex): autos en cualquiera, micros en la "solo bus"
 const ONE_LANES = (() => { const W = 2 * ROAD_HALF, bus0 = W - 3.5, n = Math.max(1, Math.round(bus0 / 3.55)), lw = bus0 / n; return { cars: Array.from({ length: n }, (_, k) => ROAD_HALF - (k + 0.5) * lw), bus: ROAD_HALF - bus0 - 1.75 }; })();
@@ -6213,7 +7051,7 @@ class Traffic {
     this.dist = dist; this.dir = dir; this.base = -dir * lanes[Math.floor(Math.random() * lanes.length)];
     this.base1 = this.kind === 'bus' ? ONE_LANES.bus : ONE_LANES.cars[Math.floor(Math.random() * ONE_LANES.cars.length)];
     this.off = this.laneAt(); this.offT = this.off; this.offVel = 0;
-    const sp = MAP.traffic.speed, slow = this.kind === 'truck' || this.kind === 'bus' ? 0.85 : 1;
+    const sp = MAP.world ? WR[WROUTE.zoneAt(dist)].speed : MAP.traffic.speed, slow = this.kind === 'truck' || this.kind === 'bus' ? 0.85 : 1;
     this.cruise = (sp[0] + Math.random() * (sp[1] - sp[0])) * slow;
     this.v = this.kind === 'cow' ? 0 : this.cruise * 0.85;
     Object.assign(this, { crashed: false, phase: '', retired: false, r: 0, wheelA: 0, yawExtra: 0, braking: false, hit: 0, cowT: 0, cowV: 0, cowDir: 1, cowPsi: 0 });
@@ -7288,10 +8126,13 @@ class Sound {
       this.amb = { city: chain(lp(170, 0.7)), hiss: chain(bp(700, 0.35)), river: chain(bp(1100, 0.6), lp(2600)), wind: chain(bp(380, 0.4)), next: { horn: t + 4, bird: t + 2, chucao: t + 8 } };
       this.amb.riverLfo = c.createOscillator(); this.amb.riverLfo.frequency.value = 0.23; const lg = c.createGain(); lg.gain.value = 0.012; this.amb.riverLfo.connect(lg); lg.connect(this.amb.river.gain); this.amb.riverLfo.start();
     }
-    const A = this.amb, x = car.x, z = car.z, city = MAP.city ? 1 : 0, inside = cam.mode >= 2 ? 0.55 : 1;
+    const A = this.amb, x = car.x, z = car.z, inside = cam.mode >= 2 ? 0.55 : 1;
+    // en el mundo abierto manda la zona en que se anda
+    const wz = MAP.world ? CUR_ZONE || 'santiago' : '', place = MAP.world ? { santiago: 'alameda', aconcagua: 'cordillera', caracoles: 'caracoles', portillo: 'caracoles', andes: 'caracoles', austral: 'austral', central: 'cordillera' }[wz] : MAP_ID;
+    const city = MAP.city || wz === 'santiago' ? 1 : 0;
     const riverW = MAP_ID === 'alameda' ? clamp(1 - (polyDist(ALAMEDA_RIVER, x, z) - 20) / 70, 0, 1) : 0;
-    const park = MAP.parkAt ? MAP.parkAt(x, z) : 0, nature = city ? park : (MAP_ID === 'austral' || MAP_ID === 'cordillera' || MAP_ID === 'x4_barro' || MAP_ID === 'x4_rio') ? 1 : 0;
-    const windy = MAP_ID === 'caracoles' || MAP_ID === 'x4_dunas' || MAP_ID === 'x4_rocas' ? 1 : 0.35;
+    const park = MAP.parkAt ? MAP.parkAt(x, z) : 0, nature = city ? park : (place === 'austral' || place === 'cordillera' || place === 'x4_barro' || place === 'x4_rio') ? 1 : 0;
+    const windy = place === 'caracoles' || place === 'x4_dunas' || place === 'x4_rocas' ? 1 : 0.35;
     A.city.gain.setTargetAtTime(city * 0.07 * inside, t, 0.5); A.hiss.gain.setTargetAtTime(city * 0.018 * inside, t, 0.5);
     A.river.gain.setTargetAtTime(riverW * 0.05 * inside, t, 0.6);
     A.wind.gain.setTargetAtTime(windy * 0.03 * inside * (city ? 0.3 : 1), t, 0.8);
@@ -7310,7 +8151,7 @@ class Sound {
       for (let k = 0; k < n; k++) { const o = c.createOscillator(), g = c.createGain(), t0 = t + k * (0.07 + Math.random() * 0.05); o.type = 'sine'; o.frequency.setValueAtTime(base * (0.9 + Math.random() * 0.25), t0); o.frequency.exponentialRampToValueAtTime(base * (1.15 + Math.random() * 0.3), t0 + 0.05); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.012 * nature * inside, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.06); o.connect(g); g.connect(this.master); o.start(t0); o.stop(t0 + 0.08); }
     }
     // el chucao, el pájaro de los bosques del sur: "chu-chu-chu-cáo"
-    if ((MAP_ID === 'austral' || MAP_ID === 'x4_barro') && t > A.next.chucao) {
+    if ((place === 'austral' || place === 'x4_barro') && t > A.next.chucao) {
       A.next.chucao = t + 12 + Math.random() * 20;
       [[520, 0], [520, 0.22], [520, 0.44], [700, 0.7]].forEach(([fq, dt0], k) => { const o = c.createOscillator(), g = c.createGain(), t0 = t + dt0, d = k === 3 ? 0.3 : 0.14; o.type = 'triangle'; o.frequency.setValueAtTime(fq, t0); o.frequency.exponentialRampToValueAtTime(k === 3 ? 420 : fq * 0.92, t0 + d); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.03 * inside, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d); o.connect(g); g.connect(this.master); o.start(t0); o.stop(t0 + d + 0.02); });
     }
@@ -7618,24 +8459,37 @@ const MM = (() => {
   for (let i = 0; i <= track.n; i += 3) { const [a, b] = P(track.X[i % track.n], track.Z[i % track.n]); i ? path.lineTo(a, b) : path.moveTo(a, b); }
   path.closePath();
   // agua del mapa (laguna, río o lago), recortada al minimapa
-  const water = g => {
-    if (!WATER) return;
+  const water = (g, Z = 1) => {
     g.save(); g.fillStyle = 'rgba(30,158,162,0.5)'; g.strokeStyle = 'rgba(30,158,162,0.5)';
-    if (WATER.type === 'circle') { const [x, z] = P(WATER.x, WATER.z); g.beginPath(); g.arc(x, z, WATER.r * sc, 0, 7); g.fill(); }
-    else if (WATER.type === 'plane') { const [, z] = P(0, WATER.z0); g.fillRect(0, z, 340, 340 - z); }
-    else if (WATER.type === 'river') { g.lineWidth = Math.max(3, WATER.width * sc); g.lineJoin = 'round'; g.beginPath(); WATER.pts.forEach(([x, z], k) => { const [a, b] = P(x, z); k ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); }
+    for (const W of WATERS) {
+      if (W.type === 'circle') { const [x, z] = P(W.x, W.z); g.beginPath(); g.arc(x, z, W.r * sc, 0, 7); g.fill(); }
+      else if (W.type === 'plane') { const [, z] = P(0, W.z0); g.fillRect(0, z, 340, 340 - z); }
+      else if (W.type === 'river') { g.lineWidth = Math.max(3 / Z, W.width * sc); g.lineJoin = 'round'; g.beginPath(); W.pts.forEach(([x, z], k) => { const [a, b] = P(x, z); k ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); }
+    }
     g.restore();
   };
-  return { P, path, water };
+  return { P, path, water, sc };
 })();
 const RIVAL_COLORS = [0xf2c21b, 0x2aa198, 0xe8e8e8, 0x7a2fd0, 0xff7a1a];
 function drawMinimap(car, rivals) {
   const g = mctx; g.clearRect(0, 0, 340, 340);
   g.lineJoin = 'round';
-  MM.water(g);
-  g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 11; g.stroke(MM.path);
-  g.strokeStyle = '#cfd8d3'; g.lineWidth = 5; g.stroke(MM.path);
-  for (const t of game.traffic) { if (!t.model.root.visible) continue; const [x, z] = MM.P(t.x, t.z); g.fillStyle = t.kind === 'cow' ? '#c58a4a' : '#8d989c'; g.fillRect(x - 3.5, z - 3.5, 7, 7); }
+  // mundo abierto: el mapa sigue al auto, ampliado (se ven unos 2 km a la redonda)
+  const Z = MAP.world ? 5 : 1;
+  g.save();
+  if (Z > 1) { const [cx, cz] = MM.P(car.x, car.z); g.translate(170, 170); g.scale(Z, Z); g.translate(-cx, -cz); }
+  MM.water(g, Z);
+  g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 11 / Z; g.stroke(MM.path);
+  g.strokeStyle = '#cfd8d3'; g.lineWidth = 5 / Z; g.stroke(MM.path);
+  const tq = 3.5 / Z;
+  for (const t of game.traffic) { if (!t.model.root.visible) continue; const [x, z] = MM.P(t.x, t.z); g.fillStyle = t.kind === 'cow' ? '#c58a4a' : '#8d989c'; g.fillRect(x - tq, z - tq, tq * 2, tq * 2); }
+  if (Z > 1) {
+    const [x, z] = MM.P(car.x, car.z), s = Math.sin(car.psi), c = Math.cos(car.psi), k = 1 / Z;
+    g.fillStyle = '#d52b1e'; g.strokeStyle = '#fff'; g.lineWidth = 3 * k;
+    g.beginPath(); g.moveTo(x + s * 14 * k, z + c * 14 * k); g.lineTo(x + (-s * 8 + c * 8) * k, z + (-c * 8 - s * 8) * k); g.lineTo(x + (-s * 8 - c * 8) * k, z + (-c * 8 + s * 8) * k); g.closePath(); g.fill(); g.stroke();
+    g.restore(); return;
+  }
+  g.restore();
   if (TRIAL) MAP.cps.forEach((cf, k) => {
     const p = track.at(track.START_S + cf * track.length, {}), [x, z] = MM.P(p.x, p.z);
     g.fillStyle = k < game.cp ? '#7fd98f' : '#ff6a10'; g.strokeStyle = '#111'; g.lineWidth = 2; g.beginPath(); g.arc(x, z, 8, 0, 7); g.fill(); g.stroke();
@@ -7896,6 +8750,7 @@ function genHazards(diffK) {
     const cnt = Math.round(c0 * diffK);
     for (let k = 0; k < cnt; k++) for (let tries = 0; tries < 30; tries++) {
       const s = 30 + r() * (L - 60);
+      if (MAP.hzOk && !MAP.hzOk(type, s)) continue;
       if (def.special) { if (special[type](s)) break; continue; }
       const ls = rnd(def.ls), ld = def.full === 'all' ? ROAD_HALF : def.full ? ROAD_HALF * (0.55 + r() * 0.45) : rnd(def.ld);
       if (!okS(s, ls)) continue;
@@ -7999,12 +8854,12 @@ function spawnTraffic(k) {
   }
   for (let i = 0; i < Math.round((MAP.cows || 0) * Math.max(0.6, k)); i++) {
     const c = new Traffic('cow'); let d;
-    do { d = Math.random() * L; } while (Math.abs(wrapGap(d - track.START_S)) < 250 || track.bridge[hzIdx(d)]);
+    do { d = Math.random() * L; } while (Math.abs(wrapGap(d - track.START_S)) < 250 || track.bridge[hzIdx(d)] || (MAP.world && WROUTE.zoneAt(d) !== 'austral'));
     c.spawn(d, 1); game.traffic.push(c);
   }
 }
-function respawnTraffic(t, car) {
-  const ahead = Math.random() < 0.72 ? 1 : -1, s = car.prog + ahead * (330 + Math.random() * 300);
+function respawnTraffic(t, car, near) {
+  const ahead = Math.random() < 0.72 ? 1 : -1, s = car.prog + ahead * (near ? 70 + Math.random() * 600 : 330 + Math.random() * 300);
   t.spawn(s, inSplit(s) || Math.random() < 0.5 ? 1 : -1);   // en la Alameda solo hay tránsito en el sentido de la calzada
 }
 // ---- tránsito de la calzada norte de la Alameda (hacia el poniente), al otro lado del bandejón ----
@@ -8016,9 +8871,9 @@ function spawnMovers() {
   // Todos avanzan hacia s menor: en la Alameda hacia el poniente, en Santa María hacia el oriente
   const roads = [];
   if (SPLIT) roads.push({ a: SPLIT.a, b: SPLIT.b, bus: SPLIT.opp1 - 1.75, cars: [SPLIT.opp0 + 1.75, SPLIT.opp0 + 5.25, SPLIT.opp0 + 8.75], drape: false,
-    kinds: ['bus', 'car', 'taxi', 'colectivo', 'car', 'bus', 'pickup', 'car', 'taxi', 'colectivo'] });
+    kinds: ['bus', 'car', 'taxi', 'colectivo', 'car', 'bus', 'pickup', 'car', 'taxi', 'colectivo', 'car', 'taxi', 'bus', 'car'] });
   if (RIVER) roads.push({ a: RIVER.a, b: RIVER.b, bus: -(RIVER.sm0 + 1.75), cars: [-(RIVER.sm0 + 5.25), -(RIVER.sm0 + 8.75), -(RIVER.sm0 + 12.25)], drape: true,
-    kinds: ['car', 'bus', 'taxi', 'car', 'colectivo', 'pickup', 'car'] });
+    kinds: ['car', 'bus', 'taxi', 'car', 'colectivo', 'pickup', 'car', 'taxi', 'car', 'bus'] });
   for (const R of roads) R.kinds.forEach((kind, i) => {
     const { spec, model } = trafficVehicle(kind); scene.add(model.root);
     const m = { kind, spec, model, road: R, lane: kind === 'bus' ? R.bus : R.cars[i % 3], s: R.a + (R.b - R.a) * (i + Math.random() * 0.6) / R.kinds.length, cruise: (kind === 'bus' ? 9 : 11) + Math.random() * 4, v: 0, wheelA: 0, p: {}, q: {}, wait: false };
@@ -8064,6 +8919,8 @@ function seenByCamera(x, y, z, far = 220) {
 // =====================================================================
 // Estado del juego
 // =====================================================================
+// zona del mundo abierto en que se va manejando (null fuera del mundo abierto)
+let CUR_ZONE = null;
 const game = { state: 'loading', mode: 'race', laps: MAP.laps || 3, carIdx: clamp(store.get('car', 0) | 0, 0, CARS.length - 1), t: 0, rivals: [], traffic: [], movers: [], car: null, model: null, spot: null };
 const bestKey = id => MAP_ID === 'cordillera' ? 'best_' + id : 'best_' + id + '_' + MAP_ID;
 let composer = null, bloomPass = null, gradePass = null, fxaaPass = null, postQ = 'med', skids, smoke, sparks, debris, loose;
@@ -8162,6 +9019,11 @@ function onTimeChanged() {
   for (const e of CITY_EMI) e.mat.emissiveIntensity = tod.night ? e.k : 0;
 }
 const opt = name => (document.querySelector(`input[name="${name}"]:checked`) || {}).value;
+// en el mundo abierto no hay carrera: se maneja libre desde la zona elegida
+const pickMode = () => MAP.world ? 'libre' : (opt('mode') || 'race');
+function worldStartS() { const z = opt('wstart') || 'santiago'; return z === 'santiago' || !WROUTE ? track.START_S : WROUTE.zoneS[WZ.indexOf(z)] + 150; }
+// arma de una vez el terreno alrededor de la cámara (al cargar y al partir), para no ver bloques gruesos al comienzo
+function qtWarm() { if (!QT.group) return; for (let k = 0; k < 9; k++) { qtUpdate(1e9); if (!QT.pending) break; } }
 
 function disposeModel(m) { if (!m) return; scene.remove(m.root); m.root.traverse(o => { if (o.isMesh && o.geometry) o.geometry.dispose(); }); }
 const GRID_LANE = clamp(ROAD_HALF * 0.45, 1.9, 3.2);
@@ -8184,7 +9046,7 @@ function setupGarage() {
   const spot = new THREE.SpotLight(0xfff0d8, 0, 150, 0.42, 0.65, 1.7);
   spot.position.set(0, pr.P.hoodF, pr.zFront); spot.target.position.set(0, 0, pr.zFront + 30);
   game.model.body.add(spot, spot.target); game.spot = spot; onTimeChanged();
-  const slot = game.mode === 'tt' ? { dist: track.START_S - 40, lane: 0 } : gridSlot(3);
+  const slot = game.mode === 'tt' ? { dist: track.START_S - 40, lane: 0 } : game.mode === 'libre' ? { dist: worldStartS(), lane: -GRID_LANE } : gridSlot(3);
   placeVehicle(game.car, slot.dist, slot.lane);
   game.car.sync(game.model, 0);
 }
@@ -8202,9 +9064,9 @@ onShift = (car, dir) => {
 function startRace() {
   document.body.classList.add('racing');
   if (TRIAL) { startTrial(); return; }
-  sound.init(); sound.crank(); sound.music.set(MAP_ID);
-  $('off4').classList.add('hidden'); $('lap-lbl').textContent = 'Vuelta';
-  game.mode = opt('mode') || 'race';
+  sound.init(); sound.crank(); sound.music.set(MAP.world ? WR[WROUTE.zoneAt(worldStartS())].theme : MAP_ID);
+  $('off4').classList.add('hidden'); $('lap-lbl').textContent = MAP.world ? 'Zona' : 'Vuelta'; $('best-lbl').textContent = MAP.world ? 'Recorrido' : 'Mejor';
+  game.mode = pickMode();
   game.laps = game.mode === 'race' ? (MAP.laps || 3) : Infinity;
   todKey = TOD[opt('tod')] ? opt('tod') : 'day';
   applyWeather(opt('weather') || 'clear');
@@ -8230,13 +9092,14 @@ function startRace() {
     }
   }
   skids.clear(); smoke.clear(); sparks.clear();
-  car.prog = game.mode === 'tt' ? track.START_S - 40 : gridSlot(3).dist;
+  car.prog = game.mode === 'tt' ? track.START_S - 40 : game.mode === 'libre' ? worldStartS() : gridSlot(3).dist;
   game.lastS = ((car.prog % track.length) + track.length) % track.length;
   Object.assign(game, { t: 0, lapStart: 0, lapsDone: 0, lapTimes: [], ttStarted: false, wrongT: 0, resultsT: -1, finishTime: 0, lastK: 9, hintT: 9, splashed: false, hudT: 0, frame: 0,
-    pen: 0, lapPen: 0, overMsg: false, deadMsg: false });
+    pen: 0, lapPen: 0, overMsg: false, deadMsg: false, odo: 0 });
   game.best = store.get(bestKey(car.spec.id), 0);
   car.gear = 0;
-  game.countdown = 3.6; game.state = 'countdown';
+  game.countdown = game.mode === 'libre' ? 1.2 : 3.6; game.state = 'countdown';
+  if (game.mode === 'libre') { CUR_ZONE = null; for (const t of game.traffic) if (t.kind !== 'cow') respawnTraffic(t, car, true); }
   $('menu').classList.add('hidden'); $('hud').classList.remove('hidden');
   $('pause').classList.add('hidden'); $('results').classList.add('hidden');
   $('touch').classList.toggle('hidden', !IS_TOUCH);
@@ -8244,6 +9107,7 @@ function startRace() {
   $('hint').textContent = IS_TOUCH ? '' : 'Mantén S detenido para retroceder · Espacio: freno de mano · C: cámara · arrastra el mouse: mirar alrededor · V: centrar · R: volver a la ruta';
   cam.mode = store.get('cam', 0) % CAMS.length; $('p-cam').textContent = 'CÁMARA ' + (cam.mode + 1);
   centerCamera(); cam.yaw = car.psi; updateCamera(0.016, car, game.model, true);
+  qtWarm();
   updatePills();
   last = performance.now();
 }
@@ -8257,7 +9121,7 @@ function showMenu() {
   for (const t of game.traffic) disposeModel(t.model); game.traffic = [];
   clearMovers();
   resetWorldDamage(); clearHazards();
-  game.mode = opt('mode') || 'race';
+  game.mode = pickMode();
   setupGarage();
   if (winchLine) winchLine.visible = false;
   $('menu').classList.remove('hidden'); $('hud').classList.add('hidden'); $('touch').classList.add('hidden');
@@ -8565,8 +9429,12 @@ function stepGame(dt) {
   if (game.state === 'countdown') {
     game.countdown -= dt;
     const k = Math.ceil(game.countdown - 0.6);
-    if (k !== game.lastK && k >= 1 && k <= 3) { game.lastK = k; showMsg(String(k), k === 3 ? 'Prepárate' : '', 0.9); sound.beep(620); }
-    if (game.countdown <= 0) { game.state = 'race'; car.gear = 1; showMsg('¡Vamos!', game.mode === 'race' ? `${game.laps} vueltas · ${MAP.name}` : 'Contrarreloj · ' + MAP.name, 1.4); sound.beep(1240, 0.45, 0.3); }
+    if (k !== game.lastK && k >= 1 && k <= 3 && game.mode !== 'libre') { game.lastK = k; showMsg(String(k), k === 3 ? 'Prepárate' : '', 0.9); sound.beep(620); }
+    if (game.countdown <= 0) {
+      game.state = 'race'; car.gear = 1;
+      if (game.mode === 'libre') { const z = WR[WROUTE.zoneAt(car.prog)]; showMsg(z.name, z.sub, 2.4); }
+      else { showMsg('¡Vamos!', game.mode === 'race' ? `${game.laps} vueltas · ${MAP.name}` : 'Contrarreloj · ' + MAP.name, 1.4); sound.beep(1240, 0.45, 0.3); }
+    }
   }
   // física (modo normal de neumáticos, o cuerpo rígido 3D si el auto va volcando)
   car.dmg.applyMech(car.mech); car.sagP = car.dmg.sagP; car.sagR = car.dmg.sagR;
@@ -8636,6 +9504,12 @@ function stepGame(dt) {
   if (car.dmg.dead && !game.deadMsg) { game.deadMsg = true; showMsg('Motor destruido', 'Presiona R para llamar a la grúa (+10 s)', 3.5); }
   // vueltas y tiempos
   if (racing) game.t += dt;
+  // mundo abierto: kilómetros recorridos y la zona en que se va (con su música)
+  if (game.mode === 'libre') {
+    game.odo += car.speed * dt;
+    const z = WROUTE.zoneAt(game.lastS);
+    if (z !== CUR_ZONE) { const first = !CUR_ZONE; CUR_ZONE = z; if (!first && racing) showMsg(WR[z].name, WR[z].sub, 2.4); sound.music.set(WR[z].theme); }
+  }
   const raceDist = car.prog - track.START_S;
   if (game.mode === 'tt' && !game.ttStarted && raceDist >= 0) { game.ttStarted = true; game.lapStart = game.t; game.lapsDone = 0; showMsg('¡Cronómetro!', 'Vuelta lanzada', 1); }
   const lapsNow = Math.max(0, Math.floor(raceDist / L));
@@ -8663,7 +9537,7 @@ function stepGame(dt) {
     else if (raining && car.grounded && !dirt && sp > 12 && i >= 2 && Math.random() < 0.55) smoke.emit(x, y + 0.25, z, car.vx * 0.55 + (Math.random() - 0.5), 0.4 + Math.random() * 0.5, car.vz * 0.55 + (Math.random() - 0.5), 0.9 + Math.random() * 0.5, 0.9, 3.2, 0.12 * Math.min(1, sp / 30), 0.8, 0.83, 0.86);
   }
   if (car.scrape > 0 && car.scrapePt) for (let k = 0; k < 4; k++) sparks.emit(car.scrapePt[0], car.scrapePt[1], car.scrapePt[2], car.vx * 0.6 + (Math.random() - 0.5) * 5, Math.random() * 3, car.vz * 0.6 + (Math.random() - 0.5) * 5, 0.25 + Math.random() * 0.25, 0.14, -0.1, 1, 1, 0.62, 0.22);
-  if (car.inWater > 0 && !game.splashed) { game.splashed = true; showMsg('¡Al agua!', WATER ? WATER.name : '', 1.8); for (let k = 0; k < 60; k++) smoke.emit(car.x, car.waterY + 0.5, car.z, (Math.random() - 0.5) * 6, 3 + Math.random() * 4, (Math.random() - 0.5) * 6, 1.2, 0.8, 1.5, 0.5, 0.85, 0.95, 1); }
+  if (car.inWater > 0 && !game.splashed) { game.splashed = true; showMsg('¡Al agua!', waterNameAt(car.x, car.z), 1.8); for (let k = 0; k < 60; k++) smoke.emit(car.x, car.waterY + 0.5, car.z, (Math.random() - 0.5) * 6, 3 + Math.random() * 4, (Math.random() - 0.5) * 6, 1.2, 0.8, 1.5, 0.5, 0.85, 0.95, 1); }
   if (car.inWater > 2.2) { resetToTrack(); game.splashed = false; }
   if (car.impact > 0.04) { sound.hit(car.impact); cam.shake = Math.max(cam.shake, car.impact); }
   car.impact = 0;
@@ -8680,11 +9554,18 @@ function stepGame(dt) {
   game.hudT -= dt;
   if (game.hudT <= 0) {
     game.hudT = 0.1;
-    $('lap').textContent = game.mode === 'race' ? `${Math.min(game.lapsDone + 1, game.laps)}/${game.laps}` : String(game.lapsDone + (game.ttStarted ? 1 : 0));
-    const shown = game.state === 'finished' ? game.finishTime : (game.mode === 'tt' && !game.ttStarted ? 0 : game.t - game.lapStart + game.lapPen);
-    $('time').textContent = shown > 0 ? fmtTime(shown) : '0:00.000';
+    if (game.mode === 'libre') {
+      // mundo abierto: la zona, el tiempo manejando y los kilómetros recorridos
+      $('lap').textContent = WR[CUR_ZONE || 'santiago'].name;
+      $('time').textContent = fmtTime(game.t).replace(/\.\d+$/, '');
+      $('best').textContent = (game.odo / 1000).toFixed(1) + ' km';
+    } else {
+      $('lap').textContent = game.mode === 'race' ? `${Math.min(game.lapsDone + 1, game.laps)}/${game.laps}` : String(game.lapsDone + (game.ttStarted ? 1 : 0));
+      const shown = game.state === 'finished' ? game.finishTime : (game.mode === 'tt' && !game.ttStarted ? 0 : game.t - game.lapStart + game.lapPen);
+      $('time').textContent = shown > 0 ? fmtTime(shown) : '0:00.000';
+      $('best').textContent = fmtTime(game.best);
+    }
     drawDamage(car.dmg.mode === 'off' ? null : car.dmg);
-    $('best').textContent = fmtTime(game.best);
     if (game.mode === 'race') {
       const st = standings(), pos = st.findIndex(e => e.me) + 1;
       $('pos').innerHTML = `${pos}<small>/${st.length}</small>`;
@@ -8693,7 +9574,7 @@ function stepGame(dt) {
     } else $('place').textContent = '';
     $('p-tcs').classList.toggle('warn', car.tcsOn); $('p-abs').classList.toggle('warn', car.absOn);
   }
-  if (game.wrongT > 1.5 && msgTimer <= 0) showMsg('Sentido contrario', 'Da la vuelta o presiona R', 1.2);
+  if (game.wrongT > 1.5 && msgTimer <= 0 && game.mode !== 'libre') showMsg('Sentido contrario', 'Da la vuelta o presiona R', 1.2);
   if (car.overturned || car.dmg.dead) { $('hint').textContent = 'Presiona R para llamar a la grúa (+10 s)'; game.hintT = 0.3; }
   game.hintT -= dt; $('hint').style.opacity = game.hintT > 0 ? 1 : 0;
 }
@@ -8732,9 +9613,12 @@ function render() {
   if (gradePass) gradePass.uniforms.uTime.value = t % 100;
   if (smoke) { const sc = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)); smoke.mat.uniforms.scale.value = sc; sparks.mat.uniforms.scale.value = sc; }
   if ((renderFrame++ & 7) === 0) { cullVegetation(QS.veg); cullDetail(); }
-  updateCarLOD(game.model); for (const r of game.rivals) updateCarLOD(r.model, true);
-  for (const t of game.traffic) if (t.kind !== 'cow' && t.model.root.visible) updateCarLOD(t.model, true);
-  for (const t of game.movers) if (t.model.root.visible) updateCarLOD(t.model, true);
+  if (MAP.world) qtUpdate(game.state === 'menu' ? 14 : QT.budget);   // en el menú hay tiempo de sobra para armar terreno
+  beginShells();
+  updateCarLOD(game.model); for (const r of game.rivals) if (updateCarLOD(r.model, true) === 2) pushShell(r.model, r.spec);
+  for (const t of game.traffic) if (t.kind !== 'cow' && t.model.root.visible && updateCarLOD(t.model, true) === 2) pushShell(t.model, t.spec);
+  for (const t of game.movers) if (t.model.root.visible && updateCarLOD(t.model, true) === 2) pushShell(t.model, t.spec);
+  endShells();
   updatePrecip(t);
   if (composer) composer.render(); else renderer.render(scene, camera);
 }
@@ -8942,10 +9826,11 @@ function drawMapPreview(canvas, M) {
   g.clearRect(0, 0, w, h);
   g.save(); g.beginPath(); g.rect(0, 0, w, h); g.clip();
   g.fillStyle = 'rgba(30,158,162,0.55)'; g.strokeStyle = 'rgba(30,158,162,0.55)';
-  const W = M.water;
-  if (W && W.type === 'circle') { const [a, b] = P(W.x, W.z); g.beginPath(); g.arc(a, b, W.r * sc, 0, 7); g.fill(); }
-  if (W && W.type === 'plane') { const [, b] = P(0, W.z0); g.fillRect(0, b, w, h); }
-  if (W && W.type === 'river') { g.lineWidth = Math.max(3, W.width * sc); g.beginPath(); W.pts.forEach(([x, z], k) => { const [a, b] = P(x, z); k ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); }
+  for (const W of M.waters || (M.water ? [M.water] : [])) {
+    if (W.type === 'circle') { const [a, b] = P(W.x, W.z); g.beginPath(); g.arc(a, b, W.r * sc, 0, 7); g.fill(); }
+    if (W.type === 'plane') { const [, b] = P(0, W.z0); g.fillRect(0, b, w, h); }
+    if (W.type === 'river') { g.lineWidth = Math.max(3, W.width * sc); g.beginPath(); W.pts.forEach(([x, z], k) => { const [a, b] = P(x, z); k ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); }
+  }
   g.restore();
   g.lineJoin = 'round';
   const path = () => { g.beginPath(); pts.forEach((p, k) => { const [a, b] = P(p.x, p.z); k ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath(); };
@@ -8978,7 +9863,14 @@ function buildMenu() {
     b.innerHTML = `<canvas width="400" height="200"></canvas><em>${M.place}</em><b>${M.name}</b>${extra}<div class="tags">${M.tags.map(t => `<span>${t}</span>`).join('')}</div><p>${M.desc}</p>`;
     drawMapPreview(b.querySelector('canvas'), M);
     b.addEventListener('click', () => switchMap(id));
-    $(M.mode === '4x4' ? 'maps4' : 'maps').appendChild(b);
+    $(M.mode === '4x4' ? 'maps4' : M.world ? 'mapsW' : 'maps').appendChild(b);
+  }
+  // mundo abierto: se elige dónde partir en vez del modo de carrera
+  if (MAP.world) {
+    document.querySelector('input[name="mode"]').closest('.opt-group').classList.add('hidden');
+    $('g-wstart').classList.remove('hidden');
+    $('opts-h').textContent = 'Viaje';
+    $('start').textContent = '¡A manejar!';
   }
   // en el Desafío 4x4 solo se corre con camioneta y se prepara para la etapa
   if (TRIAL) {
@@ -9044,7 +9936,7 @@ function buildMenu() {
   addEventListener('pointerup', () => { drag = null; });
   addEventListener('pointermove', e => { if (drag != null && game.state === 'taller') { cam.orbit -= (e.clientX - drag) * 0.008; drag = e.clientX; } });
   const defWeather = MAP.defWeather || (MAP_ID === 'austral' ? 'rain' : 'clear');
-  for (const [name, def] of [['mode', 'race'], ['tod', 'day'], ['gearbox', 'auto'], ['quality', IS_TOUCH ? 'low' : 'med'], ['damage', 'real'], ['diff', 'normal'], ['weather', defWeather]]) {
+  for (const [name, def] of [['mode', 'race'], ['wstart', 'santiago'], ['tod', 'day'], ['gearbox', 'auto'], ['quality', IS_TOUCH ? 'low' : 'med'], ['damage', 'real'], ['diff', 'normal'], ['weather', defWeather]]) {
     const v = store.get(name === 'weather' ? 'weather_' + MAP_ID : name, def), el = document.querySelector(`input[name="${name}"][value="${v}"]`);
     if (el) el.checked = true;
   }
@@ -9053,7 +9945,8 @@ function buildMenu() {
     if (el.name === 'tod') setTimeOfDay(el.value);
     if (el.name === 'weather') { applyWeather(el.value); setupGarage(); }
     if (el.name === 'quality') applyQuality(el.value);
-    if (el.name === 'mode') { game.mode = el.value; setupGarage(); }
+    if (el.name === 'mode') { game.mode = pickMode(); setupGarage(); }
+    if (el.name === 'wstart') setupGarage();   // el terreno de allá se arma de a poco detrás del menú
   }));
   $('start').addEventListener('click', startRace);
   $('b-resume').addEventListener('click', () => togglePause());
@@ -9079,7 +9972,7 @@ async function init() {
   WEATHER.id = store.get('weather_' + MAP_ID, MAP.defWeather || (MAP_ID === 'austral' ? 'rain' : 'clear'));
   setTimeOfDay(TOD[store.get('tod', 'day')] ? store.get('tod', 'day') : 'day');
   FIELDS = planFields();
-  world.add(buildTerrain(IS_TOUCH ? 300 : 420));
+  world.add(MAP.world ? qtInit() : buildTerrain(IS_TOUCH ? 300 : 420));
   world.add(buildRoad());
   if (TRIAL) OB4 = buildObstacles4();
   buildRoadside(world);
@@ -9097,10 +9990,11 @@ async function init() {
   buildMenu();
   applyWeather(opt('weather') || 'clear');
   applyQuality(opt('quality') || 'med');
-  game.mode = opt('mode') || 'race';
+  game.mode = pickMode();
   setupGarage();
   $('loading').classList.add('hidden');
   showMenu();
+  if (MAP.world) { orbitCamera(0.016, game.car.x, game.car.y, game.car.z); qtWarm(); }
   last = performance.now();
   requestAnimationFrame(loop);
 }
