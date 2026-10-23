@@ -8858,13 +8858,17 @@ const DIFF = {
   facil: { skill: 0.9, hz: 0.45, tr: 0.5 }, normal: { skill: 1, hz: 1, tr: 1 },
   dificil: { skill: 1.05, hz: 1.6, tr: 1.4 }, extrema: { skill: 1.1, hz: 2.4, tr: 2 },
 };
+// separación mínima entre dos autos del tránsito al aparecer o reaparecer: si no se revisa, con suficiente
+// tránsito es común que dos nazcan encimados y queden empujándose sin parar en el mismo lugar
+const TRAFFIC_GAP = 22;
+const tooClose = (d, skip) => game.traffic.some(o => o !== skip && o.kind !== 'cow' && Math.abs(wrapGap(d - o.dist)) < TRAFFIC_GAP);
 function spawnTraffic(k) {
   for (const t of game.traffic) disposeModel(t.model);
   game.traffic = [];
   const T = MAP.traffic, n = Math.round(T.n * k), L = track.length;
   for (let i = 0; i < n; i++) {
-    const t = new Traffic(T.kinds[i % T.kinds.length]); let d;
-    do { d = Math.random() * L; } while (Math.abs(wrapGap(d - track.START_S)) < 170);
+    const t = new Traffic(T.kinds[i % T.kinds.length]); let d, tries = 0;
+    do { d = Math.random() * L; tries++; } while ((Math.abs(wrapGap(d - track.START_S)) < 170 || tooClose(d)) && tries < 25);
     t.spawn(d, inSplit(d) || Math.random() < 0.5 ? 1 : -1); game.traffic.push(t);
   }
   for (let i = 0; i < Math.round((MAP.cows || 0) * Math.max(0.6, k)); i++) {
@@ -8874,7 +8878,12 @@ function spawnTraffic(k) {
   }
 }
 function respawnTraffic(t, car, near) {
-  const ahead = Math.random() < 0.72 ? 1 : -1, s = car.prog + ahead * (near ? 70 + Math.random() * 600 : 330 + Math.random() * 300);
+  let s, tries = 0;
+  do {
+    const ahead = Math.random() < 0.72 ? 1 : -1;
+    s = car.prog + ahead * (near ? 70 + Math.random() * 600 : 330 + Math.random() * 300);
+    tries++;
+  } while (tooClose(s, t) && tries < 25);
   t.spawn(s, inSplit(s) || Math.random() < 0.5 ? 1 : -1);   // en la Alameda solo hay tránsito en el sentido de la calzada
 }
 // ---- tránsito de la calzada norte de la Alameda (hacia el poniente), al otro lado del bandejón ----
